@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.LoopCast" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/sc_orange</item>
+        <item name="colorOnPrimary">@color/white</item>
+        <item name="colorPrimaryContainer">#FFDBCC</item>
+        <item name="colorOnPrimaryContainer">#3A0B00</item>
+        <item name="android:statusBarColor">?attr/colorSurface</item>
+        <item name="android:windowLightStatusBar">true</item>
+    </style>
+</resources>

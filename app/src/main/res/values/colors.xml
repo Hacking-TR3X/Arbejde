@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="sc_orange">#FF5500</color>
+    <color name="sc_orange_dark">#CC4400</color>
+    <color name="white">#FFFFFFFF</color>
+</resources>

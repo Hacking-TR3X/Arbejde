@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">LoopCast</string>
+    <string name="media_route_menu_title">Cast</string>
+    <string name="action_direct_mode">Cast direkte (uden relæ)</string>
+    <string name="action_battery">Undtag fra batterioptimering</string>
+
+    <string name="url_hint">SoundCloud-link (fx https://on.soundcloud.com/…)</string>
+    <string name="paste">Indsæt link</string>
+    <string name="save">Gem</string>
+    <string name="play_loop">Afspil i loop på Nest</string>
+    <string name="stop">Stop</string>
+    <string name="saved_tracks">Gemte tracks</string>
+    <string name="no_saved_tracks">Ingen gemte tracks endnu. Indsæt et link og tryk Gem eller Afspil.</string>
+    <string name="play_track">Afspil track</string>
+    <string name="delete_track">Slet track</string>
+    <string name="delete_confirm_title">Slet gemt track?</string>
+    <string name="delete_confirm_message">%1$s fjernes fra listen.</string>
+    <string name="delete">Slet</string>
+    <string name="cancel">Annuller</string>
+    <string name="hint_text">Telefonen og din Google Nest skal være på samme Wi‑Fi. Tryk på cast-ikonet øverst for at vælge din Nest, indsæt et SoundCloud-link og tryk Afspil. Tracket kører i loop, indtil du trykker Stop. Lad appen være installeret og telefonen tændt natten over – den sender streamen videre til din Nest.</string>
+
+    <string name="status_idle">Klar. Vælg din Nest via cast-ikonet og indsæt et link.</string>
+    <string name="status_connected">Forbundet til %1$s</string>
+    <string name="status_pick_device">Vælg din Google Nest i cast-menuen – afspilningen starter automatisk bagefter.</string>
+    <string name="status_resolving">Slår tracket op på SoundCloud…</string>
+    <string name="status_playing_on">Afspiller i loop på %1$s</string>
+    <string name="status_stopped">Stoppet.</string>
+    <string name="status_cast_failed">Kunne ikke forbinde til cast-enheden.</string>
+    <string name="status_playback_error">Nest’en meldte en afspilningsfejl. Prøv igen, eller slå “Cast direkte” til/fra i menuen.</string>
+    <string name="status_no_play_services">Google Play-tjenester mangler – casting virker ikke på denne enhed.</string>
+    <string name="status_error">Fejl: %1$s</string>
+
+    <string name="error_empty_url">Indsæt et SoundCloud-link først.</string>
+    <string name="error_not_soundcloud">Det ligner ikke et SoundCloud-link.</string>
+    <string name="error_no_wifi_ip">Kunne ikke finde telefonens Wi‑Fi-adresse. Er du på Wi‑Fi?</string>
+    <string name="error_session_lost">Forbindelsen til cast-enheden blev afbrudt.</string>
+    <string name="error_clipboard_empty">Der er ikke noget link i udklipsholderen.</string>
+    <string name="saved_ok">Gemt.</string>
+    <string name="battery_already">Appen er allerede undtaget fra batterioptimering.</string>
+
+    <string name="notification_channel">Afspilning</string>
+    <string name="notification_title">LoopCast kører</string>
+    <string name="notification_text">Sender SoundCloud-streamen videre til din Nest i loop.</string>
+</resources>

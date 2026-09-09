@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+    <item
+        android:id="@+id/media_route_menu_item"
+        android:title="@string/media_route_menu_title"
+        app:actionProviderClass="androidx.mediarouter.app.MediaRouteActionProvider"
+        app:showAsAction="always" />
+    <item
+        android:id="@+id/action_direct_mode"
+        android:checkable="true"
+        android:title="@string/action_direct_mode"
+        app:showAsAction="never" />
+    <item
+        android:id="@+id/action_battery"
+        android:title="@string/action_battery"
+        app:showAsAction="never" />
+</menu>
