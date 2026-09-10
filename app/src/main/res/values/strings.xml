@@ -42,4 +42,12 @@
     <string name="notification_channel">Afspilning</string>
     <string name="notification_title">LoopCast kører</string>
     <string name="notification_text">Sender SoundCloud-streamen videre til din Nest i loop.</string>
+    <string name="play">Afspil</string>
+    <string name="pause">Pause</string>
+    <string name="rewind_15">−15 s</string>
+    <string name="forward_15">+15 s</string>
+    <string name="to_end">Spol til slut</string>
+    <string name="position_format">%1$s / %2$s</string>
+    <string name="loop_count">Loop nr. %1$d</string>
+    <string name="loop_count_first">Første gennemspilning</string>
 </resources>

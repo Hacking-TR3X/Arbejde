@@ -14,6 +14,7 @@ import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
 import android.view.inputmethod.EditorInfo
+import android.widget.SeekBar
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
@@ -29,6 +30,7 @@ import com.google.android.gms.cast.MediaLoadRequestData
 import com.google.android.gms.cast.MediaMetadata
 import com.google.android.gms.cast.MediaQueueData
 import com.google.android.gms.cast.MediaQueueItem
+import com.google.android.gms.cast.MediaSeekOptions
 import com.google.android.gms.cast.MediaStatus
 import com.google.android.gms.cast.framework.CastButtonFactory
 import com.google.android.gms.cast.framework.CastContext
@@ -43,6 +45,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.IOException
+import java.util.Locale
 
 class MainActivity : AppCompatActivity() {
 
@@ -58,6 +61,7 @@ class MainActivity : AppCompatActivity() {
     /** URL to start playing as soon as the user has picked a cast device. */
     private var pendingUrl: String? = null
     private var playJob: Job? = null
+    private var userSeeking = false
 
     private val notificationPermission =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { }
@@ -73,9 +77,14 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private val progressListener = RemoteMediaClient.ProgressListener { progressMs, durationMs ->
+        onProgress(progressMs, durationMs)
+    }
+
     private val mediaCallback = object : RemoteMediaClient.Callback() {
         override fun onStatusUpdated() {
             val client = castSession?.remoteMediaClient ?: return
+            updatePlayPauseButton(client)
             val status = client.mediaStatus ?: return
             if (status.playerState != MediaStatus.PLAYER_STATE_IDLE) return
             when (status.idleReason) {
@@ -83,6 +92,9 @@ class MainActivity : AppCompatActivity() {
                 // reports "finished" we simply load the track again.
                 MediaStatus.IDLE_REASON_FINISHED -> if (PlaybackState.track != null) {
                     Log.i(TAG, "Receiver finished; restarting loop")
+                    PlaybackState.loopCount++
+                    PlaybackState.lastProgressMs = -1L
+                    updateLoopText()
                     loadOnReceiver(client)
                 }
                 MediaStatus.IDLE_REASON_ERROR -> setStatus(getString(R.string.status_playback_error))
@@ -118,6 +130,25 @@ class MainActivity : AppCompatActivity() {
         binding.saveButton.setOnClickListener { saveOnly(currentInput()) }
         binding.pasteButton.setOnClickListener { pasteFromClipboard() }
         binding.stopButton.setOnClickListener { stopPlayback() }
+        binding.playPauseButton.setOnClickListener { togglePlayPause() }
+        binding.rewindButton.setOnClickListener { seekRelative(-15_000L) }
+        binding.forwardButton.setOnClickListener { seekRelative(15_000L) }
+        binding.toEndButton.setOnClickListener { seekTo(currentDurationMs() - 10_000L) }
+        binding.seekBar.max = SEEK_MAX
+        binding.seekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(seekBar: SeekBar, progress: Int, fromUser: Boolean) {
+                if (fromUser) updatePositionText(progressToMs(progress), currentDurationMs())
+            }
+
+            override fun onStartTrackingTouch(seekBar: SeekBar) {
+                userSeeking = true
+            }
+
+            override fun onStopTrackingTouch(seekBar: SeekBar) {
+                userSeeking = false
+                seekTo(progressToMs(seekBar.progress))
+            }
+        })
         binding.urlInput.setOnEditorActionListener { _, actionId, _ ->
             if (actionId == EditorInfo.IME_ACTION_GO) {
                 playUrl(currentInput())
@@ -151,6 +182,7 @@ class MainActivity : AppCompatActivity() {
     override fun onPause() {
         castContext?.sessionManager?.removeSessionManagerListener(sessionListener, CastSession::class.java)
         castSession?.remoteMediaClient?.unregisterCallback(mediaCallback)
+        castSession?.remoteMediaClient?.removeProgressListener(progressListener)
         super.onPause()
     }
 
@@ -188,7 +220,11 @@ class MainActivity : AppCompatActivity() {
 
     private fun onConnected(session: CastSession) {
         castSession = session
-        session.remoteMediaClient?.registerCallback(mediaCallback)
+        session.remoteMediaClient?.let {
+            it.registerCallback(mediaCallback)
+            it.addProgressListener(progressListener, PROGRESS_INTERVAL_MS)
+            updatePlayPauseButton(it)
+        }
         updateCastUi()
         pendingUrl?.let {
             pendingUrl = null
@@ -198,6 +234,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun onDisconnected() {
         castSession?.remoteMediaClient?.unregisterCallback(mediaCallback)
+        castSession?.remoteMediaClient?.removeProgressListener(progressListener)
         castSession = null
         PlaybackState.clear()
         showNowPlaying(null)
@@ -279,8 +316,7 @@ class MainActivity : AppCompatActivity() {
                 }
                 Log.i(TAG, "Casting $contentUrl")
 
-                PlaybackState.track = track
-                PlaybackState.contentUrl = contentUrl
+                PlaybackState.startNew(track, contentUrl)
                 val client = castSession?.remoteMediaClient
                     ?: throw IOException(getString(R.string.error_session_lost))
                 loadOnReceiver(client)
@@ -397,6 +433,90 @@ class MainActivity : AppCompatActivity() {
         binding.nowPlayingArtist.isVisible = track != null && track.artist.isNotEmpty()
         binding.nowPlayingTitle.text = track?.title ?: ""
         binding.nowPlayingArtist.text = track?.artist ?: ""
+        binding.controls.isVisible = track != null
+        if (track != null) {
+            updatePositionText(0L, track.durationMs)
+            binding.seekBar.progress = 0
+            updateLoopText()
+        }
+    }
+
+    // --- Transport controls -------------------------------------------------------------------
+
+    private fun onProgress(progressMs: Long, durationMs: Long) {
+        if (PlaybackState.track == null) return
+        val duration = if (durationMs > 0) durationMs else currentDurationMs()
+        if (!userSeeking && duration > 0) {
+            binding.seekBar.progress = (progressMs * SEEK_MAX / duration).toInt().coerceIn(0, SEEK_MAX)
+        }
+        if (!userSeeking) updatePositionText(progressMs, duration)
+
+        // A jump from near the end back to the start means the receiver looped.
+        val last = PlaybackState.lastProgressMs
+        val now = System.currentTimeMillis()
+        if (last >= 0 && duration > 0 && now > PlaybackState.suppressWrapUntilMs &&
+            progressMs + 5_000L < last && last > duration - 30_000L
+        ) {
+            PlaybackState.loopCount++
+            updateLoopText()
+        }
+        PlaybackState.lastProgressMs = progressMs
+    }
+
+    private fun togglePlayPause() {
+        val client = castSession?.remoteMediaClient ?: return
+        if (client.isPlaying) client.pause() else client.play()
+    }
+
+    private fun seekRelative(deltaMs: Long) {
+        val client = castSession?.remoteMediaClient ?: return
+        seekTo(client.approximateStreamPosition + deltaMs)
+    }
+
+    private fun seekTo(positionMs: Long) {
+        val client = castSession?.remoteMediaClient ?: return
+        val duration = currentDurationMs()
+        val target = if (duration > 0) positionMs.coerceIn(0L, duration - 1_000L) else positionMs.coerceAtLeast(0L)
+        PlaybackState.suppressWrapUntilMs = System.currentTimeMillis() + 4_000L
+        PlaybackState.lastProgressMs = target
+        updatePositionText(target, duration)
+        client.seek(
+            MediaSeekOptions.Builder()
+                .setPosition(target)
+                .setResumeState(MediaSeekOptions.RESUME_STATE_UNCHANGED)
+                .build()
+        )
+    }
+
+    private fun currentDurationMs(): Long {
+        val fromReceiver = castSession?.remoteMediaClient?.streamDuration ?: 0L
+        return if (fromReceiver > 0) fromReceiver else PlaybackState.track?.durationMs ?: 0L
+    }
+
+    private fun progressToMs(progress: Int): Long {
+        val duration = currentDurationMs()
+        return if (duration > 0) progress.toLong() * duration / SEEK_MAX else 0L
+    }
+
+    private fun updatePlayPauseButton(client: RemoteMediaClient) {
+        val playing = client.isPlaying || client.isBuffering
+        binding.playPauseButton.setIconResource(if (playing) R.drawable.ic_pause else R.drawable.ic_play)
+        binding.playPauseButton.contentDescription = getString(if (playing) R.string.pause else R.string.play)
+    }
+
+    private fun updatePositionText(positionMs: Long, durationMs: Long) {
+        binding.positionText.text = getString(R.string.position_format, formatTime(positionMs), formatTime(durationMs))
+    }
+
+    private fun updateLoopText() {
+        val count = PlaybackState.loopCount
+        binding.loopText.text =
+            if (count <= 0) getString(R.string.loop_count_first) else getString(R.string.loop_count, count)
+    }
+
+    private fun formatTime(ms: Long): String {
+        val totalSeconds = (ms.coerceAtLeast(0L) / 1000L)
+        return String.format(Locale.getDefault(), "%d:%02d", totalSeconds / 60, totalSeconds % 60)
     }
 
     private fun snack(message: String) {
@@ -454,6 +574,8 @@ class MainActivity : AppCompatActivity() {
 
     private companion object {
         const val TAG = "MainActivity"
+        const val SEEK_MAX = 1000
+        const val PROGRESS_INTERVAL_MS = 500L
         val URL_REGEX = Regex("https?://\\S+")
     }
 }
