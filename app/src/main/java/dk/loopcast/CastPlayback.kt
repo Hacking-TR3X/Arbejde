@@ -34,17 +34,25 @@ object CastPlayback {
         }
     }
 
-    /** Loads the current track as a one-item queue set to repeat forever. Returns false if nothing to load. */
+    /**
+     * Loads the current track as a one-item queue set to repeat forever. Must be called on
+     * the main thread (the Cast SDK requires it). Returns false if nothing to load.
+     */
     fun load(context: Context, client: RemoteMediaClient): Boolean {
         val track = PlaybackState.track ?: return false
         val url = contentUrl(context, track) ?: run {
             Log.w(TAG, "No content url available for ${track.title}")
             return false
         }
+        loadWithUrl(context, client, track, url)
+        return true
+    }
+
+    /** Main thread only. */
+    fun loadWithUrl(context: Context, client: RemoteMediaClient, track: ResolvedTrack, url: String) {
         PlaybackState.contentUrl = url
         Log.i(TAG, "Loading $url on receiver")
         client.load(buildRequest(context, track, url))
-        return true
     }
 
     fun buildRequest(context: Context, track: ResolvedTrack, contentUrl: String): MediaLoadRequestData {

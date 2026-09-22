@@ -358,11 +358,14 @@ class MainActivity : AppCompatActivity() {
                 PlaybackState.startNew(track, "")
                 PlaybackState.persist(this@MainActivity)
                 ProxyService.start(this@MainActivity)
+                // Work out the URL off the main thread, but hand it to the Cast SDK on the
+                // main thread – RemoteMediaClient insists on that.
+                val contentUrl = withContext(Dispatchers.IO) { CastPlayback.contentUrl(this@MainActivity, track) }
+                    ?: throw IOException(getString(R.string.error_no_wifi_ip))
                 val client = castSession?.remoteMediaClient
                     ?: throw IOException(getString(R.string.error_session_lost))
-                val loaded = withContext(Dispatchers.IO) { CastPlayback.load(this@MainActivity, client) }
-                if (!loaded) throw IOException(getString(R.string.error_no_wifi_ip))
-                Log.i(TAG, "Casting ${PlaybackState.contentUrl}")
+                CastPlayback.loadWithUrl(this@MainActivity, client, track, contentUrl)
+                Log.i(TAG, "Casting $contentUrl")
                 showNowPlaying(track)
                 updateTimerText()
                 setStatus(getString(R.string.status_playing_on, deviceName()))
