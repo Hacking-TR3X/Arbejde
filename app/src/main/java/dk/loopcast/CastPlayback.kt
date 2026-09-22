@@ -76,12 +76,17 @@ object CastPlayback {
             .build()
     }
 
-    /** User pressed Stop: forget the track, stop the receiver and shut the relay down. */
-    fun stopEverything(context: Context) {
+    /**
+     * Stop: forget the track, stop the receiver and shut the relay down. With [endSession]
+     * the cast session is ended too, so the Nest goes fully idle (used by the sleep timer).
+     */
+    fun stopEverything(context: Context, endSession: Boolean = false) {
         PlaybackState.clear()
         PlaybackState.persist(context)
         try {
-            CastContext.getSharedInstance(context).sessionManager.currentCastSession?.remoteMediaClient?.stop()
+            val manager = CastContext.getSharedInstance(context).sessionManager
+            manager.currentCastSession?.remoteMediaClient?.stop()
+            if (endSession) manager.endCurrentSession(true)
         } catch (e: Exception) {
             Log.w(TAG, "Could not stop receiver", e)
         }

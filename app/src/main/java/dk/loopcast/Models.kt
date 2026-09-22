@@ -57,6 +57,8 @@ object PlaybackState {
     @Volatile var contentUrl: String? = null
     /** MediaRouter route id of the cast device, used to reconnect automatically. */
     @Volatile var routeId: String? = null
+    /** Wall-clock time (epoch ms) at which playback should stop, or 0 for no timer. */
+    @Volatile var stopAtMs: Long = 0L
 
     /** How many times the track has wrapped around since it was started. */
     @Volatile var loopCount: Int = 0
@@ -70,6 +72,8 @@ object PlaybackState {
         loopCount = 0
         lastProgressMs = -1L
         suppressWrapUntilMs = 0L
+        // A timer left over from an earlier night must not stop the new playback at once.
+        if (stopAtMs > 0 && stopAtMs <= System.currentTimeMillis()) stopAtMs = 0L
     }
 
     fun clear() {
@@ -77,26 +81,28 @@ object PlaybackState {
         contentUrl = null
         loopCount = 0
         lastProgressMs = -1L
+        stopAtMs = 0L
     }
 
     fun persist(context: Context) {
         val prefs = context.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         val current = track
+        val editor = prefs.edit()
         if (current == null) {
-            prefs.edit().clear().apply()
+            editor.remove(KEY_TRACK).remove(KEY_ROUTE).remove(KEY_LOOPS)
         } else {
-            prefs.edit()
-                .putString(KEY_TRACK, current.toJson().toString())
+            editor.putString(KEY_TRACK, current.toJson().toString())
                 .putString(KEY_ROUTE, routeId)
                 .putInt(KEY_LOOPS, loopCount)
-                .apply()
         }
+        editor.putLong(KEY_STOP_AT, stopAtMs).apply()
     }
 
     /** Restores persisted state if nothing is loaded in memory. Returns true if a track is active. */
     fun restoreIfEmpty(context: Context): Boolean {
-        if (track != null) return true
         val prefs = context.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        if (stopAtMs == 0L) stopAtMs = prefs.getLong(KEY_STOP_AT, 0L)
+        if (track != null) return true
         val raw = prefs.getString(KEY_TRACK, null) ?: return false
         return try {
             track = ResolvedTrack.fromJson(JSONObject(raw))
@@ -113,4 +119,5 @@ object PlaybackState {
     private const val KEY_TRACK = "track"
     private const val KEY_ROUTE = "route"
     private const val KEY_LOOPS = "loops"
+    private const val KEY_STOP_AT = "stop_at"
 }

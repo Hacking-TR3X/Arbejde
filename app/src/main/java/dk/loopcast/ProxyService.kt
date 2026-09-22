@@ -157,6 +157,11 @@ class ProxyService : Service() {
 
     private fun checkPlayback() {
         if (PlaybackState.track == null) return
+        if (SleepTimer.isDue()) {
+            Log.i(TAG, "Sleep timer reached; stopping playback")
+            CastPlayback.stopEverything(this, endSession = true)
+            return
+        }
         val ctx = castContext ?: return
         val session = ctx.sessionManager.currentCastSession
         if (session == null || !session.isConnected) {

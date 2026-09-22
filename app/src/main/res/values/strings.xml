@@ -54,4 +54,19 @@
     <string name="position_format">%1$s / %2$s</string>
     <string name="loop_count">Loop nr. %1$d</string>
     <string name="loop_count_first">Første gennemspilning</string>
+    <string name="timer_button">Timer</string>
+    <string name="timer_title">Stop automatisk</string>
+    <string name="timer_none_text">Ingen stop-timer – loopet kører, indtil du trykker Stop.</string>
+    <string name="timer_active">Stopper kl. %1$s (om %2$s)</string>
+    <string name="timer_none">Ingen timer</string>
+    <string name="timer_minutes">Om %1$d minutter</string>
+    <string name="timer_one_hour">Om 1 time</string>
+    <string name="timer_hours">Om %1$d timer</string>
+    <string name="timer_pick_time">Vælg klokkeslæt…</string>
+    <string name="timer_last_clock">Kl. %1$s (som sidst)</string>
+    <string name="timer_set">Stopper kl. %1$s</string>
+    <string name="timer_cleared">Stop-timer fjernet.</string>
+    <string name="remaining_hours_minutes">%1$d t %2$d min</string>
+    <string name="remaining_minutes">%1$d min</string>
+    <string name="status_timer_stopped">Stop-timeren stoppede afspilningen.</string>
 </resources>

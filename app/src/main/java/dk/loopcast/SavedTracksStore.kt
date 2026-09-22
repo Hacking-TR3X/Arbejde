@@ -64,7 +64,13 @@ class SavedTracksStore(context: Context) {
         get() = prefs.getBoolean(KEY_DIRECT_MODE, false)
         set(value) = prefs.edit().putBoolean(KEY_DIRECT_MODE, value).apply()
 
+    /** Minutes after midnight of the last wall-clock stop time the user picked, or -1. */
+    var lastTimerClock: Int
+        get() = prefs.getInt(KEY_TIMER_CLOCK, -1)
+        set(value) = prefs.edit().putInt(KEY_TIMER_CLOCK, value).apply()
+
     private companion object {
+        const val KEY_TIMER_CLOCK = "timer_clock"
         const val KEY_TRACKS = "tracks"
         const val KEY_LAST_URL = "last_url"
         const val KEY_DIRECT_MODE = "direct_mode"

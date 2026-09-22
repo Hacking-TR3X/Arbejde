@@ -16,6 +16,10 @@ import android.view.MenuItem
 import android.view.inputmethod.EditorInfo
 import android.widget.SeekBar
 import androidx.activity.result.contract.ActivityResultContracts
+import android.app.TimePickerDialog
+import android.os.Handler
+import android.os.Looper
+import android.text.format.DateFormat
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
@@ -41,6 +45,7 @@ import kotlinx.coroutines.withContext
 import java.io.IOException
 import okhttp3.OkHttpClient
 import java.util.concurrent.TimeUnit
+import java.util.Calendar
 import java.util.Locale
 
 class MainActivity : AppCompatActivity() {
@@ -66,6 +71,13 @@ class MainActivity : AppCompatActivity() {
     private var pendingUrl: String? = null
     private var playJob: Job? = null
     private var userSeeking = false
+    private val uiHandler = Handler(Looper.getMainLooper())
+    private val timerTicker = object : Runnable {
+        override fun run() {
+            updateTimerText()
+            uiHandler.postDelayed(this, 30_000L)
+        }
+    }
 
     private val notificationPermission =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { }
@@ -130,6 +142,7 @@ class MainActivity : AppCompatActivity() {
         binding.saveButton.setOnClickListener { saveOnly(currentInput()) }
         binding.pasteButton.setOnClickListener { pasteFromClipboard() }
         binding.stopButton.setOnClickListener { stopPlayback() }
+        binding.timerButton.setOnClickListener { showTimerDialog() }
         binding.playPauseButton.setOnClickListener { togglePlayPause() }
         binding.rewindButton.setOnClickListener { seekRelative(-15_000L) }
         binding.forwardButton.setOnClickListener { seekRelative(15_000L) }
@@ -173,6 +186,12 @@ class MainActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
+        uiHandler.post(timerTicker)
+        if (PlaybackState.track == null && binding.nowPlayingTitle.isVisible) {
+            // The sleep timer (or the notification's Stop) ended playback while we were away.
+            showNowPlaying(null)
+            setStatus(getString(R.string.status_stopped))
+        }
         val manager = castContext?.sessionManager ?: return
         manager.addSessionManagerListener(sessionListener, CastSession::class.java)
         val session = manager.currentCastSession
@@ -180,6 +199,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onPause() {
+        uiHandler.removeCallbacks(timerTicker)
         castContext?.sessionManager?.removeSessionManagerListener(sessionListener, CastSession::class.java)
         castSession?.remoteMediaClient?.unregisterCallback(mediaCallback)
         castSession?.remoteMediaClient?.removeProgressListener(progressListener)
@@ -344,6 +364,7 @@ class MainActivity : AppCompatActivity() {
                 if (!loaded) throw IOException(getString(R.string.error_no_wifi_ip))
                 Log.i(TAG, "Casting ${PlaybackState.contentUrl}")
                 showNowPlaying(track)
+                updateTimerText()
                 setStatus(getString(R.string.status_playing_on, deviceName()))
             } catch (e: CancellationException) {
                 throw e
@@ -389,9 +410,98 @@ class MainActivity : AppCompatActivity() {
         playJob?.cancel()
         CastPlayback.stopEverything(this)
         showNowPlaying(null)
+        updateTimerText()
         setStatus(getString(R.string.status_stopped))
         binding.stopButton.isEnabled = castSession?.isConnected == true
     }
+
+    // --- Sleep timer --------------------------------------------------------------------------
+
+    private fun showTimerDialog() {
+        val options = mutableListOf(
+            getString(R.string.timer_none),
+            getString(R.string.timer_minutes, 30),
+            getString(R.string.timer_one_hour),
+            getString(R.string.timer_hours, 2),
+            getString(R.string.timer_hours, 4),
+            getString(R.string.timer_hours, 8),
+            getString(R.string.timer_pick_time),
+        )
+        val lastClock = store.lastTimerClock
+        if (lastClock >= 0) options += getString(R.string.timer_last_clock, formatClock(lastClock / 60, lastClock % 60))
+
+        AlertDialog.Builder(this)
+            .setTitle(R.string.timer_title)
+            .setItems(options.toTypedArray()) { _, which ->
+                val now = System.currentTimeMillis()
+                when (which) {
+                    0 -> applyTimer(0L)
+                    1 -> applyTimer(now + 30L * 60_000L)
+                    2 -> applyTimer(now + 60L * 60_000L)
+                    3 -> applyTimer(now + 2L * 60L * 60_000L)
+                    4 -> applyTimer(now + 4L * 60L * 60_000L)
+                    5 -> applyTimer(now + 8L * 60L * 60_000L)
+                    6 -> pickStopTime()
+                    7 -> applyClockTimer(lastClock / 60, lastClock % 60)
+                }
+            }
+            .show()
+    }
+
+    private fun pickStopTime() {
+        val last = store.lastTimerClock
+        val cal = Calendar.getInstance()
+        val hour = if (last >= 0) last / 60 else cal.get(Calendar.HOUR_OF_DAY)
+        val minute = if (last >= 0) last % 60 else cal.get(Calendar.MINUTE)
+        TimePickerDialog(
+            this,
+            { _, pickedHour, pickedMinute -> applyClockTimer(pickedHour, pickedMinute) },
+            hour,
+            minute,
+            DateFormat.is24HourFormat(this),
+        ).show()
+    }
+
+    private fun applyClockTimer(hour: Int, minute: Int) {
+        store.lastTimerClock = hour * 60 + minute
+        applyTimer(SleepTimer.nextOccurrence(hour, minute))
+    }
+
+    private fun applyTimer(stopAtMs: Long) {
+        SleepTimer.set(this, stopAtMs)
+        updateTimerText()
+        if (stopAtMs > 0) {
+            snack(getString(R.string.timer_set, formatClock(stopAtMs)))
+        } else {
+            snack(getString(R.string.timer_cleared))
+        }
+    }
+
+    private fun updateTimerText() {
+        val stopAt = PlaybackState.stopAtMs
+        val remaining = stopAt - System.currentTimeMillis()
+        binding.timerText.text = if (stopAt <= 0L || remaining <= 0L) {
+            getString(R.string.timer_none_text)
+        } else {
+            getString(R.string.timer_active, formatClock(stopAt), formatRemaining(remaining))
+        }
+    }
+
+    private fun formatRemaining(ms: Long): String {
+        val totalMinutes = (ms + 59_999L) / 60_000L
+        val hours = totalMinutes / 60
+        val minutes = totalMinutes % 60
+        return if (hours > 0) getString(R.string.remaining_hours_minutes, hours, minutes)
+        else getString(R.string.remaining_minutes, minutes)
+    }
+
+    private fun formatClock(epochMs: Long): String {
+        val cal = Calendar.getInstance().apply { timeInMillis = epochMs }
+        return formatClock(cal.get(Calendar.HOUR_OF_DAY), cal.get(Calendar.MINUTE))
+    }
+
+    private fun formatClock(hour: Int, minute: Int): String =
+        String.format(Locale.getDefault(), "%02d:%02d", hour, minute)
 
     // --- Saved tracks -------------------------------------------------------------------------
 
@@ -478,6 +588,7 @@ class MainActivity : AppCompatActivity() {
             binding.seekBar.progress = (progressMs * SEEK_MAX / duration).toInt().coerceIn(0, SEEK_MAX)
         }
         if (!userSeeking) updatePositionText(progressMs, duration)
+        updateTimerText()
 
         // A jump from near the end back to the start means the receiver looped.
         val last = PlaybackState.lastProgressMs
