@@ -18,7 +18,7 @@
     <string name="delete_confirm_message">%1$s fjernes fra listen.</string>
     <string name="delete">Slet</string>
     <string name="cancel">Annuller</string>
-    <string name="hint_text">Telefonen og din Google Nest skal være på samme Wi‑Fi. Tryk på cast-ikonet øverst for at vælge din Nest, indsæt et SoundCloud-link og tryk Afspil. Tracket kører i loop, indtil du trykker Stop. Lad appen være installeret og telefonen tændt natten over – den sender streamen videre til din Nest.</string>
+    <string name="hint_text">Telefonen og din Google Nest skal være på samme Wi‑Fi. Tryk på cast-ikonet øverst for at vælge din Nest, indsæt et SoundCloud-link og tryk Afspil. Tracket hentes til telefonen én gang og kører derefter i loop fra telefonen, indtil du trykker Stop. Lad telefonen være tændt og på Wi‑Fi natten over. Under menuen (⋮) kan du undtage appen fra batterioptimering – det anbefales. Har du en Samsung, så tilføj også LoopCast under Batteri → “Apps der aldrig sover”.</string>
 
     <string name="status_idle">Klar. Vælg din Nest via cast-ikonet og indsæt et link.</string>
     <string name="status_connected">Forbundet til %1$s</string>
@@ -30,6 +30,10 @@
     <string name="status_playback_error">Nest’en meldte en afspilningsfejl. Prøv igen, eller slå “Cast direkte” til/fra i menuen.</string>
     <string name="status_no_play_services">Google Play-tjenester mangler – casting virker ikke på denne enhed.</string>
     <string name="status_error">Fejl: %1$s</string>
+    <string name="status_downloading">Henter tracket til telefonen (%1$d %%)…</string>
+    <string name="status_downloading_unknown">Henter tracket til telefonen…</string>
+    <string name="status_disconnected">Forbindelsen til Nest’en er afbrudt. Relæet kører videre og prøver selv at genoprette forbindelsen. Tryk Stop for at afslutte helt.</string>
+    <string name="download_failed_streaming">Kunne ikke gemme tracket lokalt – streamer direkte fra SoundCloud i stedet.</string>
 
     <string name="error_empty_url">Indsæt et SoundCloud-link først.</string>
     <string name="error_not_soundcloud">Det ligner ikke et SoundCloud-link.</string>
@@ -41,7 +45,7 @@
 
     <string name="notification_channel">Afspilning</string>
     <string name="notification_title">LoopCast kører</string>
-    <string name="notification_text">Sender SoundCloud-streamen videre til din Nest i loop.</string>
+    <string name="notification_text">Holder loopet kørende på din Nest. Tryk Stop for at afslutte.</string>
     <string name="play">Afspil</string>
     <string name="pause">Pause</string>
     <string name="rewind_15">−15 s</string>

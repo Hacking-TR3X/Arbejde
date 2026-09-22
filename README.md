@@ -30,15 +30,24 @@ slår den ihjel midt om natten.
 ## Sådan virker det
 
 - Appen slår tracket op via SoundCloud's offentlige web-API (samme som soundcloud.com bruger)
-  og finder MP3-streamen.
-- SoundCloud's stream-links udløber efter et stykke tid. Derfor kører appen en lille relæ-server
-  på telefonen (`http://<telefon-ip>:8765/...`), som Nest'en afspiller fra. Relæet henter et nyt
-  stream-link, hver gang det gamle udløber, så loopet kører hele natten.
-- Nest'en får tracket som en kø med ét nummer og *repeat single*, så den looper selv. Appen
-  genstarter desuden afspilningen, hvis Nest'en alligevel melder "færdig".
+  og **henter MP3'en til telefonen én gang**. Herefter er SoundCloud slet ikke involveret.
+- En lille relæ-server på telefonen (`http://<telefon-ip>:8765/...`) serverer den lokale fil
+  til Nest'en. Nest'en får tracket som en kø med ét nummer og *repeat single*, så den looper selv.
+- En baggrundsservice holder øje hele natten: melder Nest'en "færdig" eller "fejl", bliver
+  tracket indlæst igen; falder cast-forbindelsen fra telefonen ud, genopretter appen den selv;
+  bliver appen genstartet af Android, fortsætter den hvor den slap. Den stopper først, når du
+  trykker **Stop** (i appen eller i notifikationen).
 - Telefonen skal derfor blive på Wi‑Fi og være tændt (skærmen må gerne være slukket).
   Menupunktet **Cast direkte (uden relæ)** sender SoundCloud's eget link til Nest'en i stedet –
   så er telefonen ikke nødvendig, men loopet stopper når linket udløber.
+
+## Hvis loopet stopper om natten
+
+1. Menu (⋮) → **Undtag fra batterioptimering** og sig ja.
+2. Samsung: Indstillinger → Batteri → Baggrundsbegrænsninger → **Apps der aldrig sover** → tilføj
+   LoopCast. Slå også "Sæt ubrugte apps i dvale" fra for LoopCast.
+3. Sørg for at Wi‑Fi ikke slukkes i dvale (Indstillinger → Wi‑Fi → Avanceret på de fleste telefoner).
+4. Lad LoopCast-notifikationen blive stående – den er tegnet på, at baggrundsservicen kører.
 
 ## Byg selv
 

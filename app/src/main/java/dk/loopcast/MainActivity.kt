@@ -23,20 +23,14 @@ import androidx.core.view.MenuItemCompat
 import androidx.core.view.isVisible
 import androidx.lifecycle.lifecycleScope
 import androidx.mediarouter.app.MediaRouteActionProvider
+import androidx.mediarouter.media.MediaRouter
 import androidx.recyclerview.widget.LinearLayoutManager
-import com.google.android.gms.cast.HlsSegmentFormat
-import com.google.android.gms.cast.MediaInfo
-import com.google.android.gms.cast.MediaLoadRequestData
-import com.google.android.gms.cast.MediaMetadata
-import com.google.android.gms.cast.MediaQueueData
-import com.google.android.gms.cast.MediaQueueItem
 import com.google.android.gms.cast.MediaSeekOptions
 import com.google.android.gms.cast.MediaStatus
 import com.google.android.gms.cast.framework.CastButtonFactory
 import com.google.android.gms.cast.framework.CastContext
 import com.google.android.gms.cast.framework.CastSession
 import com.google.android.gms.cast.framework.media.RemoteMediaClient
-import com.google.android.gms.common.images.WebImage
 import com.google.android.material.snackbar.Snackbar
 import dk.loopcast.databinding.ActivityMainBinding
 import kotlinx.coroutines.CancellationException
@@ -45,6 +39,8 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.IOException
+import okhttp3.OkHttpClient
+import java.util.concurrent.TimeUnit
 import java.util.Locale
 
 class MainActivity : AppCompatActivity() {
@@ -53,6 +49,14 @@ class MainActivity : AppCompatActivity() {
     private lateinit var store: SavedTracksStore
     private lateinit var resolver: SoundCloudResolver
     private lateinit var adapter: TrackAdapter
+    private lateinit var trackCache: TrackCache
+    private val downloadClient by lazy {
+        OkHttpClient.Builder()
+            .connectTimeout(20, TimeUnit.SECONDS)
+            .readTimeout(60, TimeUnit.SECONDS)
+            .followRedirects(true)
+            .build()
+    }
 
     private var castContext: CastContext? = null
     private var castSession: CastSession? = null
@@ -85,19 +89,12 @@ class MainActivity : AppCompatActivity() {
         override fun onStatusUpdated() {
             val client = castSession?.remoteMediaClient ?: return
             updatePlayPauseButton(client)
+            updateLoopText()
             val status = client.mediaStatus ?: return
-            if (status.playerState != MediaStatus.PLAYER_STATE_IDLE) return
-            when (status.idleReason) {
-                // Safety net: the receiver should repeat by itself, but if it ever
-                // reports "finished" we simply load the track again.
-                MediaStatus.IDLE_REASON_FINISHED -> if (PlaybackState.track != null) {
-                    Log.i(TAG, "Receiver finished; restarting loop")
-                    PlaybackState.loopCount++
-                    PlaybackState.lastProgressMs = -1L
-                    updateLoopText()
-                    loadOnReceiver(client)
-                }
-                MediaStatus.IDLE_REASON_ERROR -> setStatus(getString(R.string.status_playback_error))
+            if (status.playerState == MediaStatus.PLAYER_STATE_IDLE &&
+                status.idleReason == MediaStatus.IDLE_REASON_ERROR
+            ) {
+                setStatus(getString(R.string.status_playback_error))
             }
         }
     }
@@ -112,6 +109,9 @@ class MainActivity : AppCompatActivity() {
 
         store = SavedTracksStore(this)
         resolver = SoundCloudResolver(this)
+        trackCache = TrackCache(this)
+        PlaybackState.restoreIfEmpty(this)
+        pruneCache()
 
         castContext = try {
             CastContext.getSharedInstance(this)
@@ -225,6 +225,12 @@ class MainActivity : AppCompatActivity() {
             it.addProgressListener(progressListener, PROGRESS_INTERVAL_MS)
             updatePlayPauseButton(it)
         }
+        val routeId = MediaRouter.getInstance(this).selectedRoute.id
+        if (routeId != MediaRouter.getInstance(this).defaultRoute.id) {
+            PlaybackState.routeId = routeId
+            if (PlaybackState.track != null) PlaybackState.persist(this)
+        }
+        showNowPlaying(PlaybackState.track)
         updateCastUi()
         pendingUrl?.let {
             pendingUrl = null
@@ -236,8 +242,7 @@ class MainActivity : AppCompatActivity() {
         castSession?.remoteMediaClient?.unregisterCallback(mediaCallback)
         castSession?.remoteMediaClient?.removeProgressListener(progressListener)
         castSession = null
-        PlaybackState.clear()
-        showNowPlaying(null)
+        binding.controls.isVisible = false
         updateCastUi()
     }
 
@@ -253,9 +258,12 @@ class MainActivity : AppCompatActivity() {
                 setStatus(getString(R.string.status_connected, deviceName()))
             }
         } else if (castContext != null) {
-            setStatus(getString(R.string.status_idle))
+            setStatus(
+                if (PlaybackState.track != null) getString(R.string.status_disconnected)
+                else getString(R.string.status_idle)
+            )
         }
-        binding.stopButton.isEnabled = connected
+        binding.stopButton.isEnabled = connected || PlaybackState.track != null
     }
 
     private fun openCastDialog() {
@@ -289,11 +297,10 @@ class MainActivity : AppCompatActivity() {
         playJob?.cancel()
         playJob = lifecycleScope.launch {
             binding.playButton.isEnabled = false
+            var replacedCurrent = false
             try {
                 setStatus(getString(R.string.status_resolving))
-                val track = withContext(Dispatchers.IO) {
-                    resolver.resolve(resolver.canonicalTrackUrl(url))
-                }
+                val track = withContext(Dispatchers.IO) { resolveOrUseCache(url) }
                 store.upsert(
                     SavedTrack(
                         url = track.permalinkUrl,
@@ -307,25 +314,45 @@ class MainActivity : AppCompatActivity() {
                 binding.urlInput.setText(track.permalinkUrl)
                 refreshList()
 
-                val contentUrl = if (store.directMode) {
-                    track.streamUrl
-                } else {
-                    ProxyService.start(this@MainActivity)
-                    withContext(Dispatchers.IO) { StreamProxyServer.get(this@MainActivity).register(track) }
-                        ?: throw IOException(getString(R.string.error_no_wifi_ip))
+                // Keep a local copy so the overnight loop never depends on SoundCloud.
+                val key = StreamProxyServer.keyFor(track.permalinkUrl)
+                if (!store.directMode && !trackCache.has(key) && track.streamUrl.isNotEmpty()) {
+                    try {
+                        withContext(Dispatchers.IO) {
+                            trackCache.download(track, downloadClient) { percent ->
+                                lifecycleScope.launch {
+                                    setStatus(
+                                        if (percent >= 0) getString(R.string.status_downloading, percent)
+                                        else getString(R.string.status_downloading_unknown)
+                                    )
+                                }
+                            }
+                        }
+                    } catch (e: IOException) {
+                        Log.w(TAG, "Download failed; falling back to streaming", e)
+                        snack(getString(R.string.download_failed_streaming))
+                    }
                 }
-                Log.i(TAG, "Casting $contentUrl")
 
-                PlaybackState.startNew(track, contentUrl)
+                replacedCurrent = true
+                PlaybackState.startNew(track, "")
+                PlaybackState.persist(this@MainActivity)
+                ProxyService.start(this@MainActivity)
                 val client = castSession?.remoteMediaClient
                     ?: throw IOException(getString(R.string.error_session_lost))
-                loadOnReceiver(client)
+                val loaded = withContext(Dispatchers.IO) { CastPlayback.load(this@MainActivity, client) }
+                if (!loaded) throw IOException(getString(R.string.error_no_wifi_ip))
+                Log.i(TAG, "Casting ${PlaybackState.contentUrl}")
                 showNowPlaying(track)
                 setStatus(getString(R.string.status_playing_on, deviceName()))
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
                 Log.e(TAG, "Playback failed", e)
+                if (replacedCurrent) {
+                    PlaybackState.clear()
+                    PlaybackState.persist(this@MainActivity)
+                }
                 setStatus(getString(R.string.status_error, e.message ?: e.javaClass.simpleName))
             } finally {
                 binding.playButton.isEnabled = true
@@ -333,45 +360,37 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    /** Loads the current track on the receiver as a one-item queue set to repeat forever. */
-    private fun loadOnReceiver(client: RemoteMediaClient) {
-        val track = PlaybackState.track ?: return
-        val contentUrl = PlaybackState.contentUrl ?: return
-
-        val metadata = MediaMetadata(MediaMetadata.MEDIA_TYPE_MUSIC_TRACK).apply {
-            putString(MediaMetadata.KEY_TITLE, track.title)
-            putString(MediaMetadata.KEY_ARTIST, track.artist)
-            track.artworkUrl?.let { addImage(WebImage(Uri.parse(it))) }
+    /**
+     * Resolves the link on SoundCloud. If that fails but the track is already cached on the
+     * phone, plays the cached copy using the saved metadata instead.
+     */
+    private fun resolveOrUseCache(url: String): ResolvedTrack {
+        try {
+            return resolver.resolve(resolver.canonicalTrackUrl(url))
+        } catch (e: IOException) {
+            val cleaned = url.substringBefore('?').trimEnd('/')
+            val saved = store.all().firstOrNull { it.url.equals(cleaned, ignoreCase = true) }
+            val key = StreamProxyServer.keyFor(cleaned)
+            if (saved == null || !trackCache.has(key)) throw e
+            Log.w(TAG, "Resolve failed; using cached copy", e)
+            return ResolvedTrack(
+                permalinkUrl = saved.url,
+                title = saved.title ?: saved.url,
+                artist = saved.artist ?: "",
+                artworkUrl = saved.artworkUrl,
+                durationMs = 0L,
+                streamUrl = "",
+                isHls = false,
+            )
         }
-        val infoBuilder = MediaInfo.Builder(contentUrl)
-            .setStreamType(MediaInfo.STREAM_TYPE_BUFFERED)
-            .setContentType(if (track.isHls) "application/x-mpegURL" else "audio/mpeg")
-            .setMetadata(metadata)
-        if (track.durationMs > 0) infoBuilder.setStreamDuration(track.durationMs)
-        if (track.isHls) infoBuilder.setHlsSegmentFormat(HlsSegmentFormat.MP3)
-
-        val item = MediaQueueItem.Builder(infoBuilder.build())
-            .setAutoplay(true)
-            .build()
-        val queue = MediaQueueData.Builder()
-            .setItems(listOf(item))
-            .setRepeatMode(MediaStatus.REPEAT_MODE_REPEAT_SINGLE)
-            .setStartIndex(0)
-            .build()
-        val request = MediaLoadRequestData.Builder()
-            .setQueueData(queue)
-            .setAutoplay(true)
-            .build()
-        client.load(request)
     }
 
     private fun stopPlayback() {
         playJob?.cancel()
-        PlaybackState.clear()
-        castSession?.remoteMediaClient?.stop()
-        ProxyService.stop(this)
+        CastPlayback.stopEverything(this)
         showNowPlaying(null)
         setStatus(getString(R.string.status_stopped))
+        binding.stopButton.isEnabled = castSession?.isConnected == true
     }
 
     // --- Saved tracks -------------------------------------------------------------------------
@@ -408,10 +427,19 @@ class MainActivity : AppCompatActivity() {
             .setMessage(getString(R.string.delete_confirm_message, track.title ?: track.url))
             .setPositiveButton(R.string.delete) { _, _ ->
                 store.remove(track.url)
+                if (PlaybackState.track?.permalinkUrl != track.url) {
+                    trackCache.delete(StreamProxyServer.keyFor(track.url))
+                }
                 refreshList()
             }
             .setNegativeButton(R.string.cancel, null)
             .show()
+    }
+
+    private fun pruneCache() {
+        val keep = store.all().map { StreamProxyServer.keyFor(it.url) }.toMutableSet()
+        PlaybackState.track?.let { keep += StreamProxyServer.keyFor(it.permalinkUrl) }
+        lifecycleScope.launch(Dispatchers.IO) { trackCache.prune(keep) }
     }
 
     private fun refreshList() {
@@ -433,7 +461,7 @@ class MainActivity : AppCompatActivity() {
         binding.nowPlayingArtist.isVisible = track != null && track.artist.isNotEmpty()
         binding.nowPlayingTitle.text = track?.title ?: ""
         binding.nowPlayingArtist.text = track?.artist ?: ""
-        binding.controls.isVisible = track != null
+        binding.controls.isVisible = track != null && castSession?.isConnected == true
         if (track != null) {
             updatePositionText(0L, track.durationMs)
             binding.seekBar.progress = 0

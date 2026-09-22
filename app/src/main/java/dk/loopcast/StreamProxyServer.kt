@@ -7,6 +7,8 @@ import fi.iki.elonen.NanoHTTPD
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import java.io.File
+import java.io.FileInputStream
 import java.io.IOException
 import java.net.Inet4Address
 import java.net.NetworkInterface
@@ -21,13 +23,15 @@ import java.util.concurrent.TimeUnit
  *
  * SoundCloud's stream URLs are signed and expire after a while, which breaks an
  * overnight loop when the Nest is given the URL directly. Pointing the Nest at
- * http://<phone>:<port>/track/<key>/audio.mp3 instead lets us fetch a fresh signed
- * URL whenever the old one stops working, so the loop never dies.
+ * http://<phone>:<port>/track/<key>/audio.mp3 instead lets us serve the MP3 from the
+ * phone's local cache (downloaded once) and, if it is not cached yet, fetch a fresh
+ * signed URL whenever the old one stops working, so the loop never dies.
  */
 class StreamProxyServer private constructor(
     port: Int,
     private val resolver: SoundCloudResolver,
     private val prefs: SharedPreferences,
+    private val cache: TrackCache,
 ) : NanoHTTPD(port) {
 
     private val http = OkHttpClient.Builder()
@@ -39,7 +43,7 @@ class StreamProxyServer private constructor(
     /** key -> canonical SoundCloud permalink. */
     private val tracks = ConcurrentHashMap<String, String>()
     /** key -> most recent resolution (stream url etc). */
-    private val cache = ConcurrentHashMap<String, ResolvedTrack>()
+    private val resolvedTracks = ConcurrentHashMap<String, ResolvedTrack>()
 
     init {
         // Restore registered tracks so a restarted service can keep serving them.
@@ -50,10 +54,10 @@ class StreamProxyServer private constructor(
     fun register(track: ResolvedTrack): String? {
         val key = keyFor(track.permalinkUrl)
         tracks[key] = track.permalinkUrl
-        cache[key] = track
+        if (track.streamUrl.isNotEmpty()) resolvedTracks[key] = track
         prefs.edit().putString(key, track.permalinkUrl).apply()
         val ip = localIpAddress() ?: return null
-        val file = if (track.isHls) "playlist.m3u8" else "audio.mp3"
+        val file = if (track.isHls && !cache.has(key)) "playlist.m3u8" else "audio.mp3"
         return "http://$ip:$listeningPort/track/$key/$file"
     }
 
@@ -86,6 +90,8 @@ class StreamProxyServer private constructor(
     // --- Progressive MP3 -------------------------------------------------------------------
 
     private fun proxyAudio(session: IHTTPSession, key: String): Response {
+        if (cache.has(key)) return serveFile(session, cache.fileFor(key))
+
         val range = session.headers["range"]
         var track = resolved(key, force = false)
         var upstream = fetch(track.streamUrl, range)
@@ -101,6 +107,7 @@ class StreamProxyServer private constructor(
     // --- HLS ----------------------------------------------------------------------------------
 
     private fun proxyPlaylist(session: IHTTPSession, key: String): Response {
+        if (cache.has(key)) return serveFile(session, cache.fileFor(key))
         var track = resolved(key, force = false)
         var upstream = fetch(track.streamUrl, null)
         if (isExpired(upstream.code)) {
@@ -141,11 +148,64 @@ class StreamProxyServer private constructor(
     // --- Helpers ----------------------------------------------------------------------------
 
     private fun resolved(key: String, force: Boolean): ResolvedTrack {
-        val cached = cache[key]
-        val fresh = cached != null && System.currentTimeMillis() - cached.resolvedAtMs < CACHE_TTL_MS
-        if (!force && fresh) return cached!!
-        val permalink = tracks[key] ?: cached?.permalinkUrl ?: throw IOException("Ukendt track")
-        return resolver.resolve(permalink).also { cache[key] = it }
+        val known = resolvedTracks[key]
+        val fresh = known != null && known.streamUrl.isNotEmpty() &&
+            System.currentTimeMillis() - known.resolvedAtMs < CACHE_TTL_MS
+        if (!force && fresh) return known!!
+        val permalink = tracks[key] ?: known?.permalinkUrl ?: throw IOException("Ukendt track")
+        var lastError: IOException? = null
+        repeat(3) { attempt ->
+            try {
+                return resolver.resolve(permalink).also { resolvedTracks[key] = it }
+            } catch (e: IOException) {
+                lastError = e
+                Log.w(TAG, "Resolve attempt ${attempt + 1} failed", e)
+                Thread.sleep(1_000L * (attempt + 1))
+            }
+        }
+        throw lastError ?: IOException("Kunne ikke slå tracket op")
+    }
+
+    /** Serves a fully cached MP3 with HTTP range support (the receiver seeks with ranges). */
+    private fun serveFile(session: IHTTPSession, file: File): Response {
+        val total = file.length()
+        var start = 0L
+        var end = total - 1
+        var partial = false
+        val range = session.headers["range"]
+        if (range != null && range.startsWith("bytes=")) {
+            val spec = range.removePrefix("bytes=").split(',')[0].trim()
+            val dash = spec.indexOf('-')
+            if (dash >= 0) {
+                val first = spec.substring(0, dash).trim()
+                val last = spec.substring(dash + 1).trim()
+                if (first.isEmpty() && last.isNotEmpty()) {
+                    start = (total - (last.toLongOrNull() ?: 0L)).coerceAtLeast(0L)
+                } else {
+                    start = first.toLongOrNull() ?: 0L
+                    if (last.isNotEmpty()) end = minOf(last.toLongOrNull() ?: end, total - 1)
+                }
+                partial = true
+            }
+        }
+        if (start >= total || start > end) {
+            val response = text(Response.Status.RANGE_NOT_SATISFIABLE, "range not satisfiable")
+            response.addHeader("Content-Range", "bytes */$total")
+            return response
+        }
+        val length = end - start + 1
+        val input = FileInputStream(file)
+        if (start > 0) input.channel.position(start)
+        val response = newFixedLengthResponse(
+            if (partial) Response.Status.PARTIAL_CONTENT else Response.Status.OK,
+            "audio/mpeg",
+            input,
+            length,
+        )
+        if (partial) response.addHeader("Content-Range", "bytes $start-$end/$total")
+        response.addHeader("Accept-Ranges", "bytes")
+        response.addHeader("Cache-Control", "no-cache")
+        return response
     }
 
     private fun fetch(url: String, range: String?): okhttp3.Response {
@@ -201,7 +261,7 @@ class StreamProxyServer private constructor(
     companion object {
         private const val TAG = "StreamProxy"
         private const val PREFERRED_PORT = 8765
-        private val CACHE_TTL_MS = TimeUnit.MINUTES.toMillis(20)
+        private val CACHE_TTL_MS = TimeUnit.HOURS.toMillis(6)
 
         @Volatile
         private var instance: StreamProxyServer? = null
@@ -213,11 +273,12 @@ class StreamProxyServer private constructor(
             val appContext = context.applicationContext
             val resolver = SoundCloudResolver(appContext)
             val prefs = appContext.getSharedPreferences("proxy_tracks", Context.MODE_PRIVATE)
+            val cache = TrackCache(appContext)
             val server = try {
-                StreamProxyServer(PREFERRED_PORT, resolver, prefs).also { it.start(SOCKET_READ_TIMEOUT, true) }
+                StreamProxyServer(PREFERRED_PORT, resolver, prefs, cache).also { it.start(SOCKET_READ_TIMEOUT, true) }
             } catch (e: IOException) {
                 Log.w(TAG, "Port $PREFERRED_PORT busy, using a random port", e)
-                StreamProxyServer(0, resolver, prefs).also { it.start(SOCKET_READ_TIMEOUT, true) }
+                StreamProxyServer(0, resolver, prefs, cache).also { it.start(SOCKET_READ_TIMEOUT, true) }
             }
             Log.i(TAG, "Relay listening on port ${server.listeningPort}")
             instance = server
