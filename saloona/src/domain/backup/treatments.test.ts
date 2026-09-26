@@ -57,10 +57,28 @@ describe('price list in backups', () => {
   });
 
   it('ignores a price list in a Salonbog file and rejects a non-array', () => {
-    expect(plain({ app: 'salonbog', clients: [], visits: [], treatments: [{ name: 'Klip' }] }).treatments).toEqual([]);
+    expect(plain({ app: 'salonbog', clients: [], visits: [], treatments: [{ name: 'Klip' }] }).treatments).toBeUndefined();
     const b = plain({ app: 'saloona', clients: [], visits: [], treatments: { klip: 1 } });
     expect(b.treatments).toEqual([]);
     expect(b.warnings).toEqual(['1 punkt i prislisten var ugyldigt og blev sprunget over eller rettet']);
+  });
+
+  it('a file with a price list does not turn its `prices` into price-list entries', () => {
+    const b = plain({ app: 'saloona', clients: [], visits: [], prices: { klip: 450, farve: 900 }, treatments: [{ name: 'Klip', price: 500 }] });
+    const none = { clients: [], visits: [], prices: new Map<string, number>(), treatments: new Map() };
+    for (const mode of ['merge', 'replace'] as const) {
+      const plan = planImport(none, b, mode, 'T');
+      expect(plan.prices).toEqual([]);
+      expect(plan.treatments.map((t) => [t.key, t.priceOre])).toEqual([['klip', 50_000]]);
+    }
+  });
+
+  it('a Saloona file without a price list still fills the price list from `prices`', () => {
+    const b = plain({ app: 'saloona', clients: [], visits: [], prices: { klip: 450 } });
+    expect(b.treatments).toBeUndefined();
+    const none = { clients: [], visits: [], prices: new Map<string, number>(), treatments: new Map() };
+    expect(planImport(none, b, 'merge', 'T').prices).toEqual([['klip', 45_000]]);
+    expect(planImport(none, b, 'replace', 'T').prices).toEqual([['klip', 45_000]]);
   });
 
   it('merge adds new treatments and only fills blanks in existing ones; replace takes all', () => {

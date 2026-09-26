@@ -67,7 +67,7 @@ export function planImport(
       insertClients: incoming.clients.map((c) => ({ ...c, createdAt: now, updatedAt: now })),
       updateClients: [],
       insertVisits: incoming.visits.map((v) => ({ ...v, createdAt: now, updatedAt: now })),
-      prices: [...incoming.prices],
+      prices: incoming.treatments ? [] : [...incoming.prices],
       treatments: (incoming.treatments ?? []).map((t) => ({ ...t, updatedAt: now })),
       stats
     };
@@ -158,7 +158,8 @@ export function planImport(
   }
 
   const prices: [string, number][] = [];
-  for (const [k, ore] of incoming.prices) if (!existing.prices.has(k)) prices.push([k, ore]);
+  // A file with its own price list brings it in below; its `prices` are only there for Salonbog.
+  if (!incoming.treatments) for (const [k, ore] of incoming.prices) if (!existing.prices.has(k)) prices.push([k, ore]);
 
   // Price list: new treatments are added; existing ones only get blanks filled in.
   const treatments: Treatment[] = [];

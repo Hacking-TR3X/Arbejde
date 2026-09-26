@@ -69,7 +69,7 @@
       {#if sheet.name === 'visit'}
         <VisitSheet visitId={sheet.visitId} clientId={sheet.clientId} prefillName={sheet.prefillName} date={sheet.date} />
       {:else if sheet.name === 'treatment'}
-        <TreatmentSheet key={sheet.key} />
+        <TreatmentSheet key={sheet.key} prefillName={sheet.prefillName} />
       {:else}
         <ClientSheet clientId={sheet.clientId} prefillName={sheet.prefillName} />
       {/if}

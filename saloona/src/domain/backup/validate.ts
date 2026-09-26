@@ -184,7 +184,9 @@ export function readBackupText(text: string): ReadResult {
   const outClients = readClients(clients, source, w, clientIdMap);
   const outVisits = readVisits(visits, clientIdMap, w);
   const prices = readPrices(own(root, 'prices'), w);
-  const treatments = source === 'saloona' ? readTreatments(own(root, 'treatments'), w) : [];
+  // Only Saloona files carry a price list; without one, `prices` fills the price list on import.
+  const rawTreatments = source === 'saloona' ? own(root, 'treatments') : undefined;
+  const treatments = rawTreatments === undefined ? undefined : readTreatments(rawTreatments, w);
   const exported = optString(own(root, 'exported'));
 
   return {

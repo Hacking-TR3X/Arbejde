@@ -20,7 +20,7 @@ export const m003: Migration = {
       SELECT p.treatment_key,
              COALESCE(
                (SELECT v.treatment FROM visits v WHERE v.treatment_key = p.treatment_key ORDER BY v.date DESC, v.created_at DESC LIMIT 1),
-               p.treatment_key
+               substr(p.treatment_key, 1, 60)
              ),
              p.amount_ore,
              NULL,

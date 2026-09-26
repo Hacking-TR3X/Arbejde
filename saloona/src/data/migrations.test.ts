@@ -87,3 +87,36 @@ describe('migration 003 (price list)', () => {
     expect(s.treatments.size).toBe(0);
   });
 });
+
+describe('migration 003 edge cases', () => {
+  it('keeps a standard price whose key is longer than 60 characters and has no visit', async () => {
+    const SQL = await initSqlJs();
+    const db = createSqlJsDb(SQL);
+    await db.run('CREATE TABLE schema_migrations (version INTEGER PRIMARY KEY NOT NULL, name TEXT NOT NULL, applied_at TEXT NOT NULL)');
+    const { m002 } = await import('./migrations/002_visit_time');
+    await db.batch([
+      ...m001.statements.map((sql) => ({ sql })),
+      ...m002.statements.map((sql) => ({ sql })),
+      { sql: 'INSERT INTO schema_migrations VALUES (1, ?, ?), (2, ?, ?)', params: ['initial', NOW, 'visit_time', NOW] }
+    ]);
+    // treatmentKey('İ' × 40) is 80 characters: lower-casing "İ" gives "i" + a combining dot.
+    const longKey = 'i̇'.repeat(40);
+    await db.run('INSERT INTO treatment_prices (treatment_key, amount_ore) VALUES (?, ?)', [longKey, 10000]);
+    await expect(migrate(db, () => NOW)).resolves.toBe(3);
+    const t = (await new Repo(db).load()).treatments.get(longKey);
+    expect(t?.priceOre).toBe(10000);
+    expect(Array.from(t?.label ?? '').length).toBe(60);
+  });
+
+  it('imports a prototype price whose capitalised name would pass 60 characters', async () => {
+    const SQL = await initSqlJs();
+    const db = createSqlJsDb(SQL);
+    await migrate(db, () => NOW);
+    const repo = new Repo(db);
+    const key = 'ß' + 'a'.repeat(59); // "ß" upper-cases to "SS"
+    await repo.applyImport({ mode: 'merge', insertClients: [], updateClients: [], insertVisits: [], prices: [[key, 10000]], treatments: [], stats: {} as never });
+    const t = (await repo.load()).treatments.get(key);
+    expect(t?.priceOre).toBe(10000);
+    expect(Array.from(t?.label ?? '').length).toBe(60);
+  });
+});

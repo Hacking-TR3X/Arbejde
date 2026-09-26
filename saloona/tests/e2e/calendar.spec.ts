@@ -68,3 +68,25 @@ test('booking from the calendar starts on the chosen day', async ({ page }) => {
   await expect(page.getByRole('dialog').getByRole('button', { name: 'Book aftale' })).toBeVisible();
   await expect(page.getByLabel(/Tidspunkt/)).toBeVisible();
 });
+
+test('a treatment used in visits can be added to the price list and edited afterwards', async ({ page }) => {
+  await start(page);
+  await page.getByRole('button', { name: 'Nyt besøg' }).click();
+  await page.getByRole('textbox', { name: 'Kunde' }).fill('Anna');
+  // A name starting with "new:" once collided with how the sheet was opened.
+  await page.getByLabel('Behandling').fill('new: Striber');
+  await page.getByRole('button', { name: 'Gem besøg' }).click();
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+
+  await page.getByRole('button', { name: 'Mere' }).click();
+  await page.getByRole('button', { name: /Prisliste/ }).click();
+  await page.getByRole('button', { name: /new: Striber.*Tilføj/ }).click();
+  await expect(page.getByLabel('Navn')).toHaveValue('new: Striber');
+  await page.getByLabel(/Pris/).fill('700');
+  await page.getByRole('button', { name: 'Tilføj til prislisten' }).click();
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+
+  await page.getByRole('button', { name: /new: Striber.*700 kr\./ }).click();
+  await expect(page.getByLabel('Navn')).toHaveValue('new: Striber');
+  await expect(page.getByRole('button', { name: 'Fjern fra prislisten' })).toBeVisible();
+});

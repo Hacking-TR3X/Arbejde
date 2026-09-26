@@ -8,15 +8,14 @@
   import Chip from '../ui/Chip.svelte';
   import Icon from '../ui/icons/Icon.svelte';
 
-  // `key` is an existing entry, or "new:<name>" to add a treatment used in visits.
-  let { key }: { key?: string } = $props();
+  // `key` is an existing entry; `prefillName` adds a treatment used in visits.
+  let { key, prefillName = '' }: { key?: string; prefillName?: string } = $props();
 
-  const existing = untrack(() => (key && !key.startsWith('new:') ? app.treatments.get(key) : undefined));
-  const prefillName = untrack(() => (key?.startsWith('new:') ? key.slice(4) : ''));
+  const existing = untrack(() => (key ? app.treatments.get(key) : undefined));
 
   let draft = $state<TreatmentDraft>({
     key: existing?.key,
-    label: existing?.label ?? prefillName,
+    label: existing?.label ?? untrack(() => prefillName),
     priceText: formatAmountInput(existing?.priceOre ?? null),
     durationText: existing?.durationMin != null ? String(existing.durationMin) : ''
   });

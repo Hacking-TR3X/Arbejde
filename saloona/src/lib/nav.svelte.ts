@@ -16,7 +16,7 @@ export type Page =
 
 export type Sheet =
   | { name: 'visit'; visitId?: string; clientId?: string; prefillName?: string; date?: string }
-  | { name: 'treatment'; key?: string }
+  | { name: 'treatment'; key?: string; prefillName?: string }
   | { name: 'client'; clientId?: string; prefillName?: string };
 
 export interface NavState {

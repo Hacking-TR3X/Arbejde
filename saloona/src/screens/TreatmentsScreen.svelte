@@ -51,7 +51,7 @@
     <h2>Brugt, men ikke i prislisten</h2>
     <div class="group">
       {#each unlisted as o (o.key)}
-        <button class="row" onclick={() => nav.openSheet({ name: 'treatment', key: `new:${o.label}` })}>
+        <button class="row" onclick={() => nav.openSheet({ name: 'treatment', prefillName: o.label })}>
           <span class="grow">
             <span class="title">{o.label}</span>
             <span class="meta">{o.count} {o.count === 1 ? 'besøg' : 'besøg'}</span>

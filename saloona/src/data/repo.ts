@@ -2,7 +2,7 @@
  * Repository: the only place that knows SQL. Every statement is parameterised.
  */
 import type { ImportPlan } from '../domain/backup/merge';
-import { capitalizeFirst } from '../domain/text';
+import { LIMITS, capitalizeFirst, truncate } from '../domain/text';
 import { isGender, isPayMethod, type Client, type Treatment, type Visit } from '../domain/types';
 import type { Db, Row, Statement } from './db';
 
@@ -221,7 +221,7 @@ export class Repo {
       // Prototype prices: add the treatment to the price list, or fill in a missing price.
       statements.push({
         sql: 'INSERT INTO treatments (key, label, price_ore, duration_min, updated_at) VALUES (?, ?, ?, NULL, ?) ON CONFLICT(key) DO UPDATE SET price_ore = COALESCE(treatments.price_ore, excluded.price_ore)',
-        params: [key, capitalizeFirst(key), ore, now]
+        params: [key, truncate(capitalizeFirst(key), LIMITS.treatment), ore, now]
       });
     }
     statements.push(...plan.treatments.map(upsertTreatment));
