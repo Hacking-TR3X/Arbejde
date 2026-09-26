@@ -171,3 +171,45 @@ describe('migration 004 (treatment gender)', () => {
     expect(s.clients.map((c) => [c.id, c.gender, c.updatedAt])).toEqual([['a', 'herre', 'T'], ['b', 'dame', NOW]]);
   });
 });
+
+describe('migration 004 and gender fill (security review 8eb4d91)', () => {
+  async function version3() {
+    const SQL = await initSqlJs();
+    const db = createSqlJsDb(SQL);
+    await db.run('CREATE TABLE schema_migrations (version INTEGER PRIMARY KEY NOT NULL, name TEXT NOT NULL, applied_at TEXT NOT NULL)');
+    const { m002 } = await import('./migrations/002_visit_time');
+    const { m003 } = await import('./migrations/003_treatments');
+    await db.batch([
+      ...[...m001.statements, ...m002.statements, ...m003.statements].map((sql) => ({ sql })),
+      { sql: 'INSERT INTO schema_migrations VALUES (1, ?, ?), (2, ?, ?), (3, ?, ?)', params: ['initial', NOW, 'visit_time', NOW, 'treatments', NOW] }
+    ]);
+    return db;
+  }
+
+  it('runs on an empty version-3 database', async () => {
+    expect(await migrate(await version3(), () => NOW)).toBe(4);
+  });
+
+  it('odd labels do not break it, and SQL agrees with genderFromName', async () => {
+    const { genderFromName } = await import('../domain/gender');
+    const db = await version3();
+    const labels = ['HERREKLIP', 'Dåmeklip', "O'Herre", '100% dame', '_pige_', 'Drengeklip & dame', 'i̇'.repeat(30), 'x'.repeat(60), 'Pigé', 'DAMÉ'];
+    for (const l of labels) await db.run('INSERT INTO treatments (key, label, updated_at) VALUES (?, ?, ?)', [l.toLocaleLowerCase('da'), l, NOW]);
+    expect(await migrate(db, () => NOW)).toBe(4);
+    const t = (await new Repo(db).load()).treatments;
+    for (const l of labels) expect([l, t.get(l.toLocaleLowerCase('da'))?.gender]).toEqual([l, genderFromName(l)]);
+  });
+
+  it('fillClientGenders binds ids as data and never overwrites a gender', async () => {
+    const SQL = await initSqlJs();
+    const db = createSqlJsDb(SQL);
+    await migrate(db, () => NOW);
+    const repo = new Repo(db);
+    const base = { tag: null, phone: null, note: '', createdAt: NOW, updatedAt: NOW };
+    await repo.addClient({ id: 'a', name: 'A', gender: 'dame', ...base });
+    await repo.addClient({ id: 'b', name: 'B', gender: null, ...base });
+    await repo.fillClientGenders([{ id: "x' OR gender IS NULL OR '1'='1", gender: 'herre' }, { id: 'a', gender: 'herre' }], 'T');
+    const s = await repo.load();
+    expect(s.clients.map((c) => [c.id, c.gender, c.updatedAt])).toEqual([['a', 'dame', NOW], ['b', null, NOW]]);
+  });
+});

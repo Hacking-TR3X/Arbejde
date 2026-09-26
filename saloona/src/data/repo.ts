@@ -15,6 +15,8 @@ export interface Settings {
   remindersEnabled: boolean;
   theme: 'system' | 'light' | 'dark';
   onboarded: boolean;
+  /** Clients already in the app when genders came in (version with migration 004) have been filled in once. */
+  gendersFilled: boolean;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -23,7 +25,8 @@ export const DEFAULT_SETTINGS: Settings = {
   lockAfterSeconds: 60,
   remindersEnabled: false,
   theme: 'system',
-  onboarded: false
+  onboarded: false,
+  gendersFilled: false
 };
 
 export interface Snapshot {
@@ -193,6 +196,13 @@ export class Repo {
     );
   }
 
+  /** Undoes fillClientGenders, for clients that still have the gender it set. */
+  unfillClientGenders(list: readonly { id: string; gender: Gender }[], now: string): Promise<void> {
+    return this.db.batch(
+      list.map((x) => ({ sql: 'UPDATE clients SET gender = NULL, updated_at = ? WHERE id = ? AND gender = ?', params: [now, x.id, x.gender] }))
+    );
+  }
+
   deleteTreatment(key: string): Promise<void> {
     return this.db.batch([{ sql: 'DELETE FROM treatments WHERE key = ?', params: [key] }]);
   }
@@ -277,6 +287,9 @@ function parseSettings(rows: Row[]): Settings {
         break;
       case 'onboarded':
         s.onboarded = value === true;
+        break;
+      case 'gendersFilled':
+        s.gendersFilled = value === true;
         break;
     }
   }

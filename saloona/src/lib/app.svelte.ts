@@ -10,7 +10,7 @@ import { diffDays, formatDateShort, formatTime, isValidISODate, todayISO, type I
 import { parseAmount } from '../domain/money';
 import { LIMITS, cleanLine, cleanMultiline, normalizePhone, treatmentKey } from '../domain/text';
 import { isValidDuration, isValidTime, newId, type Client, type Gender, type PayMethod, type Treatment, type Visit } from '../domain/types';
-import { inferGenders } from '../domain/gender';
+import { inferGenders, treatmentGender } from '../domain/gender';
 import { DbKeyLostError, DbTooNewError } from '../data/db';
 import { migrate } from '../data/migrations';
 import { destroyDb, discardUnreadableDb, openDb } from '../data/open';
@@ -137,7 +137,12 @@ class AppState {
       await migrate(db);
       this.repo = new Repo(db);
       await this.reload();
-      await this.fillGenders();
+      if (!this.settings.gendersFilled) {
+        // Once, for the clients that were here before treatments had a gender.
+        await this.fillGenders();
+        await this.db.saveSettings({ gendersFilled: true });
+        this.settings = { ...this.settings, gendersFilled: true };
+      }
       this.applyTheme();
       if (this.settings.lockEnabled) {
         this.locked = true;
@@ -346,6 +351,7 @@ class AppState {
     if (old) await this.db.saveVisit({ ...old, ...base }, newClient);
     else await this.db.addVisit({ id: newId(), createdAt: now, ...base }, newClient);
     await this.afterChange();
+    await this.fillGenders(new Set([clientId]));
     haptic('confirm');
     const booked = d.date > this.today;
     const who = newClient?.name ?? this.clientMap.get(clientId)?.name ?? '';
@@ -467,13 +473,29 @@ class AppState {
       haptic('reject');
       return { ok: false, errors };
     }
+    // Who the treatment was for until now (read from the name when it was not on the list).
+    const before = treatmentGender(d.key ?? key, label, this.treatments);
     await this.db.saveTreatment(
       { key, label, priceOre: amount.ok ? amount.ore : null, durationMin: duration, gender: d.gender, updatedAt: new Date().toISOString() },
       d.key
     );
     await this.afterChange();
+    // New evidence only for the clients who had this treatment, and only if its gender changed.
+    const filled =
+      d.gender && d.gender !== before ? await this.fillGenders(new Set(this.visits.filter((v) => v.treatmentKey === key).map((v) => v.clientId))) : [];
     haptic('confirm');
-    snackbar.show(d.key ? 'Prislisten er opdateret' : `${label} er tilføjet prislisten`);
+    const done = d.key ? 'Prislisten er opdateret' : `${label} er tilføjet prislisten`;
+    if (filled.length === 0) snackbar.show(done);
+    else {
+      const who = filled.length === 1 ? `${this.clientMap.get(filled[0]!.id)?.name ?? '1 kunde'} har` : `${filled.length} kunder har`;
+      snackbar.show(`${done}. ${who} fået køn ud fra behandlingen`, {
+        label: 'Fortryd',
+        run: async () => {
+          await this.db.unfillClientGenders(filled, new Date().toISOString());
+          await this.reload();
+        }
+      });
+    }
     return { ok: true };
   }
 
@@ -527,6 +549,7 @@ class AppState {
     await this.db.applyImport(plan);
     if (!this.settings.lastBackupAt) await this.db.saveSettings({ lastBackupAt: new Date().toISOString() });
     await this.afterChange();
+    await this.fillGenders();
     haptic('confirm');
   }
 
@@ -569,16 +592,21 @@ class AppState {
 
   private async afterChange(): Promise<void> {
     await this.reload();
-    await this.fillGenders();
     this.queueReminders();
   }
 
-  /** Clients without a gender get one when their treatments agree (herreklip, dameklip …). */
-  private async fillGenders(): Promise<void> {
-    const found = inferGenders(this.clients, this.visits, this.treatments);
-    if (found.length === 0) return;
+  /**
+   * Clients without a gender get one when their treatments agree (herreklip, dameklip …).
+   * Only run when something new is known (a visit, the price list, an import), so a
+   * gender the owner removed stays removed. `only` limits it to some clients.
+   */
+  private async fillGenders(only?: ReadonlySet<string>): Promise<{ id: string; gender: Gender }[]> {
+    let found = inferGenders(this.clients, this.visits, this.treatments);
+    if (only) found = found.filter((x) => only.has(x.id));
+    if (found.length === 0) return [];
     await this.db.fillClientGenders(found, new Date().toISOString());
     await this.reload();
+    return found;
   }
 }
 

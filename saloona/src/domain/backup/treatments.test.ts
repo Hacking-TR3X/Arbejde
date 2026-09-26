@@ -119,3 +119,32 @@ describe('price list in backups', () => {
     expect(replaced.treatments.map((t) => [t.key, t.priceOre, t.durationMin])).toEqual([['klip', 50000, 30], ['striber', 90000, 120]]);
   });
 });
+
+describe('treatment gender in an untrusted file (security review 8eb4d91)', () => {
+  it('only an own "dame", "herre" or "alle" counts; __proto__ and odd types fall back to the name', () => {
+    const text = JSON.stringify({
+      app: 'saloona',
+      clients: [],
+      visits: [],
+      treatments: [
+        { name: 'Klip', PROTO: { gender: 'herre' } },
+        { name: 'Farve', gender: ['dame'] },
+        { name: 'Vask', gender: { toString: 'dame' } },
+        { name: 'Føn', gender: 'DAME' },
+        { name: 'Striber', gender: 'dame ' },
+        { name: 'Permanent', gender: 1 },
+        { name: 'Herreklip', gender: 'alle' },
+        { name: 'Dameklip', gender: 'herre' }
+      ]
+    }).replace('"PROTO"', '"__proto__"');
+    const r = readBackupText(text);
+    if (r.kind !== 'plain') throw new Error(r.kind);
+    expect(r.backup.treatments?.map((t) => [t.key, t.gender])).toEqual([
+      ['klip', null], ['farve', null], ['vask', null], ['føn', null], ['striber', null], ['permanent', null], ['herreklip', null], ['dameklip', 'herre']
+    ]);
+    expect(r.backup.warnings).toEqual(['5 punkter i prislisten var ugyldige og blev sprunget over eller rettet']);
+    const plan = planImport({ clients: [], visits: [], prices: new Map(), treatments: new Map() }, r.backup, 'replace', NOW);
+    for (const t of plan.treatments) expect(Object.getPrototypeOf(t)).toBe(Object.prototype);
+    expect(({} as Record<string, unknown>).gender).toBeUndefined();
+  });
+});

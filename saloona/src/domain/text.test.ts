@@ -423,3 +423,24 @@ describe('alphabetSections', () => {
     expect(sections.flatMap((s) => s.items).sort()).toEqual([...names].sort());
   });
 });
+
+describe('letter index with odd names (security review 8eb4d91)', () => {
+  const INDEX = [...'ABCDEFGHIJKLMNOPQRSTUVWXYZÆØÅ', '#'];
+  it('never throws and always returns an index letter', () => {
+    const odd = ['', ' ', ' ', '\ud800', '\udc00x', '😀 Smil', '́Anna', 'Åge', 'ß', 'ǆ', 'İlke', 'ŉ', 'ﬀ', '١٢',
+      '​', '__proto__', 'constructor', 'toString', 'Ǻ', 'Ω', '中', '\u{1d400}bc', '\u{e0001}', '﻿Bo'];
+    for (const n of odd) expect(INDEX).toContain(indexLetter(n));
+  });
+  it('random code units and code points: unique section letters in index order, every item kept', () => {
+    let seed = 7;
+    const next = () => (seed = (seed * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff;
+    const char = () => (next() < 0.5 ? String.fromCharCode(Math.floor(next() * 0x10000)) : String.fromCodePoint(Math.floor(next() * 0x110000)));
+    for (let round = 0; round < 200; round++) {
+      const items = Array.from({ length: 40 }, (_, i) => ({ id: i, name: Array.from({ length: 1 + Math.floor(next() * 3) }, char).join('') }));
+      const s = alphabetSections(items, (c) => c.name);
+      const letters = s.map((x) => x.letter);
+      expect(letters).toEqual(INDEX.filter((l) => letters.includes(l)));
+      expect(s.flatMap((x) => x.items.map((c) => c.id)).sort((a, b) => a - b)).toEqual(items.map((c) => c.id));
+    }
+  });
+});

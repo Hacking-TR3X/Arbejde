@@ -64,6 +64,7 @@ test('clients get their gender from herre- and dameklip; the rest are chosen und
   await page.getByRole('dialog').getByRole('radio', { name: 'Dame' }).click();
   await page.getByRole('button', { name: 'Tilføj til prislisten' }).click();
   await expect(page.getByRole('dialog')).toHaveCount(0);
+  await expect(page.getByText('Klip er tilføjet prislisten. Carla har fået køn ud fra behandlingen')).toBeVisible();
 
   await page.getByRole('button', { name: 'Kunder' }).click();
   await expect(page.getByRole('radio', { name: /Dame 2/ })).toBeVisible();
@@ -76,7 +77,7 @@ test('clients get their gender from herre- and dameklip; the rest are chosen und
   await expect(page.getByRole('radio', { name: /Uden køn/ })).toHaveCount(0);
   await expect(page.getByRole('radio', { name: /Herre 2/ })).toBeVisible();
 
-  await page.getByRole('button', { name: 'Fortryd' }).click();
+  await page.locator('.bar').filter({ hasText: 'Dan er sat til herre' }).getByRole('button', { name: 'Fortryd' }).click();
   await expect(page.getByRole('radio', { name: /Uden køn 1/ })).toBeVisible();
 });
 
@@ -107,4 +108,28 @@ test('"Barn" is a filter, and the client sheet has a shortcut for it', async ({ 
   await page.getByRole('button', { name: 'Gem ændringer' }).click();
   await page.goBack();
   await expect(page.getByRole('radio', { name: /Barn 2/ })).toBeVisible();
+});
+
+test('the price list change can be undone, and a removed gender stays removed', async ({ page }) => {
+  await importBackup(page, backup([['Anna', 'Klip'], ['Bo', 'Herreklip']]));
+  await page.getByRole('button', { name: 'Mere' }).click();
+  await page.getByRole('button', { name: /Prisliste/ }).click();
+  await page.getByRole('button', { name: /^Klip/ }).click();
+  await page.getByRole('dialog').getByRole('radio', { name: 'Dame' }).click();
+  await page.getByRole('button', { name: 'Tilføj til prislisten' }).click();
+  await page.locator('.bar').filter({ hasText: 'Anna har fået køn' }).getByRole('button', { name: 'Fortryd' }).click();
+  await page.getByRole('button', { name: 'Kunder' }).click();
+  await expect(page.getByRole('radio', { name: /Uden køn 1/ })).toBeVisible();
+
+  // Bo got herre from "Herreklip"; the owner removes it, and it is not put back.
+  await page.getByRole('radio', { name: /Herre 1/ }).click();
+  await page.getByRole('button', { name: /^Bo/ }).click();
+  await page.getByRole('button', { name: /Rediger/ }).click();
+  await page.getByRole('dialog').getByRole('radio', { name: 'Herre' }).click();
+  await page.getByRole('button', { name: 'Gem ændringer' }).click();
+  await page.goBack();
+  await expect(page.getByRole('radio', { name: /Uden køn 2/ })).toBeVisible();
+  await page.reload();
+  await page.getByRole('button', { name: 'Kunder' }).click();
+  await expect(page.getByRole('radio', { name: /Uden køn 2/ })).toBeVisible();
 });
