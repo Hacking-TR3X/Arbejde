@@ -25,12 +25,12 @@ describe('LIMITS', () => {
 
 describe('cleanLine', () => {
   it('trims and collapses whitespace, including tabs and line breaks', () => {
-    expect(cleanLine('  Morten   Hansen  ', 80)).toBe('Morten Hansen');
+    expect(cleanLine('  Morgan   Hansen  ', 80)).toBe('Morgan Hansen');
     expect(cleanLine('a\tb\nc\r\nd e', 80)).toBe('a b c d e');
   });
 
   it('removes C0/C1 control characters', () => {
-    expect(cleanLine('Mor\u0000ten', 80)).toBe('Morten');
+    expect(cleanLine('Mor\u0000gan', 80)).toBe('Morgan');
     expect(cleanLine('\u0007Bell\u0008', 80)).toBe('Bell');
     expect(cleanLine('A\u007fB\u0085C\u009bD', 80)).toBe('ABCD');
     expect(cleanLine('\u001b[31mRød', 80)).toBe('[31mRød');
@@ -52,7 +52,7 @@ describe('cleanLine', () => {
 
   it('cuts to the maximum length', () => {
     expect(cleanLine('x'.repeat(10_000), 80)).toHaveLength(80);
-    expect(cleanLine('Morten', 3)).toBe('Mor');
+    expect(cleanLine('Morgan', 3)).toBe('Mor');
   });
 
   it('keeps Danish letters and ordinary punctuation', () => {
@@ -62,7 +62,7 @@ describe('cleanLine', () => {
   // Fixed: cleanLine trims again after cutting (text.ts:23).
   it('never returns trailing whitespace after cutting', () => {
     expect(cleanLine(`${'a'.repeat(79)} b`, 80)).toBe('a'.repeat(79));
-    expect(cleanLine('Morten Hansen', 7)).toBe('Morten');
+    expect(cleanLine('Morgan Hansen', 7)).toBe('Morgan');
   });
 
   // Fixed: cutting counts code points, so an emoji is never split (text.ts:15).
@@ -75,10 +75,10 @@ describe('cleanLine', () => {
 
   it('removes zero-width space, LRM/RLM, word joiner and BOM', () => {
     for (const cp of [0x200b, 0x200e, 0x200f, 0x2060, 0xfeff]) {
-      expect(cleanLine(`Mor${String.fromCharCode(cp)}ten`, 80)).toBe('Morten');
+      expect(cleanLine(`Mor${String.fromCharCode(cp)}gan`, 80)).toBe('Morgan');
     }
     // A zero-width space between two spaces must not leave a double space.
-    expect(cleanLine(`Morten ${String.fromCharCode(0x200b)} Hansen`, 80)).toBe('Morten Hansen');
+    expect(cleanLine(`Morgan ${String.fromCharCode(0x200b)} Hansen`, 80)).toBe('Morgan Hansen');
   });
 
   it('keeps ZWNJ/ZWJ so emoji sequences survive', () => {
@@ -98,12 +98,12 @@ describe('cleanLine', () => {
 describe('truncate', () => {
   it('returns short strings unchanged', () => {
     expect(truncate('', 5)).toBe('');
-    expect(truncate('Morten', 6)).toBe('Morten');
-    expect(truncate('Morten', 100)).toBe('Morten');
+    expect(truncate('Morgan', 6)).toBe('Morgan');
+    expect(truncate('Morgan', 100)).toBe('Morgan');
   });
 
   it('cuts by code points, not UTF-16 units', () => {
-    expect(truncate('Morten', 3)).toBe('Mor');
+    expect(truncate('Morgan', 3)).toBe('Mor');
     expect(truncate('😀😀😀', 2)).toBe('😀😀');
     expect(truncate('a😀b', 2)).toBe('a😀');
     expect(truncate('😀', 1)).toBe('😀'); // length 2 in UTF-16, 1 code point
@@ -235,22 +235,22 @@ describe('Danish sorting', () => {
       'Øjvind',
       'Åse'
     ]);
-    expect(compareNames('morten', 'Morten')).toBe(0);
+    expect(compareNames('morgan', 'Morgan')).toBe(0);
     expect(collator.resolvedOptions().locale).toBe('da');
   });
 });
 
 describe('searchRank', () => {
   it.each([
-    ['Morten', 'mor', 3],
-    ['Morten', 'MOR', 3],
-    ['Morten', '  mor  ', 3],
-    ['Morten Hansen', 'han', 2],
+    ['Morgan', 'mor', 3],
+    ['Morgan', 'MOR', 3],
+    ['Morgan', '  mor  ', 3],
+    ['Morgan Hansen', 'han', 2],
     ['Anne-Marie', 'mar', 2],
-    ['Morten', 'rte', 1],
-    ['Morten', 'xyz', 0],
-    ['Morten', '', 1],
-    ['Morten', '   ', 1],
+    ['Morgan', 'rga', 1],
+    ['Morgan', 'xyz', 0],
+    ['Morgan', '', 1],
+    ['Morgan', '   ', 1],
     ['Søren', 'sø', 3],
     ['Søren', 'SØ', 3],
     ['Bjørn Ærø', 'ærø', 2],

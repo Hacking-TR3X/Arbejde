@@ -43,7 +43,7 @@ function file(over: Json = {}): Json {
     app: 'salonbog',
     version: 1,
     exported: '2026-09-26T08:15:00.000Z',
-    clients: [{ id: 'c1', name: 'Morten', gender: 'herre', note: '' }],
+    clients: [{ id: 'c1', name: 'Morgan', gender: 'herre', note: '' }],
     visits: [{ id: 'v1', clientId: 'c1', treatment: 'Klip', date: '2026-09-26', note: '' }],
     prices: {},
     ...over
@@ -55,7 +55,7 @@ function withVisit(v: Json): Json {
 }
 
 function withClient(c: Json, source: 'salonbog' | 'saloona' = 'salonbog'): Json {
-  return file({ app: source, clients: [{ id: 'c1', name: 'Morten', note: '', ...c }] });
+  return file({ app: source, clients: [{ id: 'c1', name: 'Morgan', note: '', ...c }] });
 }
 
 function assertNotPolluted() {
@@ -160,7 +160,7 @@ describe('prototype note → tag', () => {
     ['Kort hår', null, 'Kort hår'], // two words stay a note
     ['Ikke parfume', null, 'Ikke parfume'],
     ['Barn\tx', null, 'Barn\tx'],
-    ['Barn af Hanne', null, 'Barn af Hanne'],
+    ['Barn af Grete', null, 'Barn af Grete'],
     ['Barn\nallergisk', null, 'Barn\nallergisk'],
     ['', null, '']
   ])('%j → tag %j, note %j', (note, tag, rest) => {
@@ -331,11 +331,11 @@ describe('bad clients are skipped with a Danish warning', () => {
     const b = plain(
       file({
         clients: [
-          { id: 'c1', name: 'Morten' },
+          { id: 'c1', name: 'Morgan' },
           null,
-          'Hanne',
+          'Grete',
           42,
-          ['c9', 'Laura'],
+          ['c9', 'Ingrid'],
           { name: 'Uden id' },
           { id: '', name: 'Tomt id' },
           { id: null, name: 'Null-id' },
@@ -357,8 +357,8 @@ describe('bad clients are skipped with a Danish warning', () => {
   });
 
   it('a duplicated id: the first one is kept', () => {
-    const b = plain(file({ clients: [{ id: 'c1', name: 'Morten' }, { id: 'c1', name: 'Anden Morten' }], visits: [] }));
-    expect(b.clients.map((c) => c.name)).toEqual(['Morten']);
+    const b = plain(file({ clients: [{ id: 'c1', name: 'Morgan' }, { id: 'c1', name: 'Anden Morgan' }], visits: [] }));
+    expect(b.clients.map((c) => c.name)).toEqual(['Morgan']);
     expect(b.warnings).toEqual(['1 kunde stod der to gange og blev kun taget med én gang']);
   });
 
@@ -375,14 +375,14 @@ describe('bad clients are skipped with a Danish warning', () => {
   });
 
   it('control and bidi characters are removed from names and notes', () => {
-    const c = plain(withClient({ name: 'Mor‮ten\u0000', note: 'Linje 1\r\nLinje 2⁦' })).clients[0]!;
-    expect(c.name).toBe('Morten');
+    const c = plain(withClient({ name: 'Mor\u202egan\u0000', note: 'Linje 1\r\nLinje 2⁦' })).clients[0]!;
+    expect(c.name).toBe('Morgan');
     expect(c.note).toBe('Linje 1\nLinje 2');
   });
 
   it('ignores unknown fields', () => {
-    const b = plain(file({ clients: [{ id: 'c1', name: 'Morten', color: '#f00', created: 1 }], extra: { a: 1 } }));
-    expect(b.clients[0]).toEqual({ id: 'c1', name: 'Morten', gender: null, tag: null, phone: null, note: '' });
+    const b = plain(file({ clients: [{ id: 'c1', name: 'Morgan', color: '#f00', created: 1 }], extra: { a: 1 } }));
+    expect(b.clients[0]).toEqual({ id: 'c1', name: 'Morgan', gender: null, tag: null, phone: null, note: '' });
     expect(b.warnings).toEqual([]);
   });
 });
@@ -519,7 +519,7 @@ describe('amounts', () => {
 
   it('1e400 in the file (Infinity after parsing) is removed', () => {
     const text =
-      '{"app":"salonbog","clients":[{"id":"c1","name":"Morten"}],' +
+      '{"app":"salonbog","clients":[{"id":"c1","name":"Morgan"}],' +
       '"visits":[{"id":"v1","clientId":"c1","treatment":"Klip","date":"2026-09-26","amount":1e400}]}';
     const b = plain(text);
     expect(b.visits[0]!.amountOre).toBeNull();
@@ -610,7 +610,7 @@ describe('prototype pollution', () => {
     "constructor": { "prototype": { "polluted": true } },
     "app": "salonbog",
     "clients": [
-      { "id": "c1", "name": "Morten", "__proto__": { "polluted": true, "gender": "dame", "tag": "x" } },
+      { "id": "c1", "name": "Morgan", "__proto__": { "polluted": true, "gender": "dame", "tag": "x" } },
       { "id": "c2", "__proto__": { "name": "Uden navn" } },
       { "id": "__proto__", "name": "Proto" },
       { "id": "constructor", "name": "Constructor" }
@@ -630,14 +630,14 @@ describe('prototype pollution', () => {
   it('does not pollute Object.prototype at any level', () => {
     const b = plain(HOSTILE);
     assertNotPolluted();
-    expect(b.clients.map((c) => c.name)).toEqual(['Morten', 'Proto', 'Constructor']);
+    expect(b.clients.map((c) => c.name)).toEqual(['Morgan', 'Proto', 'Constructor']);
   });
 
   it('never reads inherited values', () => {
     const b = plain(HOSTILE);
-    const morten = b.clients.find((c) => c.id === 'c1')!;
-    expect(morten.gender).toBeNull();
-    expect(morten.tag).toBeNull();
+    const morgan = b.clients.find((c) => c.id === 'c1')!;
+    expect(morgan.gender).toBeNull();
+    expect(morgan.tag).toBeNull();
     const v1 = b.visits.find((v) => v.id === 'v1')!;
     expect(v1.amountOre).toBeNull();
     expect(v1.pay).toBeNull();
@@ -824,7 +824,7 @@ describe('Danish grammar in warnings', () => {
     const b = plain(
       file({
         app: 'saloona',
-        clients: [{ id: 'c1', name: 'Morten', phone: 'abc' }],
+        clients: [{ id: 'c1', name: 'Morgan', phone: 'abc' }],
         visits: [{ id: 'v1', clientId: 'c1', treatment: 'Klip', date: '2026-09-26', amount: -1, pay: 'kort' }],
         prices: { klip: -1 }
       })
@@ -842,8 +842,8 @@ describe('Danish grammar in warnings', () => {
       file({
         app: 'saloona',
         clients: [
-          { id: 'c1', name: 'Morten', phone: 'abc' },
-          { id: 'c2', name: 'Hanne', phone: 'tel:1' }
+          { id: 'c1', name: 'Morgan', phone: 'abc' },
+          { id: 'c2', name: 'Grete', phone: 'tel:1' }
         ],
         visits: [
           { id: 'v1', clientId: 'c1', treatment: 'Klip', date: '2026-09-26', amount: -1, pay: 'kort' },
@@ -872,8 +872,8 @@ describe('ids from other apps', () => {
     const b = plain({
       app: 'salonbog',
       clients: [
-        { id: 1718000000000, name: 'Morten' },
-        { id: 1718000000001, name: 'Hanne' }
+        { id: 1718000000000, name: 'Morgan' },
+        { id: 1718000000001, name: 'Grete' }
       ],
       visits: [
         { id: 1718000000100, clientId: 1718000000000, treatment: 'Klip', date: '2026-09-01' },

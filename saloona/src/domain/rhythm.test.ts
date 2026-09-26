@@ -138,7 +138,7 @@ describe('computeRhythms – interval', () => {
   });
 
   it('Holger from the prototype: every 35 days, next 2026-10-31', () => {
-    const visits = ['2026-06-13', '2026-06-25', '2026-08-08', '2026-09-26'].map((d) => visit('morten', 'Klip', d));
+    const visits = ['2026-06-13', '2026-06-25', '2026-08-08', '2026-09-26'].map((d) => visit('morgan', 'Klip', d));
     const r = only(computeRhythms(visits, '2026-09-26'));
     expect(r.intervalDays).toBe(35);
     expect(r.expected).toBe('2026-10-31');

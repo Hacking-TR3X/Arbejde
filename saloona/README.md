@@ -21,11 +21,14 @@ Er telefonen tilsluttet en computer med USB-fejlfinding slået til, kan du også
 
 **Opdatering:** Installér den nye APK oven på den gamle. Dine data bliver liggende, så længe APK'en er signeret med **samme nøgle**. Derfor skal du passe godt på din keystore (se afsnit 3).
 
-### Testversionen
-GitHub bygger automatisk en testversion, **Saloona test**, ved hvert push. Du finder den under *Releases → Saloona – testversion* i dette repository (filen `Saloona-test.apk`).
-- Den er bygget som den rigtige app. Databasen er krypteret, der er ingen fejlfinding slået til, og appen har ingen internetadgang. Den er dog signeret med en testnøgle fra GitHub og har sit eget app-id (`dk.saloona.app.test`), så den kan ligge ved siden af den rigtige Saloona.
-- **Tag backup, før du installerer en ny testversion.** Testnøglen ligger i GitHubs cache og kan blive skiftet, hvis der ikke bygges i 7 dage. Så kan den nye testversion ikke installeres oven på den gamle, og den gamle skal afinstalleres først. Dine data får du tilbage fra backup-filen.
-- Den rigtige app bygger og signerer du selv med din egen nøgle (afsnit 3). Data flytter du fra testversionen til den rigtige app med backup og gendannelse.
+### Hent appen
+GitHub bygger appen automatisk ved hvert push:
+**https://github.com/Hacking-TR3X/Arbejde/releases/download/saloona/Saloona.apk**
+
+- Appen indeholder ingen kundedata. Dine kunder henter du ind med *Hent fra backup*.
+- Databasen er krypteret, der er ingen fejlfinding slået til, og appen har ingen internetadgang.
+- Den er signeret med en fast nøgle, der ligger i GitHub Actions' cache (aldrig i repoet), så nye versioner installeres oven på den gamle med dine data i behold.
+- **Tag backup før en opdatering.** Bliver der ikke bygget i 7 dage, kan GitHub rydde cachen, og så får næste version en ny nøgle. Den kan så ikke installeres oven på den gamle, og den gamle skal afinstalleres først. Dine data får du tilbage fra backup-filen.
 
 ---
 
@@ -62,7 +65,7 @@ npx cap sync android   # kopierer den ind i Android-projektet
 cd android
 ./gradlew assembleDebug
 ```
-APK'en ligger derefter i `android/app/build/outputs/apk/debug/app-debug.apk`. Debug-buildet kan inspiceres over USB. Brug det derfor ikke til rigtige kundedata. `./gradlew assemblePilot` bygger den hærdede testversion (samme som release, signeret med din lokale debug-nøgle).
+APK'en ligger derefter i `android/app/build/outputs/apk/debug/app-debug.apk`. Debug-buildet kan inspiceres over USB. Brug det derfor ikke til rigtige kundedata. `./gradlew assemblePilot` bygger den app, som GitHub udgiver (samme som release, signeret med din lokale debug-nøgle).
 
 ### Signeret release-APK
 

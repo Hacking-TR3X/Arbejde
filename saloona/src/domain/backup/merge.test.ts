@@ -58,11 +58,11 @@ describe('replace', () => {
       visits: [visit('old', 'Klip', '2026-01-01')],
       prices: new Map([['klip', 40_000]])
     };
-    const incoming = backup([ic('c1', 'Morten', { gender: 'herre' })], [iv('v1', 'c1', 'Klip', '2026-09-26', { amountOre: 45_000 })], [['klip', 45_000]]);
+    const incoming = backup([ic('c1', 'Morgan', { gender: 'herre' })], [iv('v1', 'c1', 'Klip', '2026-09-26', { amountOre: 45_000 })], [['klip', 45_000]]);
     const plan = planImport(existing, incoming, 'replace', NOW, makeId);
     expect(plan.mode).toBe('replace');
     expect(plan.insertClients).toEqual([
-      { id: 'c1', name: 'Morten', gender: 'herre', tag: null, phone: null, note: '', createdAt: NOW, updatedAt: NOW }
+      { id: 'c1', name: 'Morgan', gender: 'herre', tag: null, phone: null, note: '', createdAt: NOW, updatedAt: NOW }
     ]);
     expect(plan.insertVisits).toEqual([
       {
@@ -146,26 +146,26 @@ describe('merge – prototype fixture', () => {
 describe('merge – matching clients', () => {
   it('matches on id first', () => {
     const existing: ExistingData = {
-      clients: [client('c1', 'Morten Hansen'), client('e2', 'Morten')],
+      clients: [client('c1', 'Morgan Hansen'), client('e2', 'Morgan')],
       visits: [],
       prices: new Map()
     };
-    const plan = planImport(existing, backup([ic('c1', 'Morten')], [iv('v1', 'c1', 'Klip', '2026-09-01')]), 'merge', NOW, makeId);
+    const plan = planImport(existing, backup([ic('c1', 'Morgan')], [iv('v1', 'c1', 'Klip', '2026-09-01')]), 'merge', NOW, makeId);
     expect(plan.stats.matchedClients).toBe(1);
     expect(plan.insertVisits[0]!.clientId).toBe('c1');
   });
 
   it('same id with a different name is the same client (renamed in the app); the name is kept', () => {
-    const existing: ExistingData = { clients: [client('c1', 'Morten Hansen', { gender: 'herre' })], visits: [], prices: new Map() };
-    const plan = planImport(existing, backup([ic('c1', 'Morten', { gender: 'dame' })]), 'merge', NOW, makeId);
+    const existing: ExistingData = { clients: [client('c1', 'Morgan Hansen', { gender: 'herre' })], visits: [], prices: new Map() };
+    const plan = planImport(existing, backup([ic('c1', 'Morgan', { gender: 'dame' })]), 'merge', NOW, makeId);
     expect(plan.insertClients).toEqual([]);
     expect(plan.updateClients).toEqual([]);
   });
 
   it('then on name, ignoring case (also æøå)', () => {
-    const existing: ExistingData = { clients: [client('e1', 'Morten'), client('e2', 'Åse Ærø')], visits: [], prices: new Map() };
+    const existing: ExistingData = { clients: [client('e1', 'Morgan'), client('e2', 'Åse Ærø')], visits: [], prices: new Map() };
     const incoming = backup(
-      [ic('c1', 'MORTEN'), ic('c2', 'åse ærø')],
+      [ic('c1', 'MORGAN'), ic('c2', 'åse ærø')],
       [iv('v1', 'c1', 'Klip', '2026-09-01'), iv('v2', 'c2', 'Farve', '2026-09-02')]
     );
     const plan = planImport(existing, incoming, 'merge', NOW, makeId);
@@ -182,7 +182,7 @@ describe('merge – matching clients', () => {
   });
 
   it('a new client keeps its id from the file', () => {
-    const plan = planImport({ clients: [client('e1', 'Hanne')], visits: [], prices: new Map() }, backup([ic('c9', 'Laura')]), 'merge', NOW, makeId);
+    const plan = planImport({ clients: [client('e1', 'Grete')], visits: [], prices: new Map() }, backup([ic('c9', 'Ingrid')]), 'merge', NOW, makeId);
     expect(plan.insertClients.map((c) => c.id)).toEqual(['c9']);
     expect(plan.insertClients[0]).toMatchObject({ createdAt: NOW, updatedAt: NOW });
   });
@@ -293,8 +293,8 @@ describe('merge – matching clients', () => {
 describe('merge – existing values win, blanks are filled', () => {
   const existing: ExistingData = {
     clients: [
-      client('e1', 'Morten', { gender: 'herre', tag: 'Fast', phone: '12345678', note: 'Kort i siderne', createdAt: '2026-01-01T00:00:00.000Z' }),
-      client('e2', 'Hanne', { createdAt: '2026-02-02T00:00:00.000Z' })
+      client('e1', 'Morgan', { gender: 'herre', tag: 'Fast', phone: '12345678', note: 'Kort i siderne', createdAt: '2026-01-01T00:00:00.000Z' }),
+      client('e2', 'Grete', { createdAt: '2026-02-02T00:00:00.000Z' })
     ],
     visits: [],
     prices: new Map()
@@ -303,7 +303,7 @@ describe('merge – existing values win, blanks are filled', () => {
   it('does not overwrite anything that is already filled in', () => {
     const plan = planImport(
       existing,
-      backup([ic('c1', 'Morten', { gender: 'dame', tag: 'Barn', phone: '87654321', note: 'Anden note' })]),
+      backup([ic('c1', 'Morgan', { gender: 'dame', tag: 'Barn', phone: '87654321', note: 'Anden note' })]),
       'merge',
       NOW,
       makeId
@@ -315,7 +315,7 @@ describe('merge – existing values win, blanks are filled', () => {
   it('fills in empty gender, tag, phone and note, and keeps name and createdAt', () => {
     const plan = planImport(
       existing,
-      backup([ic('c2', 'HANNE', { gender: 'dame', tag: 'Oldemor', phone: '+4512345678', note: 'Kaffe med mælk' })]),
+      backup([ic('c2', 'GRETE', { gender: 'dame', tag: 'Oldemor', phone: '+4512345678', note: 'Kaffe med mælk' })]),
       'merge',
       NOW,
       makeId
@@ -323,7 +323,7 @@ describe('merge – existing values win, blanks are filled', () => {
     expect(plan.updateClients).toEqual([
       {
         id: 'e2',
-        name: 'Hanne',
+        name: 'Grete',
         gender: 'dame',
         tag: 'Oldemor',
         phone: '+4512345678',
@@ -338,19 +338,19 @@ describe('merge – existing values win, blanks are filled', () => {
 
 describe('merge – matching visits', () => {
   const existing: ExistingData = {
-    clients: [client('e1', 'Morten')],
+    clients: [client('e1', 'Morgan')],
     visits: [visit('e1', 'Klip', '2026-09-01', { id: 'ev1', amountOre: 40_000, pay: 'kontant', note: 'Eksisterende' })],
     prices: new Map()
   };
 
   it('same id → duplicate, even when the content differs (existing wins)', () => {
-    const plan = planImport(existing, backup([ic('e1', 'Morten')], [iv('ev1', 'e1', 'Farve', '2026-09-05', { amountOre: 99_900 })]), 'merge', NOW, makeId);
+    const plan = planImport(existing, backup([ic('e1', 'Morgan')], [iv('ev1', 'e1', 'Farve', '2026-09-05', { amountOre: 99_900 })]), 'merge', NOW, makeId);
     expect(plan.insertVisits).toEqual([]);
     expect(plan.stats.duplicateVisits).toBe(1);
   });
 
   it('same client + date + treatment (any spelling) → duplicate', () => {
-    const plan = planImport(existing, backup([ic('c1', 'morten')], [iv('v9', 'c1', ' KLIP ', '2026-09-01', { amountOre: 45_000 })]), 'merge', NOW, makeId);
+    const plan = planImport(existing, backup([ic('c1', 'morgan')], [iv('v9', 'c1', ' KLIP ', '2026-09-01', { amountOre: 45_000 })]), 'merge', NOW, makeId);
     expect(plan.insertVisits).toEqual([]);
     expect(plan.stats).toMatchObject({ matchedClients: 1, newVisits: 0, duplicateVisits: 1 });
   });
@@ -359,7 +359,7 @@ describe('merge – matching visits', () => {
     const plan = planImport(
       existing,
       backup(
-        [ic('e1', 'Morten'), ic('c2', 'Hanne')],
+        [ic('e1', 'Morgan'), ic('c2', 'Grete')],
         [iv('v1', 'e1', 'Klip', '2026-09-02'), iv('v2', 'e1', 'Skæg', '2026-09-01'), iv('v3', 'c2', 'Klip', '2026-09-01')]
       ),
       'merge',
@@ -371,7 +371,7 @@ describe('merge – matching visits', () => {
   });
 
   it('new visits get createdAt/updatedAt = now and a recomputed treatment key', () => {
-    const plan = planImport(existing, backup([ic('e1', 'Morten')], [iv('v1', 'e1', 'Farve', '2026-09-10', { treatmentKey: 'WRONG' })]), 'merge', NOW, makeId);
+    const plan = planImport(existing, backup([ic('e1', 'Morgan')], [iv('v1', 'e1', 'Farve', '2026-09-10', { treatmentKey: 'WRONG' })]), 'merge', NOW, makeId);
     expect(plan.insertVisits[0]).toMatchObject({ treatmentKey: 'farve', createdAt: NOW, updatedAt: NOW });
   });
 

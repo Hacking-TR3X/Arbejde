@@ -11,7 +11,7 @@ Status: **Godkendt af ejeren. Under udvikling.**
 | UI-framework | Svelte 5 + Vite + TypeScript (strict). Begrundelse: Svelte kompileres til almindelig JS uden virtual DOM-runtime og uden `eval`, så en streng CSP er let at holde. Bundlen er lille, der er få dependencies, og indbyggede overgange er lette at slå fra. |
 | App-lås | Fingeraftryk eller ansigt via `BiometricPrompt` med telefonens egen PIN, mønster eller adgangskode som fallback. Appen gemmer ingen PIN. |
 | Backup | Filen er som standard almindelig JSON, kompatibel med prototypen. Man kan vælge "Beskyt med adgangskode" (AES-256-GCM, nøgle fra PBKDF2-SHA-256 med 600.000 iterationer, via WebCrypto). |
-| Signering | Release signeres lokalt hos ejeren med en keystore uden for repoet. CI bygger debug-APK og en usigneret release til test. |
+| Signering | Ændret af ejeren: der laves ingen selvsigneret release. Den udgivne app er `Saloona.apk` fra CI (pilot-buildet), signeret med en fast nøgle i GitHub Actions' cache. |
 | Startdata | Prototypens indbyggede startkunder kommer ikke med. Rigtige data kommer ind via import af backup. |
 
 ## Arkitektur
@@ -140,5 +140,5 @@ security-reviewer og qa-tester skal godkende hver fase, før den næste starter.
   1. web-checks og tests
   2. debug-APK og usigneret release med R8
   3. røgtest i en Android-emulator (debug og en release, der er signeret med en midlertidig nøgle)
-  4. testversionen offentliggøres som prerelease `saloona-test`
+  4. appen (`Saloona.apk`, pilot-buildet) offentliggøres som prerelease `saloona`
 - Der er ingen emulator her (ingen KVM). UI testes i Chromium i telefonstørrelse. Den sidste test på en fysisk telefon laver ejeren efter en tjekliste.

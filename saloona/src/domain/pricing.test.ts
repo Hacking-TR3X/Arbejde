@@ -13,49 +13,49 @@ const DEFAULTS = new Map([
 
 describe('suggestPrice', () => {
   const visits: Visit[] = [
-    paid('morten', 'Klip', '2026-06-13', 400),
-    paid('morten', 'Klip', '2026-08-08', 425),
-    paid('hanne', 'Klip', '2026-09-20', 500),
-    paid('hanne', 'Farve', '2026-09-04', 1250.5),
-    visit('morten', 'Klip', '2026-09-24') // newest Holger visit, but no amount
+    paid('morgan', 'Klip', '2026-06-13', 400),
+    paid('morgan', 'Klip', '2026-08-08', 425),
+    paid('grete', 'Klip', '2026-09-20', 500),
+    paid('grete', 'Farve', '2026-09-04', 1250.5),
+    visit('morgan', 'Klip', '2026-09-24') // newest Holger visit, but no amount
   ];
 
   it('1. the client’s own latest amount for the same treatment', () => {
     // Grete paid 500 more recently, and Holger’s newest visit has no amount – his own 425 wins.
-    expect(suggestPrice(visits, 'morten', 'klip', DEFAULTS, today)).toBe(42_500);
+    expect(suggestPrice(visits, 'morgan', 'klip', DEFAULTS, today)).toBe(42_500);
   });
 
   it('2. otherwise the latest amount anyone paid for the treatment', () => {
-    expect(suggestPrice(visits, 'laura', 'klip', DEFAULTS, today)).toBe(50_000);
-    expect(suggestPrice(visits, 'morten', 'farve', DEFAULTS, today)).toBe(125_050);
+    expect(suggestPrice(visits, 'ingrid', 'klip', DEFAULTS, today)).toBe(50_000);
+    expect(suggestPrice(visits, 'morgan', 'farve', DEFAULTS, today)).toBe(125_050);
     expect(suggestPrice(visits, null, 'klip', DEFAULTS, today)).toBe(50_000);
   });
 
   it('3. otherwise the imported default price', () => {
-    expect(suggestPrice(visits, 'morten', 'hårkur', DEFAULTS, today)).toBe(30_000);
+    expect(suggestPrice(visits, 'morgan', 'hårkur', DEFAULTS, today)).toBe(30_000);
     expect(suggestPrice([], null, 'klip', DEFAULTS, today)).toBe(45_000);
   });
 
   it('4. otherwise nothing', () => {
-    expect(suggestPrice(visits, 'morten', 'permanent', DEFAULTS, today)).toBeNull();
-    expect(suggestPrice([], 'morten', 'klip', NO_DEFAULTS, today)).toBeNull();
-    expect(suggestPrice(visits, 'morten', '', DEFAULTS, today)).toBeNull();
+    expect(suggestPrice(visits, 'morgan', 'permanent', DEFAULTS, today)).toBeNull();
+    expect(suggestPrice([], 'morgan', 'klip', NO_DEFAULTS, today)).toBeNull();
+    expect(suggestPrice(visits, 'morgan', '', DEFAULTS, today)).toBeNull();
   });
 
   it('skips visits without an amount all the way down to the defaults', () => {
-    const unpaid = [visit('morten', 'Klip', '2026-09-01'), visit('hanne', 'Klip', '2026-09-20')];
-    expect(suggestPrice(unpaid, 'morten', 'klip', DEFAULTS, today)).toBe(45_000);
-    expect(suggestPrice(unpaid, 'morten', 'klip', NO_DEFAULTS, today)).toBeNull();
+    const unpaid = [visit('morgan', 'Klip', '2026-09-01'), visit('grete', 'Klip', '2026-09-20')];
+    expect(suggestPrice(unpaid, 'morgan', 'klip', DEFAULTS, today)).toBe(45_000);
+    expect(suggestPrice(unpaid, 'morgan', 'klip', NO_DEFAULTS, today)).toBeNull();
   });
 
   it('ignores booked (future) visits, even with an amount', () => {
-    const v = [paid('morten', 'Klip', '2026-08-08', 425), paid('morten', 'Klip', '2026-10-10', 999)];
-    expect(suggestPrice(v, 'morten', 'klip', DEFAULTS, today)).toBe(42_500);
-    expect(suggestPrice([paid('x', 'Klip', '2026-10-10', 999)], 'morten', 'klip', DEFAULTS, today)).toBe(45_000);
+    const v = [paid('morgan', 'Klip', '2026-08-08', 425), paid('morgan', 'Klip', '2026-10-10', 999)];
+    expect(suggestPrice(v, 'morgan', 'klip', DEFAULTS, today)).toBe(42_500);
+    expect(suggestPrice([paid('x', 'Klip', '2026-10-10', 999)], 'morgan', 'klip', DEFAULTS, today)).toBe(45_000);
   });
 
   it('a visit today counts', () => {
-    expect(suggestPrice([paid('morten', 'Klip', today, 475)], 'morten', 'klip', DEFAULTS, today)).toBe(47_500);
+    expect(suggestPrice([paid('morgan', 'Klip', today, 475)], 'morgan', 'klip', DEFAULTS, today)).toBe(47_500);
   });
 
   it('keeps a price of 0 kr. (e.g. family) instead of falling through', () => {
@@ -64,29 +64,29 @@ describe('suggestPrice', () => {
 
   it('same date: the visit entered last wins', () => {
     const v = [
-      paid('morten', 'Klip', '2026-09-20', 400, null, { id: 'a', createdAt: '2026-09-20T10:00:00.000Z' }),
-      paid('morten', 'Klip', '2026-09-20', 450, null, { id: 'b', createdAt: '2026-09-20T15:00:00.000Z' })
+      paid('morgan', 'Klip', '2026-09-20', 400, null, { id: 'a', createdAt: '2026-09-20T10:00:00.000Z' }),
+      paid('morgan', 'Klip', '2026-09-20', 450, null, { id: 'b', createdAt: '2026-09-20T15:00:00.000Z' })
     ];
-    expect(suggestPrice(v, 'morten', 'klip', NO_DEFAULTS, today)).toBe(45_000);
-    expect(suggestPrice([...v].reverse(), 'morten', 'klip', NO_DEFAULTS, today)).toBe(45_000);
+    expect(suggestPrice(v, 'morgan', 'klip', NO_DEFAULTS, today)).toBe(45_000);
+    expect(suggestPrice([...v].reverse(), 'morgan', 'klip', NO_DEFAULTS, today)).toBe(45_000);
   });
 
   it('matches on the normalised treatment key (caller passes treatmentKey)', () => {
-    const v = [paid('morten', ' KLIP ', '2026-09-01', 450)];
-    expect(suggestPrice(v, 'morten', 'klip', NO_DEFAULTS, today)).toBe(45_000);
+    const v = [paid('morgan', ' KLIP ', '2026-09-01', 450)];
+    expect(suggestPrice(v, 'morgan', 'klip', NO_DEFAULTS, today)).toBe(45_000);
   });
 });
 
 describe('suggestPay', () => {
   it('the client’s latest payment method', () => {
     const v = [
-      paid('morten', 'Klip', '2026-06-01', 450, 'kontant'),
-      paid('morten', 'Klip', '2026-08-01', 450, 'mp_mig'),
-      paid('hanne', 'Klip', '2026-09-01', 450, 'mp_noah'),
-      visit('morten', 'Klip', '2026-09-10') // no pay → skipped
+      paid('morgan', 'Klip', '2026-06-01', 450, 'kontant'),
+      paid('morgan', 'Klip', '2026-08-01', 450, 'mp_mig'),
+      paid('grete', 'Klip', '2026-09-01', 450, 'mp_noah'),
+      visit('morgan', 'Klip', '2026-09-10') // no pay → skipped
     ];
-    expect(suggestPay(v, 'morten')).toBe('mp_mig');
-    expect(suggestPay(v, 'hanne')).toBe('mp_noah');
+    expect(suggestPay(v, 'morgan')).toBe('mp_mig');
+    expect(suggestPay(v, 'grete')).toBe('mp_noah');
   });
 
   it('otherwise the most used method overall', () => {
@@ -113,16 +113,16 @@ describe('suggestPay', () => {
 
   it('with today given, booked (future) appointments are ignored', () => {
     const v = [
-      paid('morten', 'Klip', '2026-08-01', 450, 'kontant'),
-      visit('morten', 'Klip', '2026-10-10', { pay: 'mp_noah' }), // booked with a pay method
+      paid('morgan', 'Klip', '2026-08-01', 450, 'kontant'),
+      visit('morgan', 'Klip', '2026-10-10', { pay: 'mp_noah' }), // booked with a pay method
       visit('x', 'Klip', '2026-10-11', { pay: 'mp_noah' }),
       visit('y', 'Klip', '2026-10-12', { pay: 'mp_noah' })
     ];
-    expect(suggestPay(v, 'morten', today)).toBe('kontant');
+    expect(suggestPay(v, 'morgan', today)).toBe('kontant');
     expect(suggestPay(v, 'new-client', today)).toBe('kontant'); // overall favourite also ignores bookings
-    expect(suggestPay(v, 'morten', '2026-10-10')).toBe('mp_noah'); // the day has come
+    expect(suggestPay(v, 'morgan', '2026-10-10')).toBe('mp_noah'); // the day has come
     // Without today the old behaviour is kept (all visits).
-    expect(suggestPay(v, 'morten')).toBe('mp_noah');
+    expect(suggestPay(v, 'morgan')).toBe('mp_noah');
   });
 
   it('with today given and only future pay methods → null', () => {
@@ -143,7 +143,7 @@ describe('treatmentOptions', () => {
     visit('c', 'klip', '2026-09-01'),
     visit('a', 'Farve', '2026-03-01'),
     visit('b', 'Farve', '2026-04-01'),
-    visit('morten', 'Skæg', '2026-05-01'),
+    visit('morgan', 'Skæg', '2026-05-01'),
     visit('d', 'Permanent', '2026-08-01')
   ];
 
@@ -157,7 +157,7 @@ describe('treatmentOptions', () => {
   });
 
   it('puts the client’s own treatments first', () => {
-    expect(treatmentOptions(v, 'morten').map((o) => o.key)).toEqual(['skæg', 'klip', 'farve', 'permanent']);
+    expect(treatmentOptions(v, 'morgan').map((o) => o.key)).toEqual(['skæg', 'klip', 'farve', 'permanent']);
     expect(treatmentOptions(v, 'a').map((o) => o.key)).toEqual(['klip', 'farve', 'permanent', 'skæg']);
   });
 
@@ -175,13 +175,13 @@ describe('treatmentOptions', () => {
 describe('lastTreatmentFor', () => {
   it('returns the client’s most recent completed visit', () => {
     const v = [
-      visit('morten', 'Klip', '2026-08-08'),
-      visit('morten', 'Skæg', '2026-09-20'),
-      visit('morten', 'Farve', '2026-10-01'), // booked
-      visit('hanne', 'Farve', '2026-09-25')
+      visit('morgan', 'Klip', '2026-08-08'),
+      visit('morgan', 'Skæg', '2026-09-20'),
+      visit('morgan', 'Farve', '2026-10-01'), // booked
+      visit('grete', 'Farve', '2026-09-25')
     ];
-    expect(lastTreatmentFor(v, 'morten', today)?.treatment).toBe('Skæg');
-    expect(lastTreatmentFor(v, 'hanne', today)?.treatment).toBe('Farve');
+    expect(lastTreatmentFor(v, 'morgan', today)?.treatment).toBe('Skæg');
+    expect(lastTreatmentFor(v, 'grete', today)?.treatment).toBe('Farve');
     expect(lastTreatmentFor(v, 'nobody', today)).toBeNull();
     expect(lastTreatmentFor([visit('x', 'Klip', '2026-10-01')], 'x', today)).toBeNull();
   });

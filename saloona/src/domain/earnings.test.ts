@@ -58,23 +58,23 @@ describe('periodTitle', () => {
 describe('computeEarnings', () => {
   const today = '2026-09-26';
   const clients = clientMap(
-    client('morten', 'Holger'),
-    client('hanne', 'Grete'),
-    client('laura', 'Ingrid'),
-    client('sophie', 'Vera'),
+    client('morgan', 'Holger'),
+    client('grete', 'Grete'),
+    client('ingrid', 'Ingrid'),
+    client('vera', 'Vera'),
     client('jan', 'Kaj'),
     client('arne', 'Poul')
   );
   const visits = [
-    paid('morten', 'Klip', '2026-09-26', 450, 'kontant'), // today
-    paid('hanne', 'Farve', '2026-09-04', 1250.5, 'mp_mig'),
-    paid('laura', 'Farve + klip', '2026-09-12', 1100, 'mp_noah'),
-    paid('sophie', 'klip', '2026-09-19', 450, 'mp_mig'),
+    paid('morgan', 'Klip', '2026-09-26', 450, 'kontant'), // today
+    paid('grete', 'Farve', '2026-09-04', 1250.5, 'mp_mig'),
+    paid('ingrid', 'Farve + klip', '2026-09-12', 1100, 'mp_noah'),
+    paid('vera', 'klip', '2026-09-19', 450, 'mp_mig'),
     paid('jan', 'Klip', '2026-09-01', 450, null), // amount but no pay method
     visit('arne', 'Klip', '2026-09-10'), // no amount
     visit('arne', 'Skæg', '2026-09-15'), // no amount
-    paid('hanne', 'Farve', '2026-10-02', 999, 'mp_mig'), // booked – must not count
-    paid('morten', 'Klip', '2026-08-31', 450, 'kontant'), // last month
+    paid('grete', 'Farve', '2026-10-02', 999, 'mp_mig'), // booked – must not count
+    paid('morgan', 'Klip', '2026-08-31', 450, 'kontant'), // last month
     paid('gone', 'Klip', '2026-09-05', 300, 'kontant') // deleted client
   ];
 
@@ -139,7 +139,7 @@ describe('computeEarnings', () => {
   });
 
   it('topClients: ties are broken by number of visits', () => {
-    const v = [paid('morten', 'Klip', '2026-09-01', 450), paid('hanne', 'Klip', '2026-09-02', 225), paid('hanne', 'Klip', '2026-09-03', 225)];
+    const v = [paid('morgan', 'Klip', '2026-09-01', 450), paid('grete', 'Klip', '2026-09-02', 225), paid('grete', 'Klip', '2026-09-03', 225)];
     expect(computeEarnings(v, clients, 'month', today).topClients.map((s) => s.label)).toEqual(['Grete', 'Holger']);
   });
 
