@@ -1,0 +1,16 @@
+node_modules/
+dist/
+dist-web/
+coverage/
+test-results/
+playwright-report/
+*.log
+.env
+.env.*
+
+# Signing material must never be committed
+*.jks
+*.keystore
+*.p12
+keystore.properties
+signing.properties

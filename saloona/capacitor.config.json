@@ -1,0 +1,28 @@
+{
+  "appId": "dk.saloona.app",
+  "appName": "Saloona",
+  "webDir": "dist",
+  "loggingBehavior": "debug",
+  "server": {
+    "androidScheme": "https",
+    "hostname": "localhost"
+  },
+  "android": {
+    "allowMixedContent": false,
+    "captureInput": false,
+    "resolveServiceWorkerRequests": false
+  },
+  "plugins": {
+    "CapacitorHttp": { "enabled": false },
+    "CapacitorCookies": { "enabled": false },
+    "SystemBars": { "insetsHandling": "css", "style": "DEFAULT" },
+    "CapacitorSQLite": {
+      "androidIsEncryption": true,
+      "androidBiometric": { "biometricAuth": false }
+    },
+    "LocalNotifications": {
+      "smallIcon": "ic_stat_saloona",
+      "iconColor": "#74408A"
+    }
+  }
+}
