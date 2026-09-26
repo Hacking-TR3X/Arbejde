@@ -1,16 +1,19 @@
 <script lang="ts">
   import { app } from '../lib/app.svelte';
   import { nav } from '../lib/nav.svelte';
-  import { compareNames, searchRank } from '../domain/text';
+  import { INDEX_LETTERS, alphabetSections, compareNames, searchRank } from '../domain/text';
   import { formatDateCompact } from '../domain/dates';
+  import { guessGender, isChild } from '../domain/gender';
   import { computeRhythms } from '../domain/rhythm';
-  import type { Client, Gender } from '../domain/types';
+  import type { Client, Gender, Visit } from '../domain/types';
   import Icon from '../ui/icons/Icon.svelte';
   import Chip from '../ui/Chip.svelte';
+  import AlphaIndex from '../ui/AlphaIndex.svelte';
 
-  type Filter = 'all' | Gender;
+  type Filter = 'all' | Gender | 'barn' | 'none';
   let filter = $state<Filter>('all');
   let query = $state('');
+  let list = $state<HTMLElement>();
 
   const lastVisit = $derived.by(() => {
     const m = new Map<string, { date: string; treatment: string }>();
@@ -24,13 +27,46 @@
 
   const lateIds = $derived(new Set(computeRhythms(app.visits, app.today).filter((r) => r.status === 'late').map((r) => r.clientId)));
 
+  function matchesFilter(c: Client, f: Filter): boolean {
+    if (f === 'all') return true;
+    if (f === 'barn') return isChild(c);
+    if (f === 'none') return !c.gender;
+    return c.gender === f;
+  }
+
   const counts = $derived({
     all: app.clients.length,
     dame: app.clients.filter((c) => c.gender === 'dame').length,
-    herre: app.clients.filter((c) => c.gender === 'herre').length
+    herre: app.clients.filter((c) => c.gender === 'herre').length,
+    barn: app.clients.filter(isChild).length,
+    none: app.clients.filter((c) => !c.gender).length
   });
 
-  const filtered = $derived(app.clients.filter((c) => filter === 'all' || c.gender === filter));
+  const filtered = $derived(app.clients.filter((c) => matchesFilter(c, filter)));
+
+  // When the last client without a gender gets one, go back to everyone.
+  $effect(() => {
+    if (filter === 'none' && counts.none === 0) filter = 'all';
+  });
+
+  const visitsByClient = $derived.by(() => {
+    const m = new Map<string, Visit[]>();
+    for (const v of app.visits) {
+      const list = m.get(v.clientId);
+      if (list) list.push(v);
+      else m.set(v.clientId, [v]);
+    }
+    return m;
+  });
+
+  /** Why Saloona could not tell the gender itself. */
+  function genderReason(c: Client): string {
+    const visits = visitsByClient.get(c.id) ?? [];
+    if (visits.length === 0) return 'Ingen besøg endnu';
+    if (guessGender(visits, app.treatments).kind === 'mixed') return 'Både dame og herre';
+    const names = [...new Set(visits.map((v) => v.treatment))];
+    return names.length > 3 ? `${names.slice(0, 3).join(', ')} …` : names.join(', ');
+  }
 
   const searching = $derived(query.trim().length > 0);
 
@@ -44,24 +80,40 @@
   });
 
   /** Alphabetical sections: A–Z, then Æ, Ø, Å (Danish order), then "#". */
-  const sections = $derived.by(() => {
-    const sorted = [...filtered].sort((a, b) => compareNames(a.name, b.name));
-    const out: { letter: string; clients: Client[] }[] = [];
-    for (const c of sorted) {
-      const first = c.name.charAt(0).toLocaleUpperCase('da');
-      const letter = /\p{L}/u.test(first) ? first : '#';
-      const last = out[out.length - 1];
-      if (last && last.letter === letter) last.clients.push(c);
-      else out.push({ letter, clients: [c] });
-    }
-    return out;
-  });
+  const sections = $derived(alphabetSections(filtered, (c) => c.name));
+  const letters = $derived(new Set(sections.map((s) => s.letter)));
+  const showIndex = $derived(sections.length >= 3 && filter !== 'none');
 
-  const filters: { id: Filter; label: string }[] = [
-    { id: 'all', label: 'Alle' },
-    { id: 'dame', label: 'Dame' },
-    { id: 'herre', label: 'Herre' }
-  ];
+  /** Jumps to the letter, or the next letter that has clients (the last one at the end). */
+  function jumpTo(letter: string) {
+    if (!list) return;
+    const at = INDEX_LETTERS.indexOf(letter);
+    const target = sections.find((s) => INDEX_LETTERS.indexOf(s.letter) >= at) ?? sections[sections.length - 1];
+    const el = target && list.querySelector<HTMLElement>(`[data-letter="${CSS.escape(target.letter)}"]`);
+    if (!el) return;
+    const pad = parseFloat(getComputedStyle(list.closest('.screen') ?? document.body).paddingTop) || 0;
+    window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - pad, behavior: 'instant' });
+  }
+
+  const filters = $derived(
+    (
+      [
+        { id: 'all', label: 'Alle' },
+        { id: 'dame', label: 'Dame' },
+        { id: 'herre', label: 'Herre' },
+        { id: 'barn', label: 'Barn' },
+        { id: 'none', label: 'Uden køn' }
+      ] as { id: Filter; label: string }[]
+    ).filter((f) => f.id !== 'none' || counts.none > 0 || filter === 'none')
+  );
+
+  const emptyText: Record<Filter, string> = {
+    all: '',
+    dame: 'Ingen kunder er markeret som dame endnu.',
+    herre: 'Ingen kunder er markeret som herre endnu.',
+    barn: 'Ingen kunder er markeret som barn endnu. Skriv "Barn" som mærke på kunden.',
+    none: 'Alle kunder har et køn.'
+  };
 </script>
 
 {#snippet clientRow(c: Client)}
@@ -121,17 +173,34 @@
         </div>
       {/if}
     {:else if filtered.length === 0}
-      <div class="empty"><p>Ingen kunder er markeret som {filter === 'dame' ? 'dame' : 'herre'} endnu.</p></div>
-    {:else}
-      <!-- One continuous list. The letter sits in a left gutter, like the phone's own contacts. -->
-      <div class="group alpha">
-        {#each sections as s (s.letter)}
-          <div class="block">
-            <h2 class="initial" aria-label={`Bogstav ${s.letter}`}>{s.letter}</h2>
-            {#each s.clients as c (c.id)}{@render clientRow(c)}{/each}
+      <div class="empty"><p>{emptyText[filter]}</p></div>
+    {:else if filter === 'none'}
+      <p class="note lead">Saloona kan ikke se på behandlingerne, om de er dame eller herre. Vælg for hver kunde.</p>
+      <div class="group">
+        {#each [...filtered].sort((a, b) => compareNames(a.name, b.name)) as c (c.id)}
+          <div class="row pick-row">
+            <button class="grow open" onclick={() => nav.open({ name: 'client', id: c.id })}>
+              <span class="title">{c.name}{#if c.tag}<span class="tag">{c.tag}</span>{/if}</span>
+              <span class="meta">{genderReason(c)}</span>
+            </button>
+            <div class="pick" role="group" aria-label={`Køn for ${c.name}`}>
+              <button class="btn small outline" onclick={() => app.setClientGender(c.id, 'dame')}>Dame</button>
+              <button class="btn small outline" onclick={() => app.setClientGender(c.id, 'herre')}>Herre</button>
+            </div>
           </div>
         {/each}
       </div>
+    {:else}
+      <!-- One continuous list. The letter sits in a left gutter, like the phone's own contacts. -->
+      <div class="group alpha" class:indexed={showIndex} bind:this={list}>
+        {#each sections as s (s.letter)}
+          <div class="block" data-letter={s.letter}>
+            <h2 class="initial" aria-label={`Bogstav ${s.letter}`}>{s.letter}</h2>
+            {#each s.items as c (c.id)}{@render clientRow(c)}{/each}
+          </div>
+        {/each}
+      </div>
+      {#if showIndex}<AlphaIndex available={letters} anchor={list} onpick={jumpTo} />{/if}
     {/if}
   {/if}
 </div>
@@ -211,6 +280,33 @@
   .row .title,
   .row .meta {
     display: block;
+  }
+  /* Room for the letter index at the right edge. */
+  .alpha.indexed {
+    margin-right: 18px;
+  }
+  .lead {
+    margin: 0 0 var(--space-3);
+  }
+  .pick-row {
+    padding-right: 12px;
+  }
+  .open {
+    display: block;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: inherit;
+    text-align: left;
+    min-height: var(--tap);
+  }
+  .pick {
+    display: flex;
+    gap: var(--space-2);
+    flex: none;
+  }
+  .pick .btn {
+    padding: 0 14px;
   }
   .late-mark {
     color: var(--late);

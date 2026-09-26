@@ -3,7 +3,9 @@
   import { app, type FieldErrors, type TreatmentDraft } from '../lib/app.svelte';
   import { nav } from '../lib/nav.svelte';
   import { formatAmountInput } from '../domain/money';
+  import { genderFromName } from '../domain/gender';
   import { LIMITS } from '../domain/text';
+  import type { Gender } from '../domain/types';
   import Sheet from '../ui/Sheet.svelte';
   import Chip from '../ui/Chip.svelte';
   import Icon from '../ui/icons/Icon.svelte';
@@ -17,10 +19,24 @@
     key: existing?.key,
     label: existing?.label ?? untrack(() => prefillName),
     priceText: formatAmountInput(existing?.priceOre ?? null),
-    durationText: existing?.durationMin != null ? String(existing.durationMin) : ''
+    durationText: existing?.durationMin != null ? String(existing.durationMin) : '',
+    gender: existing ? existing.gender : genderFromName(untrack(() => prefillName))
   });
   let errors = $state<FieldErrors>({});
   let saving = $state(false);
+  // A new entry follows its name ("Herreklip" → Herre) until a choice is made.
+  let genderTouched = !!existing;
+
+  $effect(() => {
+    const g = genderFromName(draft.label);
+    if (!genderTouched) untrack(() => (draft.gender = g));
+  });
+
+  const genderChoices: { value: Gender | null; label: string }[] = [
+    { value: 'dame', label: 'Dame' },
+    { value: 'herre', label: 'Herre' },
+    { value: null, label: 'Begge' }
+  ];
 
   const presets = [15, 30, 45, 60, 90, 120];
 
@@ -68,6 +84,16 @@
         aria-describedby={errors.treatment ? 'err-t-name' : undefined}
       />
       {#if errors.treatment}<p class="error-text" id="err-t-name">{errors.treatment}</p>{/if}
+    </div>
+
+    <div class="field">
+      <span class="label" id="t-gender">Hvem er den til?</span>
+      <div class="chips" role="radiogroup" aria-labelledby="t-gender" aria-describedby="t-gender-note">
+        {#each genderChoices as g (g.label)}
+          <Chip selected={draft.gender === g.value} onclick={() => ((draft.gender = g.value), (genderTouched = true))}>{g.label}</Chip>
+        {/each}
+      </div>
+      <p class="note" id="t-gender-note">Kunder, der får en dame- eller herrebehandling, får selv det køn.</p>
     </div>
 
     <div class="field">

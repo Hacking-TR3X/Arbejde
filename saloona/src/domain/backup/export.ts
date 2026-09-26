@@ -35,6 +35,8 @@ export interface BackupTreatment {
   price?: number;
   /** Minutes. */
   duration?: number;
+  /** Who it is for; "alle" = both. */
+  gender: Gender | 'alle';
 }
 
 export interface BackupFile {
@@ -88,7 +90,7 @@ export function buildBackup(
     }),
     prices: { ...prices },
     treatments: [...catalog.values()].map((t) => {
-      const out: BackupTreatment = { name: t.label };
+      const out: BackupTreatment = { name: t.label, gender: t.gender ?? 'alle' };
       if (t.priceOre !== null) out.price = kronerFromOre(t.priceOre);
       if (t.durationMin !== null) out.duration = t.durationMin;
       return out;

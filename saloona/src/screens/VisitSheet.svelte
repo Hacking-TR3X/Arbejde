@@ -4,6 +4,7 @@
   import { nav } from '../lib/nav.svelte';
   import { addDays, formatDateShort, formatTime, isValidISODate } from '../domain/dates';
   import { durationFor, findOverlaps, fromMinutes, toMinutes } from '../domain/calendar';
+  import { treatmentGender } from '../domain/gender';
   import { formatAmountInput } from '../domain/money';
   import { lastTreatmentFor, suggestPay, suggestPrice, treatmentOptions } from '../domain/pricing';
   import { computeRhythms } from '../domain/rhythm';
@@ -120,6 +121,13 @@
     });
   });
 
+  // A new client follows the treatment ("Herreklip" → Herre) until a choice is made.
+  let newGenderTouched = false;
+  $effect(() => {
+    const g = treatmentGender(tKey, draft.treatment, app.treatments);
+    if (!newGenderTouched) untrack(() => (draft.newClientGender = g));
+  });
+
   function chooseClient(c: Client) {
     draft.clientId = c.id;
     draft.clientName = c.name;
@@ -214,7 +222,7 @@
             <span class="hint" id="lbl-new-gender">Ny kunde. Dame eller herre?</span>
             <div class="chips" role="radiogroup" aria-labelledby="lbl-new-gender">
               {#each GENDERS as g (g)}
-                <Chip selected={draft.newClientGender === g} onclick={() => (draft.newClientGender = draft.newClientGender === g ? null : g)}>
+                <Chip selected={draft.newClientGender === g} onclick={() => ((draft.newClientGender = draft.newClientGender === g ? null : g), (newGenderTouched = true))}>
                   {GENDER_LABELS[g]}
                 </Chip>
               {/each}

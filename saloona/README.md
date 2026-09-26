@@ -3,10 +3,11 @@
 En lille Android-app til en frisør, der klipper hjemme. Den holder styr på kunderne, hvor ofte de kommer, og hvad der er tjent. Alt ligger kun på telefonen: databasen er krypteret, og appen har ingen adgang til internettet.
 
 - **Snart tid:** hvem der er over tid, hvem der kommer inden for 2 uger, og de kommende aftaler.
-- **Kunder:** alfabetisk liste med søgning og filteret Dame/Herre. Kundesiden viser rytme, næste aftale, beløb brugt i alt og historik, og du kan ringe eller sende SMS.
+- **Kunder:** alfabetisk liste med søgning, bogstaver i højre side, som du kan glide fingeren hen over, og filtrene Dame, Herre, Barn og Uden køn. Kundesiden viser rytme, næste aftale, beløb brugt i alt og historik, og du kan ringe eller sende SMS.
+- **Køn:** Står det på prislisten, om en behandling er til dame eller herre, får kunderne selv det køn. Hvis det ikke kan afgøres ud fra behandlingerne, vælger du det under *Kunder → Uden køn*.
 - **Nyt besøg:** et par tryk. Prisen og betalingsmåden er udfyldt på forhånd. Vælger du en dato frem i tiden, bliver det en booket aftale, eventuelt med klokkeslæt.
 - **Kalender:** ugen og dagens aftaler med start- og sluttid. Appen advarer, hvis en ny aftale overlapper en anden.
-- **Prisliste:** dine behandlinger med pris og varighed (*Mere → Prisliste*). Prisen bliver foreslået, når du registrerer et besøg, og varigheden bruges til sluttiden i kalenderen.
+- **Prisliste:** dine behandlinger med pris, varighed, og hvem de er til (*Mere → Prisliste*). Prisen bliver foreslået, når du registrerer et besøg, og varigheden bruges til sluttiden i kalenderen.
 - **Indtjening:** pr. måned og år, pr. betalingsmåde, pr. behandling og topkunder.
 - **Backup:** gem en fil i fx Google Drev, eventuelt beskyttet med adgangskode. Du kan også hente backups fra den gamle Salonbog.
 

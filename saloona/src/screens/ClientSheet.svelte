@@ -2,6 +2,7 @@
   import { untrack } from 'svelte';
   import { app, type ClientDraft, type FieldErrors } from '../lib/app.svelte';
   import { nav } from '../lib/nav.svelte';
+  import { isChild } from '../domain/gender';
   import { LIMITS, formatPhone } from '../domain/text';
   import { GENDER_LABELS, GENDERS } from '../domain/types';
   import Sheet from '../ui/Sheet.svelte';
@@ -74,8 +75,11 @@
     </div>
 
     <div class="field">
-      <label for="c-tag">Mærke <span class="hint">(valgfrit, fx Barn)</span></label>
-      <input id="c-tag" class="input" type="text" autocomplete="off" maxlength={LIMITS.tag} bind:value={draft.tag} />
+      <label for="c-tag">Mærke <span class="hint">(valgfrit, fx Nabo)</span></label>
+      <div class="chips">
+        <Chip kind="toggle" selected={isChild({ tag: draft.tag })} onclick={() => (draft.tag = isChild({ tag: draft.tag }) ? '' : 'Barn')}>Barn</Chip>
+      </div>
+      <input id="c-tag" class="input tag-input" type="text" autocomplete="off" maxlength={LIMITS.tag} bind:value={draft.tag} />
     </div>
 
     <div class="field">
@@ -105,3 +109,9 @@
     <button class="btn block" type="submit" form="client-form" disabled={saving}>{existing ? 'Gem ændringer' : 'Opret kunde'}</button>
   {/snippet}
 </Sheet>
+
+<style>
+  .tag-input {
+    margin-top: 10px;
+  }
+</style>

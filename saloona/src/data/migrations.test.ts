@@ -77,11 +77,11 @@ describe('migration 003 (price list)', () => {
     const db = createSqlJsDb(SQL);
     await migrate(db, () => NOW);
     const repo = new Repo(db);
-    await repo.saveTreatment({ key: 'klip', label: 'Klip', priceOre: 45000, durationMin: 45, updatedAt: NOW });
-    await repo.saveTreatment({ key: 'dameklip', label: 'Dameklip', priceOre: 50000, durationMin: 60, updatedAt: NOW }, 'klip');
+    await repo.saveTreatment({ key: 'klip', label: 'Klip', priceOre: 45000, durationMin: 45, gender: null, updatedAt: NOW });
+    await repo.saveTreatment({ key: 'dameklip', label: 'Dameklip', priceOre: 50000, durationMin: 60, gender: 'dame', updatedAt: NOW }, 'klip');
     let s = await repo.load();
     expect([...s.treatments.keys()]).toEqual(['dameklip']);
-    await expect(repo.saveTreatment({ key: 'x', label: 'X', priceOre: null, durationMin: 2, updatedAt: NOW })).rejects.toThrow();
+    await expect(repo.saveTreatment({ key: 'x', label: 'X', priceOre: null, durationMin: 2, gender: null, updatedAt: NOW })).rejects.toThrow();
     await repo.deleteTreatment('dameklip');
     s = await repo.load();
     expect(s.treatments.size).toBe(0);
@@ -102,7 +102,7 @@ describe('migration 003 edge cases', () => {
     // treatmentKey('İ' × 40) is 80 characters: lower-casing "İ" gives "i" + a combining dot.
     const longKey = 'i̇'.repeat(40);
     await db.run('INSERT INTO treatment_prices (treatment_key, amount_ore) VALUES (?, ?)', [longKey, 10000]);
-    await expect(migrate(db, () => NOW)).resolves.toBe(3);
+    await expect(migrate(db, () => NOW)).resolves.toBe(4);
     const t = (await new Repo(db).load()).treatments.get(longKey);
     expect(t?.priceOre).toBe(10000);
     expect(Array.from(t?.label ?? '').length).toBe(60);
@@ -118,5 +118,56 @@ describe('migration 003 edge cases', () => {
     const t = (await repo.load()).treatments.get(key);
     expect(t?.priceOre).toBe(10000);
     expect(Array.from(t?.label ?? '').length).toBe(60);
+  });
+});
+
+describe('migration 004 (treatment gender)', () => {
+  it('reads who existing price-list entries are for from their names', async () => {
+    const SQL = await initSqlJs();
+    const db = createSqlJsDb(SQL);
+    await db.run('CREATE TABLE schema_migrations (version INTEGER PRIMARY KEY NOT NULL, name TEXT NOT NULL, applied_at TEXT NOT NULL)');
+    const { m002 } = await import('./migrations/002_visit_time');
+    const { m003 } = await import('./migrations/003_treatments');
+    await db.batch([
+      ...[...m001.statements, ...m002.statements, ...m003.statements].map((sql) => ({ sql })),
+      { sql: 'INSERT INTO schema_migrations VALUES (1, ?, ?), (2, ?, ?), (3, ?, ?)', params: ['initial', NOW, 'visit_time', NOW, 'treatments', NOW] }
+    ]);
+    const rows: [string, string][] = [
+      ['herreklip', 'HERREKLIP'],
+      ['dameklip', 'Dameklip'],
+      ['drengeklip', 'Drengeklip'],
+      ['pigeklip', 'Pigeklip'],
+      ['klip', 'Klip'],
+      ['dame- og herreklip', 'Dame- og herreklip'],
+      ['børneklip', 'Børneklip']
+    ];
+    for (const [key, label] of rows) {
+      await db.run('INSERT INTO treatments (key, label, price_ore, duration_min, updated_at) VALUES (?, ?, NULL, NULL, ?)', [key, label, NOW]);
+    }
+    expect(await migrate(db, () => NOW)).toBe(4);
+    const t = (await new Repo(db).load()).treatments;
+    expect(Object.fromEntries([...t].map(([k, v]) => [k, v.gender]))).toEqual({
+      herreklip: 'herre',
+      dameklip: 'dame',
+      drengeklip: 'herre',
+      pigeklip: 'dame',
+      klip: null,
+      'dame- og herreklip': null,
+      børneklip: null
+    });
+    await expect(db.run("UPDATE treatments SET gender = 'x' WHERE key = 'klip'")).rejects.toThrow();
+  });
+
+  it('fills in a missing client gender only', async () => {
+    const SQL = await initSqlJs();
+    const db = createSqlJsDb(SQL);
+    await migrate(db, () => NOW);
+    const repo = new Repo(db);
+    const base = { tag: null, phone: null, note: '', createdAt: NOW, updatedAt: NOW };
+    await repo.addClient({ id: 'a', name: 'A', gender: null, ...base });
+    await repo.addClient({ id: 'b', name: 'B', gender: 'dame', ...base });
+    await repo.fillClientGenders([{ id: 'a', gender: 'herre' }, { id: 'b', gender: 'herre' }], 'T');
+    const s = await repo.load();
+    expect(s.clients.map((c) => [c.id, c.gender, c.updatedAt])).toEqual([['a', 'herre', 'T'], ['b', 'dame', NOW]]);
   });
 });

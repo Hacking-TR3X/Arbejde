@@ -7,6 +7,7 @@ import { DbTooNewError, type Db } from '../db';
 import { m001 } from './001_initial';
 import { m002 } from './002_visit_time';
 import { m003 } from './003_treatments';
+import { m004 } from './004_treatment_gender';
 
 export interface Migration {
   version: number;
@@ -14,7 +15,7 @@ export interface Migration {
   statements: string[];
 }
 
-export const MIGRATIONS: readonly Migration[] = [m001, m002, m003];
+export const MIGRATIONS: readonly Migration[] = [m001, m002, m003, m004];
 
 export const LATEST_VERSION = MIGRATIONS[MIGRATIONS.length - 1]?.version ?? 0;
 

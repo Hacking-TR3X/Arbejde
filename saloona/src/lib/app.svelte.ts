@@ -10,6 +10,7 @@ import { diffDays, formatDateShort, formatTime, isValidISODate, todayISO, type I
 import { parseAmount } from '../domain/money';
 import { LIMITS, cleanLine, cleanMultiline, normalizePhone, treatmentKey } from '../domain/text';
 import { isValidDuration, isValidTime, newId, type Client, type Gender, type PayMethod, type Treatment, type Visit } from '../domain/types';
+import { inferGenders } from '../domain/gender';
 import { DbKeyLostError, DbTooNewError } from '../data/db';
 import { migrate } from '../data/migrations';
 import { destroyDb, discardUnreadableDb, openDb } from '../data/open';
@@ -51,6 +52,8 @@ export interface TreatmentDraft {
   priceText: string;
   /** Minutes as typed, '' for none. */
   durationText: string;
+  /** Who it is for; null = both. */
+  gender: Gender | null;
 }
 
 export interface ClientDraft {
@@ -134,6 +137,7 @@ class AppState {
       await migrate(db);
       this.repo = new Repo(db);
       await this.reload();
+      await this.fillGenders();
       this.applyTheme();
       if (this.settings.lockEnabled) {
         this.locked = true;
@@ -416,6 +420,20 @@ class AppState {
     return { ok: true, id };
   }
 
+  /** Quick choice from the client list ("Uden køn"). */
+  async setClientGender(id: string, gender: Gender | null): Promise<void> {
+    const c = this.clientMap.get(id);
+    if (!c || c.gender === gender) return;
+    await this.db.saveClient({ ...c, gender, updatedAt: new Date().toISOString() });
+    await this.reload();
+    haptic('confirm');
+    if (!gender) return;
+    snackbar.show(`${c.name} er sat til ${gender}`, {
+      label: 'Fortryd',
+      run: () => this.setClientGender(id, c.gender)
+    });
+  }
+
   async deleteClient(id: string): Promise<void> {
     const c = this.clientMap.get(id);
     if (!c) return;
@@ -450,7 +468,7 @@ class AppState {
       return { ok: false, errors };
     }
     await this.db.saveTreatment(
-      { key, label, priceOre: amount.ok ? amount.ore : null, durationMin: duration, updatedAt: new Date().toISOString() },
+      { key, label, priceOre: amount.ok ? amount.ore : null, durationMin: duration, gender: d.gender, updatedAt: new Date().toISOString() },
       d.key
     );
     await this.afterChange();
@@ -551,7 +569,16 @@ class AppState {
 
   private async afterChange(): Promise<void> {
     await this.reload();
+    await this.fillGenders();
     this.queueReminders();
+  }
+
+  /** Clients without a gender get one when their treatments agree (herreklip, dameklip …). */
+  private async fillGenders(): Promise<void> {
+    const found = inferGenders(this.clients, this.visits, this.treatments);
+    if (found.length === 0) return;
+    await this.db.fillClientGenders(found, new Date().toISOString());
+    await this.reload();
   }
 }
 

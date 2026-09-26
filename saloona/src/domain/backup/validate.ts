@@ -9,6 +9,7 @@
  *  - Saloona encrypted:   { app: "saloona", format: "encrypted", kdf, cipher, data }
  */
 import { isValidISODate, type ISODate } from '../dates';
+import { genderFromName } from '../gender';
 import { oreFromKroner, parseAmount } from '../money';
 import { LIMITS, cleanLine, cleanMultiline, normalizePhone, treatmentKey } from '../text';
 import { isGender, isPayMethod, isValidDuration, isValidId, isValidTime, type Gender, type PayMethod } from '../types';
@@ -46,6 +47,7 @@ export interface ImportTreatment {
   label: string;
   priceOre: number | null;
   durationMin: number | null;
+  gender: Gender | null;
 }
 
 export interface ParsedBackup {
@@ -392,7 +394,13 @@ function readTreatments(raw: unknown, w: Warnings): ImportTreatment[] {
     let durationMin: number | null = null;
     if (isValidDuration(duration)) durationMin = duration;
     else if (duration !== undefined && duration !== null) w.add('treatmentInvalid');
-    out.push({ key, label, priceOre, durationMin });
+    // "alle" = both; a file without the field (or an unknown value) is read from the name.
+    const g = own(t, 'gender');
+    let gender: Gender | null = genderFromName(label);
+    if (isGender(g)) gender = g;
+    else if (g === 'alle') gender = null;
+    else if (g !== undefined && g !== null) w.add('treatmentInvalid');
+    out.push({ key, label, priceOre, durationMin, gender });
   }
   return out;
 }

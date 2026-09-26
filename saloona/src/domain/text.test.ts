@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
   LIMITS,
+  alphabetSections,
+  indexLetter,
   capitalizeFirst,
   cleanLine,
   cleanMultiline,
@@ -369,5 +371,55 @@ describe('phoneUri', () => {
     expect(phoneUri('tel', 'javascript:alert(1)')).toBeNull();
     expect(phoneUri('sms', '12345678?body=Hej')).toBeNull();
     expect(phoneUri('tel', '12345678\nsms:999')).toBeNull();
+  });
+});
+
+describe('indexLetter', () => {
+  it.each([
+    ['Anna', 'A'],
+    ['anders', 'A'],
+    ['Aage', 'Å'],
+    ['aase', 'Å'],
+    ['Åse', 'Å'],
+    ['Émile', 'E'],
+    ['Ärla', 'Æ'],
+    ['Æbbe', 'Æ'],
+    ['Ödön', 'Ø'],
+    ['Øjvind', 'Ø'],
+    ['Üwe', 'Y'],
+    ['Çelik', 'C'],
+    ['  Bo', 'B'],
+    ['3 Brødre', '#'],
+    ['Ωmega', '#'],
+    ['😀 Glad', '#'],
+    ['', '#']
+  ])('%s → %s', (name, letter) => {
+    expect(indexLetter(name)).toBe(letter);
+  });
+});
+
+describe('alphabetSections', () => {
+  const names = ['Aage', 'Anna', 'Émile', 'Emil', 'Erik', 'Ärla', 'Øjvind', 'Ödön', 'Åse', 'Üwe', 'Yrsa', '3 Brødre', 'Ωmega', 'Bo'];
+  const sections = alphabetSections(names, (n) => n);
+
+  it('lists each letter once, in index order with "#" last', () => {
+    expect(sections.map((s) => s.letter)).toEqual(['A', 'B', 'E', 'Y', 'Æ', 'Ø', 'Å', '#']);
+  });
+
+  it('keeps the Danish order inside a section', () => {
+    expect(Object.fromEntries(sections.map((s) => [s.letter, s.items]))).toEqual({
+      A: ['Anna'],
+      B: ['Bo'],
+      E: ['Emil', 'Émile', 'Erik'],
+      Y: ['Yrsa', 'Üwe'],
+      Æ: ['Ärla'],
+      Ø: ['Ödön', 'Øjvind'],
+      Å: ['Aage', 'Åse'],
+      '#': ['3 Brødre', 'Ωmega']
+    });
+  });
+
+  it('every name lands in exactly one section', () => {
+    expect(sections.flatMap((s) => s.items).sort()).toEqual([...names].sort());
   });
 });

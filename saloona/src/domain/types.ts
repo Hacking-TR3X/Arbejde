@@ -51,6 +51,8 @@ export interface Treatment {
   label: string;
   priceOre: number | null;
   durationMin: number | null;
+  /** Who it is for; null means both. */
+  gender: Gender | null;
   updatedAt: string;
 }
 

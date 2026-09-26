@@ -51,6 +51,43 @@ export function compareNames(a: string, b: string): number {
   return collator.compare(a, b);
 }
 
+/** The letters of the client list's index, in Danish order; "#" collects the rest. */
+export const INDEX_LETTERS: readonly string[] = [...'ABCDEFGHIJKLMNOPQRSTUVWXYZÆØÅ', '#'];
+
+const INDEX_SET = new Set(INDEX_LETTERS);
+/** Letters the Danish collation sorts together with another letter. */
+const INDEX_ALIAS: Record<string, string> = { Ä: 'Æ', Ö: 'Ø', Ő: 'Ø', Ü: 'Y', Ű: 'Y' };
+
+/**
+ * The index letter a name is listed under, matching `compareNames`: "Aage" goes
+ * under Å (Danish "aa"), "Émile" under E, "Ärla" under Æ, and "3 Brødre" under "#".
+ */
+export function indexLetter(name: string): string {
+  const s = name.trimStart().toLocaleUpperCase('da');
+  if (s.startsWith('AA')) return 'Å';
+  const ch = String.fromCodePoint(s.codePointAt(0) ?? 35);
+  if (INDEX_SET.has(ch)) return ch;
+  const alias = INDEX_ALIAS[ch];
+  if (alias) return alias;
+  const base = ch.normalize('NFD').replace(/\p{M}/gu, '');
+  return /^[A-Z]$/.test(base) ? base : '#';
+}
+
+/**
+ * Clients in alphabetical sections, in index order ("#" last). Within a section the
+ * names keep the Danish order, so each letter appears once.
+ */
+export function alphabetSections<T>(items: readonly T[], name: (item: T) => string): { letter: string; items: T[] }[] {
+  const buckets = new Map<string, T[]>();
+  for (const item of [...items].sort((a, b) => compareNames(name(a), name(b)))) {
+    const letter = indexLetter(name(item));
+    const list = buckets.get(letter);
+    if (list) list.push(item);
+    else buckets.set(letter, [item]);
+  }
+  return INDEX_LETTERS.filter((l) => buckets.has(l)).map((letter) => ({ letter, items: buckets.get(letter)! }));
+}
+
 function fold(value: string): string {
   return value.toLocaleLowerCase('da').normalize('NFC');
 }

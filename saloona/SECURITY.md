@@ -51,7 +51,7 @@ App-låsen er en UI-lås. Databasen åbnes ved start uanset låsen, og nøglen e
   - Datoer skal være `YYYY-MM-DD` og en gyldig kalenderdato i årene 1900–2200. Beløb skal være endelige, ≥ 0 og ≤ 1.000.000 kr. `pay` og `gender` skal have en tilladt enum-værdi. Id'er følger `[A-Za-z0-9_-]{1,64}`, ellers laves et afledt id.
   - Tekster renses for kontrol-, bidi- og nulbreddetegn og får en maksimal længde.
   - Der er højst 20.000 kunder, 200.000 besøg og 2.000 priser. Besøg med ukendt `clientId` afvises.
-  - Prislisten (`treatments`, kun Saloona-filer): et array med højst 2.000 punkter. Navnet renses og får højst 60 tegn, prisen skal være et tal på 0–1.000.000 kr., og varigheden skal være et heltal på 5–600 min. Ugyldige priser og varigheder fjernes, dubletter springes over, og nøglerne ligger kun i `Map`/arrays.
+  - Prislisten (`treatments`, kun Saloona-filer): et array med højst 2.000 punkter. Navnet renses og får højst 60 tegn, prisen skal være et tal på 0–1.000.000 kr., og varigheden skal være et heltal på 5–600 min. `gender` skal være `dame`, `herre` eller `alle`. Mangler feltet, læses det ud fra navnet, og andre værdier giver en advarsel. Ugyldige priser og varigheder fjernes, dubletter springes over, og nøglerne ligger kun i `Map`/arrays.
   - En krypteret backup skal have 100.000–5.000.000 iterationer, og salt, IV og data skal være base64 med længdegrænser.
 - **Ring/SMS:** nummeret normaliseres i JS og valideres igen i Java (`^\+?[0-9]{3,15}$`) før `ACTION_DIAL tel:` eller `ACTION_SENDTO smsto:`. Der kan ikke komme andre skemaer, parametre eller USSD-tegn (`*#`) igennem, og det kræver ingen telefon- eller SMS-permission.
 - **App-lås:** `BiometricPrompt` med `BIOMETRIC_WEAK | DEVICE_CREDENTIAL`.

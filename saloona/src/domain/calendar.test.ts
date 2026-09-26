@@ -9,7 +9,7 @@ const visit = (id: string, clientId: string, key: string, date: string, time: st
   id, clientId, treatment: key.charAt(0).toUpperCase() + key.slice(1), treatmentKey: key, date, time, amountOre: null, pay: null, note: '', createdAt, updatedAt: createdAt
 });
 const t = (key: string, durationMin: number | null, priceOre: number | null = null): Treatment => ({
-  key, label: key.charAt(0).toUpperCase() + key.slice(1), priceOre, durationMin, updatedAt: NOW
+  key, label: key.charAt(0).toUpperCase() + key.slice(1), priceOre, durationMin, gender: null, updatedAt: NOW
 });
 
 const clients = new Map([['a', client('a', 'Anna')], ['b', client('b', 'Bo')], ['c', client('c', 'Carl')]]);

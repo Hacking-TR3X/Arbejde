@@ -6,7 +6,7 @@ import { readBackupText, type ParsedBackup } from './validate';
 
 const NOW = '2026-09-26T10:00:00.000Z';
 const client: Client = { id: 'c1', name: 'Maria', gender: null, tag: null, phone: null, note: '', createdAt: NOW, updatedAt: NOW };
-const tr = (key: string, label: string, priceOre: number | null, durationMin: number | null): Treatment => ({ key, label, priceOre, durationMin, updatedAt: NOW });
+const tr = (key: string, label: string, priceOre: number | null, durationMin: number | null, gender: Treatment['gender'] = null): Treatment => ({ key, label, priceOre, durationMin, gender, updatedAt: NOW });
 
 function plain(file: unknown): ParsedBackup {
   const r = readBackupText(JSON.stringify(file));
@@ -16,15 +16,35 @@ function plain(file: unknown): ParsedBackup {
 
 describe('price list in backups', () => {
   it('exports the price list and reads it back', () => {
-    const catalog = new Map([['klip', tr('klip', 'Klip', 45000, 45)], ['striber', tr('striber', 'Striber', null, 120)]]);
+    const catalog = new Map([
+      ['klip', tr('klip', 'Klip', 45000, 45)],
+      ['striber', tr('striber', 'Striber', null, 120, 'dame')],
+      ['herreklip', tr('herreklip', 'Herreklip', 30000, 30, null)] // explicitly for both, despite the name
+    ]);
     const file = buildBackup([client], [], new Map([['klip', 45000]]), new Date(NOW), catalog);
-    expect(file.treatments).toEqual([{ name: 'Klip', price: 450, duration: 45 }, { name: 'Striber', duration: 120 }]);
+    expect(file.treatments).toEqual([
+      { name: 'Klip', gender: 'alle', price: 450, duration: 45 },
+      { name: 'Striber', gender: 'dame', duration: 120 },
+      { name: 'Herreklip', gender: 'alle', price: 300, duration: 30 }
+    ]);
     expect(file.prices).toEqual({ klip: 450 });
     const back = plain(file);
     expect(back.treatments).toEqual([
-      { key: 'klip', label: 'Klip', priceOre: 45000, durationMin: 45 },
-      { key: 'striber', label: 'Striber', priceOre: null, durationMin: 120 }
+      { key: 'klip', label: 'Klip', priceOre: 45000, durationMin: 45, gender: null },
+      { key: 'striber', label: 'Striber', priceOre: null, durationMin: 120, gender: 'dame' },
+      { key: 'herreklip', label: 'Herreklip', priceOre: 30000, durationMin: 30, gender: null }
     ]);
+  });
+
+  it('a file without gender on the price list reads it from the name; unknown values are reported', () => {
+    const b = plain({
+      app: 'saloona',
+      clients: [],
+      visits: [],
+      treatments: [{ name: 'Herreklip' }, { name: 'Pigeklip', gender: null }, { name: 'Klip', gender: 'herre' }, { name: 'Farve', gender: 'x' }]
+    });
+    expect(b.treatments?.map((t) => [t.key, t.gender])).toEqual([['herreklip', 'herre'], ['pigeklip', 'dame'], ['klip', 'herre'], ['farve', null]]);
+    expect(b.warnings).toEqual(['1 punkt i prislisten var ugyldigt og blev sprunget over eller rettet']);
   });
 
   it('the price list wins over the latest amount paid in the exported "prices"', () => {
@@ -49,9 +69,9 @@ describe('price list in backups', () => {
       ]
     });
     expect(b.treatments).toEqual([
-      { key: 'klip', label: 'Klip', priceOre: 45000, durationMin: 45 },
-      { key: 'farve', label: 'Farve', priceOre: null, durationMin: null },
-      { key: 'permanent', label: 'Permanent', priceOre: null, durationMin: null }
+      { key: 'klip', label: 'Klip', priceOre: 45000, durationMin: 45, gender: null },
+      { key: 'farve', label: 'Farve', priceOre: null, durationMin: null, gender: null },
+      { key: 'permanent', label: 'Permanent', priceOre: null, durationMin: null, gender: null }
     ]);
     expect(b.warnings).toEqual(['6 punkter i prislisten var ugyldige og blev sprunget over eller rettet']);
   });
@@ -86,13 +106,14 @@ describe('price list in backups', () => {
       app: 'saloona',
       clients: [],
       visits: [],
-      treatments: [{ name: 'Klip', price: 500, duration: 30 }, { name: 'Striber', price: 900, duration: 120 }]
+      treatments: [{ name: 'Klip', price: 500, duration: 30, gender: 'dame' }, { name: 'Striber', price: 900, duration: 120, gender: 'dame' }]
     });
     const existing = { clients: [], visits: [], prices: new Map([['klip', 45000]]), treatments: new Map([['klip', tr('klip', 'Klip', 45000, null)]]) };
     const merged = planImport(existing, incoming, 'merge', NOW);
+    // "Klip" keeps its gender (null = both is a choice, not a blank).
     expect(merged.treatments).toEqual([
-      { key: 'klip', label: 'Klip', priceOre: 45000, durationMin: 30, updatedAt: NOW },
-      { key: 'striber', label: 'Striber', priceOre: 90000, durationMin: 120, updatedAt: NOW }
+      { key: 'klip', label: 'Klip', priceOre: 45000, durationMin: 30, gender: null, updatedAt: NOW },
+      { key: 'striber', label: 'Striber', priceOre: 90000, durationMin: 120, gender: 'dame', updatedAt: NOW }
     ]);
     const replaced = planImport(existing, incoming, 'replace', NOW);
     expect(replaced.treatments.map((t) => [t.key, t.priceOre, t.durationMin])).toEqual([['klip', 50000, 30], ['striber', 90000, 120]]);

@@ -4,6 +4,8 @@
   import { formatAmount } from '../domain/money';
   import { compareNames } from '../domain/text';
   import { treatmentOptions } from '../domain/pricing';
+  import { GENDER_LABELS } from '../domain/types';
+  import { genderFromName } from '../domain/gender';
   import Icon from '../ui/icons/Icon.svelte';
 
   const listed = $derived([...app.treatments.values()].sort((a, b) => compareNames(a.label, b.label)));
@@ -38,7 +40,7 @@
         <button class="row" onclick={() => nav.openSheet({ name: 'treatment', key: t.key })}>
           <span class="grow">
             <span class="title">{t.label}</span>
-            <span class="meta">{t.durationMin !== null ? duration(t.durationMin) : 'Ingen varighed'}</span>
+            <span class="meta">{t.gender ? `${GENDER_LABELS[t.gender]} · ` : ''}{t.durationMin !== null ? duration(t.durationMin) : 'Ingen varighed'}</span>
           </span>
           <span class="end price">{t.priceOre !== null ? formatAmount(t.priceOre) : 'Ingen pris'}</span>
           <span class="chev"><Icon name="forward" size={20} /></span>
@@ -54,7 +56,7 @@
         <button class="row" onclick={() => nav.openSheet({ name: 'treatment', prefillName: o.label })}>
           <span class="grow">
             <span class="title">{o.label}</span>
-            <span class="meta">{o.count} {o.count === 1 ? 'besøg' : 'besøg'}</span>
+            <span class="meta">{genderFromName(o.label) ? `${GENDER_LABELS[genderFromName(o.label)!]} · ` : ''}{o.count} besøg</span>
           </span>
           <span class="end add">Tilføj</span>
         </button>

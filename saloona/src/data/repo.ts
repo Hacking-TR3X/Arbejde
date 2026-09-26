@@ -2,8 +2,9 @@
  * Repository: the only place that knows SQL. Every statement is parameterised.
  */
 import type { ImportPlan } from '../domain/backup/merge';
+import { genderFromName } from '../domain/gender';
 import { LIMITS, capitalizeFirst, truncate } from '../domain/text';
-import { isGender, isPayMethod, type Client, type Treatment, type Visit } from '../domain/types';
+import { isGender, isPayMethod, type Client, type Gender, type Treatment, type Visit } from '../domain/types';
 import type { Db, Row, Statement } from './db';
 
 export interface Settings {
@@ -90,14 +91,15 @@ function toTreatment(r: Row): Treatment {
     label: str(r.label),
     priceOre: numOrNull(r.price_ore),
     durationMin: numOrNull(r.duration_min),
+    gender: isGender(r.gender) ? r.gender : null,
     updatedAt: str(r.updated_at)
   };
 }
 
 function upsertTreatment(t: Treatment): Statement {
   return {
-    sql: 'INSERT INTO treatments (key, label, price_ore, duration_min, updated_at) VALUES (?, ?, ?, ?, ?) ON CONFLICT(key) DO UPDATE SET label = excluded.label, price_ore = excluded.price_ore, duration_min = excluded.duration_min, updated_at = excluded.updated_at',
-    params: [t.key, t.label, t.priceOre, t.durationMin, t.updatedAt]
+    sql: 'INSERT INTO treatments (key, label, price_ore, duration_min, gender, updated_at) VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT(key) DO UPDATE SET label = excluded.label, price_ore = excluded.price_ore, duration_min = excluded.duration_min, gender = excluded.gender, updated_at = excluded.updated_at',
+    params: [t.key, t.label, t.priceOre, t.durationMin, t.gender, t.updatedAt]
   };
 }
 
@@ -115,7 +117,7 @@ export class Repo {
     const [clients, visits, prices, settings] = await Promise.all([
       this.db.query('SELECT * FROM clients'),
       this.db.query("SELECT * FROM visits ORDER BY date DESC, COALESCE(time, '') DESC, created_at DESC"),
-      this.db.query('SELECT key, label, price_ore, duration_min, updated_at FROM treatments'),
+      this.db.query('SELECT key, label, price_ore, duration_min, gender, updated_at FROM treatments'),
       this.db.query('SELECT key, value FROM settings')
     ]);
     return {
@@ -184,6 +186,13 @@ export class Repo {
     ]);
   }
 
+  /** Sets the gender of clients that have none (read from their treatments). */
+  fillClientGenders(list: readonly { id: string; gender: Gender }[], now: string): Promise<void> {
+    return this.db.batch(
+      list.map((x) => ({ sql: 'UPDATE clients SET gender = ?, updated_at = ? WHERE id = ? AND gender IS NULL', params: [x.gender, now, x.id] }))
+    );
+  }
+
   deleteTreatment(key: string): Promise<void> {
     return this.db.batch([{ sql: 'DELETE FROM treatments WHERE key = ?', params: [key] }]);
   }
@@ -219,9 +228,10 @@ export class Repo {
     const now = new Date().toISOString();
     for (const [key, ore] of plan.prices) {
       // Prototype prices: add the treatment to the price list, or fill in a missing price.
+      const label = truncate(capitalizeFirst(key), LIMITS.treatment);
       statements.push({
-        sql: 'INSERT INTO treatments (key, label, price_ore, duration_min, updated_at) VALUES (?, ?, ?, NULL, ?) ON CONFLICT(key) DO UPDATE SET price_ore = COALESCE(treatments.price_ore, excluded.price_ore)',
-        params: [key, truncate(capitalizeFirst(key), LIMITS.treatment), ore, now]
+        sql: 'INSERT INTO treatments (key, label, price_ore, duration_min, gender, updated_at) VALUES (?, ?, ?, NULL, ?, ?) ON CONFLICT(key) DO UPDATE SET price_ore = COALESCE(treatments.price_ore, excluded.price_ore)',
+        params: [key, label, ore, genderFromName(label), now]
       });
     }
     statements.push(...plan.treatments.map(upsertTreatment));
