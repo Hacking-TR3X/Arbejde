@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "exported": "2025-11-02T19:40:12.000Z",
+  "clients": [
+    { "id": "c01", "name": "Morten", "gender": "herre", "note": "" },
+    { "id": "c06", "name": "Sirius", "gender": "herre", "note": "Barn" },
+    { "id": "c08", "name": "Hanne", "gender": "dame", "note": "" },
+    { "id": "c13", "name": "Familie Køge", "note": "" }
+  ],
+  "visits": [
+    { "id": "w01", "clientId": "c01", "treatment": "Klip", "date": "2025-08-16", "note": "" },
+    { "id": "w02", "clientId": "c01", "treatment": "Klip", "date": "2025-09-20", "note": "" },
+    { "id": "w03", "clientId": "c06", "treatment": "Børneklip", "date": "2025-10-04", "note": "" },
+    { "id": "w04", "clientId": "c08", "treatment": "Farve", "date": "2025-10-18", "note": "Samme farve som sidst" },
+    { "id": "w05", "clientId": "c13", "treatment": "Klip", "date": "2025-10-25", "note": "" }
+  ]
+}

@@ -1,0 +1,257 @@
+name: Saloona
+
+# Saloona's own pipeline. It does not touch LoopCast (build.yml) and never
+# takes over its "latest" release: the Saloona test release is a prerelease
+# with make_latest "false".
+
+on:
+  push:
+    branches: ["**"]
+    paths:
+      - "saloona/**"
+      - ".github/workflows/saloona.yml"
+  workflow_dispatch:
+
+# Least privilege: only the publish job gets write access.
+permissions:
+  contents: read
+
+concurrency:
+  group: saloona-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: saloona
+
+jobs:
+  web:
+    name: Web (check, test, build)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: saloona/package-lock.json
+
+      - run: npm ci
+      - run: npm audit --audit-level=high
+      - run: npm run check
+      - run: npm test
+      - run: npm run build
+
+  android:
+    name: Android (debug + unsigned release)
+    needs: web
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: saloona/package-lock.json
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: "platforms;android-36 build-tools;36.0.0 platform-tools"
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - run: npm ci
+      - run: npm run build
+      - run: npx cap sync android
+
+      # A stable debug key, so each new test APK installs over the previous one.
+      # It is a throw-away debug key (standard alias/password), not the release key.
+      - name: Point the Android tools at ~/.android
+        run: echo "ANDROID_USER_HOME=$HOME/.android" >> "$GITHUB_ENV"
+
+      - name: Restore debug keystore
+        id: debug-keystore
+        uses: actions/cache@v4
+        with:
+          path: ~/.android/debug.keystore
+          key: saloona-debug-keystore-v1
+
+      - name: Create debug keystore
+        if: steps.debug-keystore.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p "$HOME/.android"
+          keytool -genkeypair -noprompt \
+            -keystore "$HOME/.android/debug.keystore" \
+            -storepass android -keypass android \
+            -alias androiddebugkey \
+            -keyalg RSA -keysize 2048 -validity 10000 \
+            -dname "CN=Android Debug,O=Android,C=US"
+
+      - name: Build APKs
+        working-directory: saloona/android
+        run: |
+          chmod +x gradlew
+          ./gradlew --no-daemon -PversionCode=${{ github.run_number }} assembleDebug assembleRelease
+
+      - name: Collect APKs
+        working-directory: saloona/android/app/build/outputs
+        run: |
+          mkdir -p "$RUNNER_TEMP/apk-debug" "$RUNNER_TEMP/apk-release"
+          cp apk/debug/app-debug.apk "$RUNNER_TEMP/apk-debug/Saloona-test.apk"
+          cp apk/release/*.apk "$RUNNER_TEMP/apk-release/"
+          if [ -f mapping/release/mapping.txt ]; then
+            cp mapping/release/mapping.txt "$RUNNER_TEMP/apk-release/"
+          fi
+          ls -l "$RUNNER_TEMP/apk-debug" "$RUNNER_TEMP/apk-release"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: saloona-debug-apk
+          path: ${{ runner.temp }}/apk-debug/Saloona-test.apk
+          if-no-files-found: error
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: saloona-release-unsigned-apk
+          path: ${{ runner.temp }}/apk-release/
+          if-no-files-found: error
+
+  smoke:
+    name: Smoke test on emulator
+    needs: android
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: saloona-debug-apk
+          path: ${{ runner.temp }}/apk/debug
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: saloona-release-unsigned-apk
+          path: ${{ runner.temp }}/apk/release
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: "build-tools;36.0.0 platform-tools"
+
+      # R8 problems only show up in the minified release build, so it is launched
+      # too. It is signed here with a key generated for this run only; neither the
+      # key nor the signed APK is uploaded.
+      - name: Sign release APK with a throw-away key
+        run: |
+          set -euo pipefail
+          SMOKE_KS_PASS="$(openssl rand -hex 24)"
+          echo "::add-mask::$SMOKE_KS_PASS"
+          export SMOKE_KS_PASS
+          KS="$RUNNER_TEMP/smoke-only.jks"
+          BT="$ANDROID_HOME/build-tools/36.0.0"
+          UNSIGNED="$(ls "$RUNNER_TEMP"/apk/release/*.apk | head -n 1)"
+          keytool -genkeypair -noprompt -keystore "$KS" \
+            -storepass "$SMOKE_KS_PASS" -keypass "$SMOKE_KS_PASS" \
+            -alias smoke -keyalg RSA -keysize 2048 -validity 2 \
+            -dname "CN=Saloona CI smoke test"
+          "$BT/zipalign" -f -p 4 "$UNSIGNED" "$RUNNER_TEMP/aligned.apk"
+          "$BT/apksigner" sign --ks "$KS" --ks-key-alias smoke \
+            --ks-pass env:SMOKE_KS_PASS --key-pass env:SMOKE_KS_PASS \
+            --out "$RUNNER_TEMP/apk/Saloona-release-smoke.apk" "$RUNNER_TEMP/aligned.apk"
+          rm -f "$KS" "$RUNNER_TEMP/aligned.apk"
+          "$BT/apksigner" verify "$RUNNER_TEMP/apk/Saloona-release-smoke.apk"
+
+      - name: Enable KVM
+        working-directory: .
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Launch APKs on emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          target: google_apis
+          arch: x86_64
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -no-snapshot
+          working-directory: saloona
+          script: bash scripts/ci-smoke.sh "${{ runner.temp }}/smoke" "${{ runner.temp }}/apk/debug/Saloona-test.apk:dk.saloona.app.debug:debug" "${{ runner.temp }}/apk/Saloona-release-smoke.apk:dk.saloona.app:release"
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: saloona-smoke
+          path: ${{ runner.temp }}/smoke/
+          if-no-files-found: warn
+
+  publish:
+    name: Publish test release
+    needs: smoke
+    if: github.ref == 'refs/heads/claude/saloona-salon-app-cxdxja'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: saloona-debug-apk
+          path: ${{ runner.temp }}/publish
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: saloona-smoke
+          path: ${{ runner.temp }}/smoke
+
+      - name: Move "saloona-test" tag to this commit
+        run: |
+          git tag -f saloona-test "$GITHUB_SHA"
+          git push -f origin refs/tags/saloona-test
+
+      # Stable link: https://github.com/<owner>/<repo>/releases/download/saloona-test/Saloona-test.apk
+      - name: Publish test release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: saloona-test
+          name: Saloona – testversion
+          prerelease: true
+          # Critical: must never take over LoopCast's releases/latest link.
+          make_latest: "false"
+          fail_on_unmatched_files: true
+          files: |
+            ${{ runner.temp }}/publish/Saloona-test.apk
+            ${{ runner.temp }}/smoke/saloona-smoke-debug.png
+            ${{ runner.temp }}/smoke/saloona-smoke-release.png
+          body: |
+            Automatisk testversion af Saloona fra commit ${{ github.sha }}.
+
+            **Det er en testbuild, ikke den endelige app.**
+            - Den er signeret med en debug-nøgle og installeres som en separat app, **Saloona test**, ved siden af en eventuel rigtig Saloona. De to deler ikke data.
+            - Testversionen har fejlfinding slået til (WebView-debugging og mere logning via USB). Brug den derfor ikke til rigtige kundedata.
+
+            **Sådan installerer du den**
+            1. Åbn denne side på telefonen, og tryk på `Saloona-test.apk` under "Assets".
+            2. Når Android spørger, så tillad at browseren (eller Filer) må installere ukendte apps.
+            3. Tryk "Installer", og åbn **Saloona test**.
+
+            En ny testversion kan installeres oven på den forrige. Siger Android, at appen ikke kan installeres, fordi den er i konflikt med en eksisterende pakke, så afinstallér den gamle "Saloona test" først. Det sletter dens data.
+
+            `saloona-smoke-debug.png` og `saloona-smoke-release.png` er skærmbilleder fra den automatiske test på en emulator (Android 14).

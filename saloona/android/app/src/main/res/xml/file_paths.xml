@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  FileProvider paths for SaloonaNativePlugin.shareFile.
+  Only cache/exports/ is exposed. The file there is deleted before the next
+  share and on start-up (clearExportCache). Never add external-path or a
+  broader path: that would let a share target read the database.
+-->
+<paths>
+    <cache-path name="exports" path="exports/" />
+</paths>

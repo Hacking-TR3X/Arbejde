@@ -29,11 +29,8 @@
         errors = res.errors;
         return;
       }
-      if (!existing && res.id) {
-        const id = res.id;
-        nav.closeSheet();
-        setTimeout(() => nav.open({ name: 'client', id }), 0);
-      } else nav.closeSheet();
+      if (!existing && res.id) nav.replaceSheetWithPage({ name: 'client', id: res.id });
+      else nav.closeSheet();
     } finally {
       saving = false;
     }

@@ -100,6 +100,20 @@ class Nav {
     this.push({ ...this.state, sheet });
   }
 
+  /**
+   * Replaces the open sheet with a page in the same history entry
+   * (e.g. "Opret kunde" → the new client's page), so back returns to where the sheet was opened.
+   */
+  replaceSheetWithPage(page: Page): void {
+    if (!this.state.sheet) {
+      this.open(page);
+      return;
+    }
+    this.state = { tab: this.state.tab, pages: [...this.state.pages, page], sheet: null };
+    history.replaceState(this.entry(this.depth), '');
+    window.scrollTo(0, 0);
+  }
+
   /** Same as the Android back button. */
   back(): void {
     if (this.depth > 0) history.back();

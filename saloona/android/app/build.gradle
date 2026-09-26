@@ -1,0 +1,141 @@
+apply plugin: 'com.android.application'
+
+// ---------------------------------------------------------------------------
+// Release signing
+//
+// Read from environment variables first, then from Gradle properties with the
+// same names (so they can live in ~/.gradle/gradle.properties, outside the repo):
+//   SALOONA_KEYSTORE           path to the .jks/.keystore file
+//                              (SALOONA_KEYSTORE_FILE is accepted as an alias)
+//   SALOONA_KEYSTORE_PASSWORD
+//   SALOONA_KEY_ALIAS
+//   SALOONA_KEY_PASSWORD
+// Keystores and passwords must never be committed. If anything is missing, the
+// release APK is built unsigned and a warning is printed; the build does not fail.
+// ---------------------------------------------------------------------------
+def saloonaSetting = { String name ->
+    def env = System.getenv(name)
+    if (env != null && !env.trim().isEmpty()) {
+        return env.trim()
+    }
+    def prop = project.findProperty(name)
+    if (prop != null && !prop.toString().trim().isEmpty()) {
+        return prop.toString().trim()
+    }
+    return null
+}
+
+def releaseStorePath = saloonaSetting('SALOONA_KEYSTORE') ?: saloonaSetting('SALOONA_KEYSTORE_FILE')
+def releaseStorePassword = saloonaSetting('SALOONA_KEYSTORE_PASSWORD')
+def releaseKeyAlias = saloonaSetting('SALOONA_KEY_ALIAS')
+def releaseKeyPassword = saloonaSetting('SALOONA_KEY_PASSWORD')
+def releaseStoreFile = releaseStorePath != null ? file(releaseStorePath) : null
+
+def missingSigning = []
+if (releaseStoreFile == null) {
+    missingSigning << 'SALOONA_KEYSTORE'
+} else if (!releaseStoreFile.isFile()) {
+    missingSigning << "SALOONA_KEYSTORE (filen findes ikke: ${releaseStoreFile})"
+}
+if (releaseStorePassword == null) missingSigning << 'SALOONA_KEYSTORE_PASSWORD'
+if (releaseKeyAlias == null) missingSigning << 'SALOONA_KEY_ALIAS'
+if (releaseKeyPassword == null) missingSigning << 'SALOONA_KEY_PASSWORD'
+def hasReleaseSigning = missingSigning.isEmpty()
+
+// versionCode: ./gradlew assembleRelease -PversionCode=42 (CI passes the run number).
+def saloonaVersionCode = 1
+def versionCodeProp = project.findProperty('versionCode')
+if (versionCodeProp != null && versionCodeProp.toString().trim().isInteger()) {
+    saloonaVersionCode = versionCodeProp.toString().trim().toInteger()
+}
+
+android {
+    namespace = "dk.saloona.app"
+    compileSdk = rootProject.ext.compileSdkVersion
+    defaultConfig {
+        applicationId "dk.saloona.app"
+        minSdkVersion rootProject.ext.minSdkVersion
+        targetSdkVersion rootProject.ext.targetSdkVersion
+        versionCode saloonaVersionCode
+        versionName "1.0.0"
+        // Used as android:label in AndroidManifest.xml.
+        manifestPlaceholders = [appLabel: "Saloona"]
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        aaptOptions {
+             // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
+             // Default: https://android.googlesource.com/platform/frameworks/base/+/282e181b58cf72b6ca770dc7ca5f91f135444502/tools/aapt/AaptAssets.cpp#61
+            ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
+        }
+    }
+
+    signingConfigs {
+        if (hasReleaseSigning) {
+            release {
+                storeFile releaseStoreFile
+                storePassword releaseStorePassword
+                keyAlias releaseKeyAlias
+                keyPassword releaseKeyPassword
+            }
+        }
+    }
+
+    buildTypes {
+        debug {
+            // Test build: installs next to the real app and is clearly labelled.
+            applicationIdSuffix ".debug"
+            manifestPlaceholders = [appLabel: "Saloona test"]
+        }
+        release {
+            // WebView debugging follows this flag: Capacitor's CapConfig defaults
+            // android.webContentsDebuggingEnabled to (ApplicationInfo.FLAG_DEBUGGABLE != 0).
+            debuggable false
+            minifyEnabled true
+            shrinkResources true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            if (hasReleaseSigning) {
+                signingConfig signingConfigs.release
+            }
+        }
+    }
+}
+
+if (!hasReleaseSigning) {
+    gradle.taskGraph.whenReady { graph ->
+        if (graph.allTasks.any { it.project == project && it.name.toLowerCase().contains('release') }) {
+            logger.warn("""
+================================================================================
+ Saloona: release-APK'en bygges USIGNERET.
+ Mangler: ${missingSigning.join(', ')}
+ Sæt miljøvariablerne (eller Gradle-properties i ~/.gradle/gradle.properties):
+   SALOONA_KEYSTORE, SALOONA_KEYSTORE_PASSWORD, SALOONA_KEY_ALIAS, SALOONA_KEY_PASSWORD
+ Se android/README-android.md.
+================================================================================
+""")
+        }
+    }
+}
+
+repositories {
+    flatDir{
+        dirs '../capacitor-cordova-android-plugins/src/main/libs', 'libs'
+    }
+}
+
+dependencies {
+    implementation fileTree(include: ['*.jar'], dir: 'libs')
+    implementation "androidx.appcompat:appcompat:$androidxAppCompatVersion"
+    implementation "androidx.coordinatorlayout:coordinatorlayout:$androidxCoordinatorLayoutVersion"
+    implementation "androidx.core:core-splashscreen:$coreSplashScreenVersion"
+    // Already on the runtime classpath through @capacitor-community/sqlite and
+    // capacitor-android (as `implementation`, so not visible to our code). Declared
+    // here with the same versions only so SaloonaNativePlugin/MainActivity compile.
+    implementation "androidx.biometric:biometric:$androidxBiometricVersion"
+    implementation "androidx.webkit:webkit:$androidxWebkitVersion"
+    implementation project(':capacitor-android')
+    testImplementation "junit:junit:$junitVersion"
+    androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
+    androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"
+    implementation project(':capacitor-cordova-android-plugins')
+}
+
+apply from: 'capacitor.build.gradle'
