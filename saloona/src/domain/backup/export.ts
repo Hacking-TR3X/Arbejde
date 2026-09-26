@@ -20,6 +20,8 @@ export interface BackupClient {
 export interface BackupVisit {
   id: string;
   clientId: string;
+  /** "HH:MM", only when set. */
+  time?: string;
   treatment: string;
   date: string;
   note: string;
@@ -69,6 +71,7 @@ export function buildBackup(
       const out: BackupVisit = { id: v.id, clientId: v.clientId, treatment: v.treatment, date: v.date, note: v.note };
       if (v.amountOre !== null) out.amount = kronerFromOre(v.amountOre);
       if (v.pay) out.pay = v.pay;
+      if (v.time) out.time = v.time;
       return out;
     }),
     prices: { ...prices }

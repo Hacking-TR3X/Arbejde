@@ -127,12 +127,13 @@ describe('serializeBackup → readBackupText round trip', () => {
 
   it('keeps visits including amounts (øre ↔ kroner) and payment methods', () => {
     expect(back.visits).toEqual(
-      visits.map(({ id, clientId, treatment, treatmentKey, date, amountOre, pay, note }) => ({
+      visits.map(({ id, clientId, treatment, treatmentKey, date, time, amountOre, pay, note }) => ({
         id,
         clientId,
         treatment,
         treatmentKey,
         date,
+        time: time ?? null,
         amountOre,
         pay,
         note
@@ -148,7 +149,7 @@ describe('serializeBackup → readBackupText round trip', () => {
     const plan = planImport({ clients: [], visits: [], prices: new Map() }, back, 'replace', 'T');
     const strip = <T extends { createdAt: string; updatedAt: string }>(x: T) => ({ ...x, createdAt: '', updatedAt: '' });
     expect(plan.insertClients.map(strip)).toEqual(clients.map(strip));
-    expect(plan.insertVisits.map(strip)).toEqual(visits.map(strip));
+    expect(plan.insertVisits.map(strip)).toEqual(visits.map((v) => strip({ ...v, time: v.time ?? null })));
   });
 
   it('every amount from 0 to the maximum survives the kroner conversion', () => {

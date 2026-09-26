@@ -35,6 +35,7 @@
     amountText: editing ? formatAmountInput(editing.amountOre) : '',
     pay: editing?.pay ?? null,
     date: editing?.date ?? untrack(() => app.today),
+    time: editing?.time ?? '',
     note: editing?.note ?? ''
   });
   let errors = $state<FieldErrors>({});
@@ -42,6 +43,7 @@
   let amountTouched = !!editing;
   let payTouched = !!editing;
   let showNote = $state(!!editing?.note);
+  let showTime = $state(!!editing?.time);
   let pickingClient = $state(!initialClient);
   let dateMode = $state<'today' | 'yesterday' | 'other'>(
     untrack(() => (!editing || editing.date === app.today ? 'today' : editing.date === addDays(app.today, -1) ? 'yesterday' : 'other'))
@@ -307,6 +309,31 @@
       {#if errors.date}<p class="error-text" id="err-date">{errors.date}</p>{/if}
     </div>
 
+    <!-- Time (always offered for bookings, one tap away for visits) -->
+    <div class="field">
+      {#if showTime || booking || draft.time}
+        <label for="f-time">Tidspunkt <span class="hint">(valgfrit)</span></label>
+        <div class="time-row">
+          <input
+            id="f-time"
+            class="input time"
+            type="time"
+            step="300"
+            bind:value={draft.time}
+            oninput={() => (errors.time = undefined)}
+            aria-invalid={errors.time ? 'true' : undefined}
+            aria-describedby={errors.time ? 'err-time' : undefined}
+          />
+          {#if draft.time}
+            <button type="button" class="link" onclick={() => (draft.time = '')}>Ryd</button>
+          {/if}
+        </div>
+        {#if errors.time}<p class="error-text" id="err-time">{errors.time}</p>{/if}
+      {:else}
+        <button type="button" class="link" onclick={() => (showTime = true)}><Icon name="clock" size={18} /> Tilføj tidspunkt</button>
+      {/if}
+    </div>
+
     <!-- Note -->
     <div class="field">
       {#if showNote}
@@ -379,6 +406,15 @@
   }
   .date {
     margin-top: 10px;
+  }
+  .time-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .time-row .input {
+    max-width: 180px;
+    font-variant-numeric: tabular-nums;
   }
   .link {
     display: inline-flex;

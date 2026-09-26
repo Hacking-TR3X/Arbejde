@@ -11,7 +11,7 @@
 import { isValidISODate, type ISODate } from '../dates';
 import { oreFromKroner, parseAmount } from '../money';
 import { LIMITS, cleanLine, cleanMultiline, normalizePhone, treatmentKey } from '../text';
-import { isGender, isPayMethod, isValidId, type Gender, type PayMethod } from '../types';
+import { isGender, isPayMethod, isValidId, isValidTime, type Gender, type PayMethod } from '../types';
 
 /** A salon's backup is a few hundred kB; 8 MB leaves ample room and keeps memory use safe. */
 export const MAX_FILE_CHARS = 8_000_000;
@@ -31,6 +31,8 @@ export interface ImportClient {
 export interface ImportVisit {
   id: string;
   clientId: string;
+  /** "HH:MM" or null (Saloona files only; the prototype had no times). */
+  time?: string | null;
   treatment: string;
   treatmentKey: string;
   date: ISODate;
@@ -108,6 +110,7 @@ const WARNING_TEXT: Record<string, (n: number) => string> = {
   genderInvalid: (n) => `${plural(n, 'kunde', 'kunder')} havde et ukendt køn, som blev fjernet`,
   phoneInvalid: (n) => `${plural(n, 'telefonnummer', 'telefonnumre')} var ${pick(n, 'ugyldigt', 'ugyldige')} og blev fjernet`,
   priceInvalid: (n) => `${plural(n, 'standardpris', 'standardpriser')} var ${pick(n, 'ugyldig', 'ugyldige')} og blev sprunget over`,
+  timeInvalid: (n) => `${plural(n, 'tidspunkt', 'tidspunkter')} var ${pick(n, 'ugyldigt', 'ugyldige')} og blev fjernet`,
   priceTooMany: (n) => `${plural(n, 'standardpris', 'standardpriser')} ud over de første ${MAX_PRICES} blev sprunget over`
 };
 
@@ -306,8 +309,13 @@ function readVisits(list: unknown[], clientIdMap: ReadonlyMap<string, string>, w
     if (isPayMethod(payRaw)) pay = payRaw;
     else if (payRaw !== undefined && payRaw !== null && payRaw !== '') w.add('payInvalid');
 
+    const timeRaw = own(raw, 'time');
+    let time: string | null = null;
+    if (isValidTime(timeRaw)) time = timeRaw;
+    else if (timeRaw !== undefined && timeRaw !== null && timeRaw !== '') w.add('timeInvalid');
+
     const note = cleanMultiline(optString(own(raw, 'note')) ?? '', LIMITS.note);
-    out.push({ id, clientId, treatment, treatmentKey: treatmentKey(treatment), date, amountOre, pay, note });
+    out.push({ id, clientId, treatment, treatmentKey: treatmentKey(treatment), date, time, amountOre, pay, note });
   }
   return out;
 }

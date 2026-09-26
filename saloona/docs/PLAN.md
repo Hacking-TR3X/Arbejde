@@ -77,6 +77,8 @@ CSP: `default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' da
   - `note TEXT NOT NULL DEFAULT ''`
   - `created_at`, `updated_at`
   - Indeks på `(client_id, treatment_key, date)` og `(date)`.
+**Migration 002:** `visits.time TEXT NULL` ("HH:MM"), et valgfrit tidspunkt på besøg og aftaler. Det vises som "kl. 14.30", aftaler sorteres efter dato og tid, og feltet kommer med i backup (`time`).
+
 - `treatment_prices(treatment_key PK, amount_ore)` indeholder prototypens `prices` og bruges som sidste fallback til prisforslag.
 - `settings(key PK, value)` gemmer `lastBackupAt`, `lockEnabled`, `remindersEnabled`, `theme` og `onboarded`.
 

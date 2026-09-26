@@ -99,6 +99,15 @@ function rhythmFor(g: Group, today: ISODate): Rhythm {
   return { ...base, intervalDays: interval, expected, daysUntil, status, progress };
 }
 
+/** Earliest first: by date, then time (appointments without a time last that day), then entry order. */
+export function compareAppointments(a: Visit, b: Visit): number {
+  if (a.date !== b.date) return a.date < b.date ? -1 : 1;
+  const ta = a.time ?? '99:99';
+  const tb = b.time ?? '99:99';
+  if (ta !== tb) return ta < tb ? -1 : 1;
+  return a.createdAt.localeCompare(b.createdAt);
+}
+
 export interface Appointment {
   visit: Visit;
   client: Client | undefined;
@@ -118,7 +127,7 @@ export function dueOverview(visits: readonly Visit[], clients: ReadonlyMap<strin
   const byDays = (a: Rhythm, b: Rhythm) => (a.daysUntil ?? 0) - (b.daysUntil ?? 0);
   const upcoming = visits
     .filter((v) => v.date > today && clients.has(v.clientId))
-    .sort((a, b) => (a.date === b.date ? a.createdAt.localeCompare(b.createdAt) : a.date < b.date ? -1 : 1))
+    .sort(compareAppointments)
     .map((visit) => ({ visit, client: clients.get(visit.clientId) }));
   return {
     upcoming,

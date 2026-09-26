@@ -103,6 +103,7 @@ describe('prototype backup (tests/fixtures/salonbog-backup.json)', () => {
       clientId: 'c08',
       treatment: 'Farve',
       treatmentKey: 'farve',
+      time: null,
       date: '2026-06-26',
       amountOre: 125_050,
       pay: 'mp_mig',

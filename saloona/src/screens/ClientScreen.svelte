@@ -3,7 +3,7 @@
   import { nav } from '../lib/nav.svelte';
   import { computeRhythms, MIN_DATES } from '../domain/rhythm';
   import { formatAmount } from '../domain/money';
-  import { formatDateCompact, formatDateShort, formatInterval, formatRelativeDays, diffDays, monthNameLong } from '../domain/dates';
+  import { formatDateCompact, formatDateShort, formatInterval, formatRelativeDays, diffDays, monthNameLong, formatTime } from '../domain/dates';
   import { capitalizeFirst, formatPhone, phoneUri } from '../domain/text';
   import { GENDER_LABELS, PAY_LABELS } from '../domain/types';
   import { dial, sms } from '../platform';
@@ -96,7 +96,7 @@
         {#each upcoming as v (v.id)}
           <button class="row" onclick={() => nav.openSheet({ name: 'visit', visitId: v.id })}>
             <span class="grow">
-              <span class="title">{capitalizeFirst(formatDateShort(v.date, app.today))}</span>
+              <span class="title">{capitalizeFirst(formatDateShort(v.date, app.today))}{v.time ? ` ${formatTime(v.time)}` : ''}</span>
               <span class="meta">{v.treatment} · {formatRelativeDays(diffDays(app.today, v.date))}</span>
             </span>
             <span class="chev"><Icon name="forward" size={20} /></span>
@@ -147,7 +147,7 @@
             <button class="row hist" onclick={() => nav.openSheet({ name: 'visit', visitId: v.id })}>
               <span class="grow">
                 <span class="title">
-                  {formatDateCompact(v.date, app.today)}
+                  {formatDateCompact(v.date, app.today)}{v.time ? ` ${formatTime(v.time)}` : ''}
                   {#if v.date > app.today}<span class="tag">Booket</span>{/if}
                 </span>
                 <span class="meta">{v.treatment}{v.pay ? ` · ${PAY_LABELS[v.pay]}` : ''}</span>

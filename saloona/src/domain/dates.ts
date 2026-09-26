@@ -166,3 +166,9 @@ export function formatInterval(days: number): string {
   const mo = Math.round(days / 30.44);
   return mo <= 1 ? 'hver måned' : `hver ${mo}. måned`;
 }
+
+/** "14:30" → "kl. 14.30" (Danish style); empty for no time. */
+export function formatTime(time: string | null | undefined): string {
+  if (!time) return '';
+  return `kl. ${time.replace(':', '.')}`;
+}

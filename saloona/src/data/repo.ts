@@ -55,6 +55,7 @@ function toVisit(r: Row): Visit {
     treatment: str(r.treatment),
     treatmentKey: str(r.treatment_key),
     date: str(r.date),
+    time: strOrNull(r.time),
     amountOre: numOrNull(r.amount_ore),
     pay: isPayMethod(r.pay) ? r.pay : null,
     note: str(r.note),
@@ -66,7 +67,7 @@ function toVisit(r: Row): Visit {
 const INSERT_CLIENT =
   'INSERT INTO clients (id, name, gender, tag, phone, note, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)';
 const INSERT_VISIT =
-  'INSERT INTO visits (id, client_id, treatment, treatment_key, date, amount_ore, pay, note, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)';
+  'INSERT INTO visits (id, client_id, treatment, treatment_key, date, time, amount_ore, pay, note, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)';
 
 function insertClient(c: Client): Statement {
   return { sql: INSERT_CLIENT, params: [c.id, c.name, c.gender, c.tag, c.phone, c.note, c.createdAt, c.updatedAt] };
@@ -75,7 +76,7 @@ function insertClient(c: Client): Statement {
 function insertVisit(v: Visit): Statement {
   return {
     sql: INSERT_VISIT,
-    params: [v.id, v.clientId, v.treatment, v.treatmentKey, v.date, v.amountOre, v.pay, v.note, v.createdAt, v.updatedAt]
+    params: [v.id, v.clientId, v.treatment, v.treatmentKey, v.date, v.time ?? null, v.amountOre, v.pay, v.note, v.createdAt, v.updatedAt]
   };
 }
 
@@ -92,7 +93,7 @@ export class Repo {
   async load(): Promise<Snapshot> {
     const [clients, visits, prices, settings] = await Promise.all([
       this.db.query('SELECT * FROM clients'),
-      this.db.query('SELECT * FROM visits ORDER BY date DESC, created_at DESC'),
+      this.db.query("SELECT * FROM visits ORDER BY date DESC, COALESCE(time, '') DESC, created_at DESC"),
       this.db.query('SELECT treatment_key, amount_ore FROM treatment_prices'),
       this.db.query('SELECT key, value FROM settings')
     ]);
@@ -138,8 +139,8 @@ export class Repo {
     return this.db.batch([
       ...(newClient ? [insertClient(newClient)] : []),
       {
-        sql: 'UPDATE visits SET client_id = ?, treatment = ?, treatment_key = ?, date = ?, amount_ore = ?, pay = ?, note = ?, updated_at = ? WHERE id = ?',
-        params: [v.clientId, v.treatment, v.treatmentKey, v.date, v.amountOre, v.pay, v.note, v.updatedAt, v.id]
+        sql: 'UPDATE visits SET client_id = ?, treatment = ?, treatment_key = ?, date = ?, time = ?, amount_ore = ?, pay = ?, note = ?, updated_at = ? WHERE id = ?',
+        params: [v.clientId, v.treatment, v.treatmentKey, v.date, v.time ?? null, v.amountOre, v.pay, v.note, v.updatedAt, v.id]
       }
     ]);
   }

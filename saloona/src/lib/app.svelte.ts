@@ -6,10 +6,10 @@ import { buildBackup, backupFileName, serializeBackup } from '../domain/backup/e
 import { encryptBackup } from '../domain/backup/crypto';
 import { planImport, type ImportMode, type ImportPlan } from '../domain/backup/merge';
 import type { ParsedBackup } from '../domain/backup/validate';
-import { diffDays, isValidISODate, todayISO, type ISODate } from '../domain/dates';
+import { diffDays, formatDateShort, formatTime, isValidISODate, todayISO, type ISODate } from '../domain/dates';
 import { parseAmount } from '../domain/money';
 import { LIMITS, cleanLine, cleanMultiline, normalizePhone, treatmentKey } from '../domain/text';
-import { newId, type Client, type Gender, type PayMethod, type Visit } from '../domain/types';
+import { isValidTime, newId, type Client, type Gender, type PayMethod, type Visit } from '../domain/types';
 import { DbKeyLostError, DbTooNewError } from '../data/db';
 import { migrate } from '../data/migrations';
 import { destroyDb, discardUnreadableDb, openDb } from '../data/open';
@@ -39,6 +39,8 @@ export interface VisitDraft {
   amountText: string;
   pay: PayMethod | null;
   date: ISODate;
+  /** "HH:MM" or '' for no time. */
+  time: string;
   note: string;
 }
 
@@ -52,7 +54,7 @@ export interface ClientDraft {
   note: string;
 }
 
-export type FieldErrors = Partial<Record<'client' | 'treatment' | 'amount' | 'date' | 'name' | 'phone', string>>;
+export type FieldErrors = Partial<Record<'client' | 'treatment' | 'amount' | 'date' | 'time' | 'name' | 'phone', string>>;
 
 export type Result = { ok: true; id?: string } | { ok: false; errors: FieldErrors };
 
@@ -274,6 +276,7 @@ class AppState {
     const amount = parseAmount(d.amountText);
     if (!amount.ok) errors.amount = amount.error;
     if (!isValidISODate(d.date)) errors.date = 'Vælg en gyldig dato';
+    if (d.time && !isValidTime(d.time)) errors.time = 'Vælg et tidspunkt, fx 14:30';
     return errors;
   }
 
@@ -317,6 +320,7 @@ class AppState {
       treatment,
       treatmentKey: treatmentKey(treatment),
       date: d.date,
+      time: d.time || null,
       amountOre: amount.ok ? amount.ore : null,
       pay: d.pay,
       note: cleanMultiline(d.note, LIMITS.note),
@@ -329,7 +333,8 @@ class AppState {
     haptic('confirm');
     const booked = d.date > this.today;
     const who = newClient?.name ?? this.clientMap.get(clientId)?.name ?? '';
-    snackbar.show(old ? 'Besøget er opdateret' : booked ? `Aftale med ${who} er booket` : `Besøg for ${who} er gemt`);
+    const when = booked ? ` ${formatDateShort(d.date, this.today)}${d.time ? ` ${formatTime(d.time)}` : ''}` : '';
+    snackbar.show(old ? 'Besøget er opdateret' : booked ? `Aftale med ${who} er booket${when}` : `Besøg for ${who} er gemt`);
     return { ok: true };
   }
 

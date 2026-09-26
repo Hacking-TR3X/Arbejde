@@ -35,6 +35,8 @@ export interface Visit {
   treatment: string;
   treatmentKey: string;
   date: ISODate;
+  /** Optional time of day, "HH:MM" (24 h). */
+  time?: string | null;
   amountOre: number | null;
   pay: PayMethod | null;
   note: string;
@@ -53,6 +55,13 @@ export function isPayMethod(v: unknown): v is PayMethod {
 /** A visit is completed when its date has come; a future date is a booked appointment. */
 export function isCompleted(visit: Pick<Visit, 'date'>, today: ISODate): boolean {
   return visit.date <= today;
+}
+
+const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
+
+/** "HH:MM", 00:00–23:59. */
+export function isValidTime(v: unknown): v is string {
+  return typeof v === 'string' && TIME_RE.test(v);
 }
 
 const ID_RE = /^[A-Za-z0-9_-]{1,64}$/;

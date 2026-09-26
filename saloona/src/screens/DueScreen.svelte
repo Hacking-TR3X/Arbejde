@@ -3,7 +3,7 @@
   import { nav } from '../lib/nav.svelte';
   import { dueOverview, MIN_DATES, type Rhythm } from '../domain/rhythm';
   import { capitalizeFirst } from '../domain/text';
-  import { diffDays, formatDateCompact, formatDateLong, formatDateShort, formatInterval, formatRelativeDays, todayISO } from '../domain/dates';
+  import { diffDays, formatDateCompact, formatDateLong, formatDateShort, formatInterval, formatRelativeDays, todayISO, formatTime } from '../domain/dates';
   import Icon from '../ui/icons/Icon.svelte';
 
   const overview = $derived(dueOverview(app.visits, app.clientMap, app.today));
@@ -81,6 +81,7 @@
             <span class="when">
               <b>{capitalizeFirst(formatRelativeDays(diffDays(app.today, a.visit.date)))}</b>
               <small>{formatDateShort(a.visit.date, app.today)}</small>
+              {#if a.visit.time}<small class="clock">{formatTime(a.visit.time)}</small>{/if}
             </span>
             <span class="grow">
               <span class="title">{a.client?.name ?? 'Ukendt kunde'}</span>
@@ -236,6 +237,10 @@
   .when small {
     color: var(--muted);
     font-size: 0.78rem;
+  }
+  .when small.clock {
+    color: var(--ink-2);
+    font-weight: 620;
   }
   .fold {
     display: flex;
