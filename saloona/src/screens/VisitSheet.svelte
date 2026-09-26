@@ -2,12 +2,13 @@
   import { untrack } from 'svelte';
   import { app, type FieldErrors, type VisitDraft } from '../lib/app.svelte';
   import { nav } from '../lib/nav.svelte';
-  import { addDays, formatDateShort, isValidISODate } from '../domain/dates';
+  import { addDays, formatDateShort, formatTime, isValidISODate } from '../domain/dates';
+  import { durationFor, findOverlaps, fromMinutes, toMinutes } from '../domain/calendar';
   import { formatAmountInput } from '../domain/money';
   import { lastTreatmentFor, suggestPay, suggestPrice, treatmentOptions } from '../domain/pricing';
   import { computeRhythms } from '../domain/rhythm';
   import { LIMITS, cleanLine, compareNames, searchRank, treatmentKey } from '../domain/text';
-  import { GENDER_LABELS, GENDERS, PAY_LABELS, PAY_METHODS, type Client } from '../domain/types';
+  import { GENDER_LABELS, GENDERS, PAY_LABELS, PAY_METHODS, isValidTime, type Client } from '../domain/types';
   import Sheet from '../ui/Sheet.svelte';
   import Icon from '../ui/icons/Icon.svelte';
   import Chip from '../ui/Chip.svelte';
@@ -16,8 +17,11 @@
     visitId?: string;
     clientId?: string;
     prefillName?: string;
+    /** Opened from the calendar: start on this day. */
+    date?: string;
   }
-  let { visitId, clientId, prefillName }: Props = $props();
+  let { visitId, clientId, prefillName, date: presetDate }: Props = $props();
+  const startDate = untrack(() => (presetDate && isValidISODate(presetDate) ? presetDate : app.today));
 
   const editing = untrack(() => (visitId ? app.visits.find((v) => v.id === visitId) : undefined));
   const initialClient = untrack(() => editing?.clientId ?? clientId ?? null);
@@ -34,7 +38,7 @@
       untrack(() => (initialClient ? (lastTreatmentFor(app.visits, initialClient, app.today)?.treatment ?? '') : '')),
     amountText: editing ? formatAmountInput(editing.amountOre) : '',
     pay: editing?.pay ?? null,
-    date: editing?.date ?? untrack(() => app.today),
+    date: editing?.date ?? startDate,
     time: editing?.time ?? '',
     note: editing?.note ?? ''
   });
@@ -46,7 +50,10 @@
   let showTime = $state(!!editing?.time);
   let pickingClient = $state(!initialClient);
   let dateMode = $state<'today' | 'yesterday' | 'other'>(
-    untrack(() => (!editing || editing.date === app.today ? 'today' : editing.date === addDays(app.today, -1) ? 'yesterday' : 'other'))
+    untrack(() => {
+      const d = editing?.date ?? startDate;
+      return d === app.today ? 'today' : d === addDays(app.today, -1) ? 'yesterday' : 'other';
+    })
   );
 
   const chosenClient = $derived(draft.clientId ? app.clientMap.get(draft.clientId) : undefined);
@@ -87,7 +94,14 @@
       .map((x) => x.c);
   });
 
-  const treatments = $derived(treatmentOptions(app.visits, draft.clientId).slice(0, 10));
+  const treatments = $derived(treatmentOptions(app.visits, draft.clientId, app.treatments).slice(0, 12));
+  const duration = $derived(durationFor(treatmentKey(draft.treatment), app.treatments));
+  const endTime = $derived(isValidTime(draft.time) && duration !== null ? fromMinutes(toMinutes(draft.time) + duration) : null);
+  const clashes = $derived(
+    isValidTime(draft.time) && isValidISODate(draft.date)
+      ? findOverlaps(app.visits, app.treatments, { id: draft.id, date: draft.date, time: draft.time, treatmentKey: treatmentKey(draft.treatment) })
+      : []
+  );
   const tKey = $derived(treatmentKey(draft.treatment));
 
   const title = $derived(editing ? (booking ? 'Rediger aftale' : 'Rediger besøg') : booking ? 'Book aftale' : 'Nyt besøg');
@@ -328,6 +342,15 @@
             <button type="button" class="link" onclick={() => (draft.time = '')}>Ryd</button>
           {/if}
         </div>
+        {#if endTime}<p class="note">Slutter ca. {endTime.replace(':', '.')} ({duration} min. ifølge prislisten)</p>{/if}
+        {#if clashes.length}
+          <p class="clash" role="status">
+            <Icon name="info" size={16} />
+            Overlapper med {clashes
+              .map((v) => `${app.clientMap.get(v.clientId)?.name ?? 'en anden kunde'} ${formatTime(v.time)}`)
+              .join(' og ')}
+          </p>
+        {/if}
         {#if errors.time}<p class="error-text" id="err-time">{errors.time}</p>{/if}
       {:else}
         <button type="button" class="link" onclick={() => (showTime = true)}><Icon name="clock" size={18} /> Tilføj tidspunkt</button>
@@ -406,6 +429,15 @@
   }
   .date {
     margin-top: 10px;
+  }
+  .clash {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 8px 0 0;
+    color: var(--late);
+    font-size: 0.9rem;
+    font-weight: 620;
   }
   .time-row {
     display: flex;

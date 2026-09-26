@@ -25,15 +25,18 @@ describe('suggestPrice', () => {
     expect(suggestPrice(visits, 'morgan', 'klip', DEFAULTS, today)).toBe(42_500);
   });
 
-  it('2. otherwise the latest amount anyone paid for the treatment', () => {
-    expect(suggestPrice(visits, 'ingrid', 'klip', DEFAULTS, today)).toBe(50_000);
-    expect(suggestPrice(visits, 'morgan', 'farve', DEFAULTS, today)).toBe(125_050);
-    expect(suggestPrice(visits, null, 'klip', DEFAULTS, today)).toBe(50_000);
-  });
-
-  it('3. otherwise the imported default price', () => {
+  it('2. otherwise the price list', () => {
+    expect(suggestPrice(visits, 'ingrid', 'klip', DEFAULTS, today)).toBe(45_000);
+    expect(suggestPrice(visits, 'morgan', 'farve', DEFAULTS, today)).toBe(90_000);
+    expect(suggestPrice(visits, null, 'klip', DEFAULTS, today)).toBe(45_000);
     expect(suggestPrice(visits, 'morgan', 'hårkur', DEFAULTS, today)).toBe(30_000);
     expect(suggestPrice([], null, 'klip', DEFAULTS, today)).toBe(45_000);
+  });
+
+  it('3. otherwise the latest amount anyone paid for the treatment', () => {
+    expect(suggestPrice(visits, 'ingrid', 'klip', NO_DEFAULTS, today)).toBe(50_000);
+    expect(suggestPrice(visits, 'morgan', 'farve', NO_DEFAULTS, today)).toBe(125_050);
+    expect(suggestPrice(visits, null, 'klip', NO_DEFAULTS, today)).toBe(50_000);
   });
 
   it('4. otherwise nothing', () => {

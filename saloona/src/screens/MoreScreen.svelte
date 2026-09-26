@@ -47,6 +47,14 @@
       </span>
       <span class="chev"><Icon name="forward" size={20} /></span>
     </button>
+    <button class="row" onclick={() => nav.open({ name: 'treatments' })}>
+      <span class="ic"><Icon name="note" /></span>
+      <span class="grow">
+        <span class="title">Prisliste</span>
+        <span class="meta">{app.treatments.size ? `${app.treatments.size} ${app.treatments.size === 1 ? 'behandling' : 'behandlinger'} med pris og varighed` : 'Pris og varighed pr. behandling'}</span>
+      </span>
+      <span class="chev"><Icon name="forward" size={20} /></span>
+    </button>
     <button class="row" onclick={() => nav.open({ name: 'security' })}>
       <span class="ic"><Icon name="lock" /></span>
       <span class="grow">

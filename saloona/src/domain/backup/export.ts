@@ -4,7 +4,7 @@
  */
 import { todayISO } from '../dates';
 import { kronerFromOre } from '../money';
-import type { Client, Gender, PayMethod, Visit } from '../types';
+import type { Client, Gender, PayMethod, Treatment, Visit } from '../types';
 
 export const BACKUP_VERSION = 2;
 
@@ -29,6 +29,14 @@ export interface BackupVisit {
   pay?: PayMethod;
 }
 
+export interface BackupTreatment {
+  name: string;
+  /** Kroner. */
+  price?: number;
+  /** Minutes. */
+  duration?: number;
+}
+
 export interface BackupFile {
   app: 'saloona';
   version: number;
@@ -36,13 +44,15 @@ export interface BackupFile {
   clients: BackupClient[];
   visits: BackupVisit[];
   prices: Record<string, number>;
+  treatments: BackupTreatment[];
 }
 
 export function buildBackup(
   clients: readonly Client[],
   visits: readonly Visit[],
   defaults: ReadonlyMap<string, number>,
-  now: Date
+  now: Date,
+  catalog: ReadonlyMap<string, Treatment> = new Map()
 ): BackupFile {
   // `prices` = latest paid amount per treatment, falling back to stored defaults.
   const today = todayISO(now);
@@ -53,8 +63,10 @@ export function buildBackup(
     if (!cur || v.date >= cur.date) latest.set(v.treatmentKey, { date: v.date, ore: v.amountOre });
   }
   const prices: Record<string, number> = Object.create(null) as Record<string, number>;
-  for (const [k, ore] of defaults) prices[k] = kronerFromOre(ore);
+  // The prototype reads `prices` as "the price to suggest": price list first,
+  // otherwise the latest amount paid.
   for (const [k, { ore }] of latest) prices[k] = kronerFromOre(ore);
+  for (const [k, ore] of defaults) prices[k] = kronerFromOre(ore);
 
   return {
     app: 'saloona',
@@ -74,7 +86,13 @@ export function buildBackup(
       if (v.time) out.time = v.time;
       return out;
     }),
-    prices: { ...prices }
+    prices: { ...prices },
+    treatments: [...catalog.values()].map((t) => {
+      const out: BackupTreatment = { name: t.label };
+      if (t.priceOre !== null) out.price = kronerFromOre(t.priceOre);
+      if (t.durationMin !== null) out.duration = t.durationMin;
+      return out;
+    })
   };
 }
 

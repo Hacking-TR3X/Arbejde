@@ -9,7 +9,7 @@ import type { ParsedBackup } from '../domain/backup/validate';
 import { diffDays, formatDateShort, formatTime, isValidISODate, todayISO, type ISODate } from '../domain/dates';
 import { parseAmount } from '../domain/money';
 import { LIMITS, cleanLine, cleanMultiline, normalizePhone, treatmentKey } from '../domain/text';
-import { isValidTime, newId, type Client, type Gender, type PayMethod, type Visit } from '../domain/types';
+import { isValidDuration, isValidTime, newId, type Client, type Gender, type PayMethod, type Treatment, type Visit } from '../domain/types';
 import { DbKeyLostError, DbTooNewError } from '../data/db';
 import { migrate } from '../data/migrations';
 import { destroyDb, discardUnreadableDb, openDb } from '../data/open';
@@ -44,6 +44,15 @@ export interface VisitDraft {
   note: string;
 }
 
+export interface TreatmentDraft {
+  /** Key of the entry being edited; absent for a new one. */
+  key?: string;
+  label: string;
+  priceText: string;
+  /** Minutes as typed, '' for none. */
+  durationText: string;
+}
+
 export interface ClientDraft {
   /** Absent when creating a new client. */
   id?: string;
@@ -54,7 +63,7 @@ export interface ClientDraft {
   note: string;
 }
 
-export type FieldErrors = Partial<Record<'client' | 'treatment' | 'amount' | 'date' | 'time' | 'name' | 'phone', string>>;
+export type FieldErrors = Partial<Record<'client' | 'treatment' | 'amount' | 'date' | 'time' | 'name' | 'phone' | 'duration', string>>;
 
 export type Result = { ok: true; id?: string } | { ok: false; errors: FieldErrors };
 
@@ -74,6 +83,8 @@ class AppState {
   clients = $state.raw<Client[]>([]);
   visits = $state.raw<Visit[]>([]);
   prices = $state.raw<Map<string, number>>(new Map());
+  /** Price list, by treatment key. */
+  treatments = $state.raw<Map<string, Treatment>>(new Map());
   settings = $state.raw<Settings>({ ...DEFAULT_SETTINGS });
   today = $state<ISODate>(todayISO());
 
@@ -143,6 +154,7 @@ class AppState {
     this.clients = s.clients;
     this.visits = s.visits;
     this.prices = s.prices;
+    this.treatments = s.treatments;
     this.settings = s.settings;
   }
 
@@ -420,10 +432,52 @@ class AppState {
     });
   }
 
+  // ---------- price list ----------
+
+  async saveTreatment(d: TreatmentDraft): Promise<Result> {
+    const errors: FieldErrors = {};
+    const label = cleanLine(d.label, LIMITS.treatment);
+    const key = treatmentKey(label);
+    if (!label) errors.treatment = 'Skriv et navn på behandlingen';
+    const clash = key && key !== d.key ? this.treatments.get(key) : undefined;
+    if (clash) errors.treatment = 'Behandlingen står allerede i prislisten';
+    const amount = parseAmount(d.priceText);
+    if (!amount.ok) errors.amount = amount.error;
+    const duration = d.durationText.trim() === '' ? null : Number(d.durationText.trim());
+    if (duration !== null && !isValidDuration(duration)) errors.duration = 'Skriv et antal minutter mellem 5 og 600';
+    if (Object.keys(errors).length) {
+      haptic('reject');
+      return { ok: false, errors };
+    }
+    await this.db.saveTreatment(
+      { key, label, priceOre: amount.ok ? amount.ore : null, durationMin: duration, updatedAt: new Date().toISOString() },
+      d.key
+    );
+    await this.afterChange();
+    haptic('confirm');
+    snackbar.show(d.key ? 'Prislisten er opdateret' : `${label} er tilføjet prislisten`);
+    return { ok: true };
+  }
+
+  async deleteTreatment(key: string): Promise<void> {
+    const t = this.treatments.get(key);
+    if (!t) return;
+    await this.db.deleteTreatment(key);
+    await this.afterChange();
+    haptic('confirm');
+    snackbar.show(`${t.label} er fjernet fra prislisten`, {
+      label: 'Fortryd',
+      run: async () => {
+        await this.db.saveTreatment(t);
+        await this.afterChange();
+      }
+    });
+  }
+
   // ---------- backup ----------
 
   backupJson(): string {
-    return serializeBackup(buildBackup(this.clients, this.visits, this.prices, new Date()));
+    return serializeBackup(buildBackup(this.clients, this.visits, this.prices, new Date(), this.treatments));
   }
 
   async exportBackup(target: 'save' | 'share', password: string | null): Promise<boolean> {
@@ -443,7 +497,12 @@ class AppState {
   }
 
   planImport(backup: ParsedBackup, mode: ImportMode): ImportPlan {
-    return planImport({ clients: this.clients, visits: this.visits, prices: this.prices }, backup, mode, new Date().toISOString());
+    return planImport(
+      { clients: this.clients, visits: this.visits, prices: this.prices, treatments: this.treatments },
+      backup,
+      mode,
+      new Date().toISOString()
+    );
   }
 
   async applyImport(plan: ImportPlan): Promise<void> {

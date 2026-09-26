@@ -7,7 +7,7 @@
  *          Existing data wins; only empty fields on existing clients are filled in.
  */
 import { treatmentKey } from '../text';
-import { newId, type Client, type Visit } from '../types';
+import { newId, type Client, type Treatment, type Visit } from '../types';
 import type { ParsedBackup } from './validate';
 
 export type ImportMode = 'replace' | 'merge';
@@ -16,6 +16,7 @@ export interface ExistingData {
   clients: readonly Client[];
   visits: readonly Visit[];
   prices: ReadonlyMap<string, number>;
+  treatments?: ReadonlyMap<string, Treatment>;
 }
 
 export interface ImportStats {
@@ -33,6 +34,8 @@ export interface ImportPlan {
   updateClients: Client[];
   insertVisits: Visit[];
   prices: [string, number][];
+  /** Price-list entries to insert or update. */
+  treatments: Treatment[];
   stats: ImportStats;
 }
 
@@ -65,6 +68,7 @@ export function planImport(
       updateClients: [],
       insertVisits: incoming.visits.map((v) => ({ ...v, createdAt: now, updatedAt: now })),
       prices: [...incoming.prices],
+      treatments: (incoming.treatments ?? []).map((t) => ({ ...t, updatedAt: now })),
       stats
     };
   }
@@ -156,5 +160,15 @@ export function planImport(
   const prices: [string, number][] = [];
   for (const [k, ore] of incoming.prices) if (!existing.prices.has(k)) prices.push([k, ore]);
 
-  return { mode, insertClients, updateClients: [...updates.values()], insertVisits, prices, stats };
+  // Price list: new treatments are added; existing ones only get blanks filled in.
+  const treatments: Treatment[] = [];
+  for (const t of incoming.treatments ?? []) {
+    const cur = existing.treatments?.get(t.key);
+    if (!cur) treatments.push({ ...t, updatedAt: now });
+    else if ((cur.priceOre === null && t.priceOre !== null) || (cur.durationMin === null && t.durationMin !== null)) {
+      treatments.push({ ...cur, priceOre: cur.priceOre ?? t.priceOre, durationMin: cur.durationMin ?? t.durationMin, updatedAt: now });
+    }
+  }
+
+  return { mode, insertClients, updateClients: [...updates.values()], insertVisits, prices, treatments, stats };
 }

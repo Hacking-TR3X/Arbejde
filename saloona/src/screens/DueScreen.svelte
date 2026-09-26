@@ -2,11 +2,13 @@
   import { app } from '../lib/app.svelte';
   import { nav } from '../lib/nav.svelte';
   import { dueOverview, MIN_DATES, type Rhythm } from '../domain/rhythm';
+  import { dayAgenda } from '../domain/calendar';
   import { capitalizeFirst } from '../domain/text';
   import { diffDays, formatDateCompact, formatDateLong, formatDateShort, formatInterval, formatRelativeDays, todayISO, formatTime } from '../domain/dates';
   import Icon from '../ui/icons/Icon.svelte';
 
   const overview = $derived(dueOverview(app.visits, app.clientMap, app.today));
+  const todayAgenda = $derived(dayAgenda(app.visits, app.clientMap, app.treatments, app.today));
   let showCollecting = $state(false);
 
   const summary = $derived.by(() => {
@@ -50,7 +52,10 @@
 {/snippet}
 
 <div class="screen">
-  <div class="brand" aria-hidden="true">Saloona</div>
+  <div class="top">
+    <div class="brand" aria-hidden="true">Saloona</div>
+    <button class="btn small quiet" onclick={() => nav.open({ name: 'calendar' })}><Icon name="calendar" size={18} /> Kalender</button>
+  </div>
   <h1>{capitalizeFirst(formatDateLong(app.today))}</h1>
   <p class="sub">{summary}</p>
 
@@ -73,6 +78,25 @@
       </div>
     </div>
   {:else}
+    {#if todayAgenda.timed.length}
+      <h2>I dag <span class="count">{todayAgenda.timed.length}</span></h2>
+      <div class="group">
+        {#each todayAgenda.timed as item (item.visit.id)}
+          <button class="row" onclick={() => nav.openSheet({ name: 'visit', visitId: item.visit.id })}>
+            <span class="when">
+              <b>{item.start?.replace(':', '.')}</b>
+              {#if item.end}<small>til {item.end.replace(':', '.')}</small>{/if}
+            </span>
+            <span class="grow">
+              <span class="title">{item.client?.name ?? 'Ukendt kunde'}</span>
+              <span class="meta">{item.visit.treatment}{item.overlapsWith.length ? ' · overlapper' : ''}</span>
+            </span>
+            <span class="chev"><Icon name="forward" size={20} /></span>
+          </button>
+        {/each}
+      </div>
+    {/if}
+
     {#if overview.upcoming.length}
       <h2>Kommende aftaler <span class="count">{overview.upcoming.length}</span></h2>
       <div class="group">
@@ -159,6 +183,18 @@
 </div>
 
 <style>
+  .top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .top .brand {
+    margin-bottom: 20px;
+  }
+  .top .btn {
+    margin-bottom: 12px;
+  }
   .cards {
     display: grid;
     gap: 10px;

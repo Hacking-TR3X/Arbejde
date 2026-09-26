@@ -2,7 +2,8 @@
  * Repository: the only place that knows SQL. Every statement is parameterised.
  */
 import type { ImportPlan } from '../domain/backup/merge';
-import { isGender, isPayMethod, type Client, type Visit } from '../domain/types';
+import { capitalizeFirst } from '../domain/text';
+import { isGender, isPayMethod, type Client, type Treatment, type Visit } from '../domain/types';
 import type { Db, Row, Statement } from './db';
 
 export interface Settings {
@@ -27,6 +28,9 @@ export const DEFAULT_SETTINGS: Settings = {
 export interface Snapshot {
   clients: Client[];
   visits: Visit[];
+  /** Price list, by treatment key. */
+  treatments: Map<string, Treatment>;
+  /** Standard prices from the price list (key → øre), for price suggestions. */
   prices: Map<string, number>;
   settings: Settings;
 }
@@ -80,6 +84,23 @@ function insertVisit(v: Visit): Statement {
   };
 }
 
+function toTreatment(r: Row): Treatment {
+  return {
+    key: str(r.key),
+    label: str(r.label),
+    priceOre: numOrNull(r.price_ore),
+    durationMin: numOrNull(r.duration_min),
+    updatedAt: str(r.updated_at)
+  };
+}
+
+function upsertTreatment(t: Treatment): Statement {
+  return {
+    sql: 'INSERT INTO treatments (key, label, price_ore, duration_min, updated_at) VALUES (?, ?, ?, ?, ?) ON CONFLICT(key) DO UPDATE SET label = excluded.label, price_ore = excluded.price_ore, duration_min = excluded.duration_min, updated_at = excluded.updated_at',
+    params: [t.key, t.label, t.priceOre, t.durationMin, t.updatedAt]
+  };
+}
+
 function updateClient(c: Client): Statement {
   return {
     sql: 'UPDATE clients SET name = ?, gender = ?, tag = ?, phone = ?, note = ?, updated_at = ? WHERE id = ?',
@@ -94,13 +115,14 @@ export class Repo {
     const [clients, visits, prices, settings] = await Promise.all([
       this.db.query('SELECT * FROM clients'),
       this.db.query("SELECT * FROM visits ORDER BY date DESC, COALESCE(time, '') DESC, created_at DESC"),
-      this.db.query('SELECT treatment_key, amount_ore FROM treatment_prices'),
+      this.db.query('SELECT key, label, price_ore, duration_min, updated_at FROM treatments'),
       this.db.query('SELECT key, value FROM settings')
     ]);
     return {
       clients: clients.map(toClient),
       visits: visits.map(toVisit),
-      prices: new Map(prices.map((r) => [str(r.treatment_key), Number(r.amount_ore)])),
+      treatments: new Map(prices.map((r) => [str(r.key), toTreatment(r)])),
+      prices: new Map(prices.filter((r) => typeof r.price_ore === 'number').map((r) => [str(r.key), Number(r.price_ore)])),
       settings: parseSettings(settings)
     };
   }
@@ -153,6 +175,19 @@ export class Repo {
     return this.db.batch([insertVisit(v)]);
   }
 
+  // ---------- price list ----------
+
+  saveTreatment(t: Treatment, replacesKey?: string): Promise<void> {
+    return this.db.batch([
+      ...(replacesKey && replacesKey !== t.key ? [{ sql: 'DELETE FROM treatments WHERE key = ?', params: [replacesKey] }] : []),
+      upsertTreatment(t)
+    ]);
+  }
+
+  deleteTreatment(key: string): Promise<void> {
+    return this.db.batch([{ sql: 'DELETE FROM treatments WHERE key = ?', params: [key] }]);
+  }
+
   // ---------- settings ----------
 
   saveSettings(patch: Partial<Settings>): Promise<void> {
@@ -175,18 +210,21 @@ export class Repo {
       statements.push(
         { sql: 'DELETE FROM visits' },
         { sql: 'DELETE FROM clients' },
-        { sql: 'DELETE FROM treatment_prices' }
+        { sql: 'DELETE FROM treatments' }
       );
     }
     statements.push(...plan.insertClients.map(insertClient));
     statements.push(...plan.updateClients.map(updateClient));
     statements.push(...plan.insertVisits.map(insertVisit));
+    const now = new Date().toISOString();
     for (const [key, ore] of plan.prices) {
+      // Prototype prices: add the treatment to the price list, or fill in a missing price.
       statements.push({
-        sql: 'INSERT INTO treatment_prices (treatment_key, amount_ore) VALUES (?, ?) ON CONFLICT(treatment_key) DO UPDATE SET amount_ore = excluded.amount_ore',
-        params: [key, ore]
+        sql: 'INSERT INTO treatments (key, label, price_ore, duration_min, updated_at) VALUES (?, ?, ?, NULL, ?) ON CONFLICT(key) DO UPDATE SET price_ore = COALESCE(treatments.price_ore, excluded.price_ore)',
+        params: [key, capitalizeFirst(key), ore, now]
       });
     }
+    statements.push(...plan.treatments.map(upsertTreatment));
     return this.db.batch(statements);
   }
 
@@ -195,7 +233,7 @@ export class Repo {
     return this.db.batch([
       { sql: 'DELETE FROM visits' },
       { sql: 'DELETE FROM clients' },
-      { sql: 'DELETE FROM treatment_prices' },
+      { sql: 'DELETE FROM treatments' },
       { sql: 'DELETE FROM settings' }
     ]);
   }

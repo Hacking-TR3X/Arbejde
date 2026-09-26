@@ -99,8 +99,8 @@ describe('Suggestions in the visit sheet', () => {
   it('prices', () => {
     expect(suggestPrice(data.visits, 'c01', 'klip', defaults, TODAY)).toBe(45_000); // Holger, own
     expect(suggestPrice(data.visits, 'c09', 'klip', defaults, TODAY)).toBe(35_000); // Oldemor, own
-    expect(suggestPrice(data.visits, 'c07', 'klip', defaults, TODAY)).toBe(45_000); // Poul, latest anyone
-    expect(suggestPrice(data.visits, 'c10', 'farve', defaults, TODAY)).toBe(125_050); // Ingrid, Grete's latest
+    expect(suggestPrice(data.visits, 'c07', 'klip', defaults, TODAY)).toBe(45_000); // Poul, price list
+    expect(suggestPrice(data.visits, 'c10', 'farve', defaults, TODAY)).toBe(90_000); // Ingrid, price list before Grete's latest
     expect(suggestPrice(data.visits, 'c08', 'permanent', defaults, TODAY)).toBe(70_000);
     expect(suggestPrice(data.visits, 'c01', 'hårkur', defaults, TODAY)).toBeNull();
   });

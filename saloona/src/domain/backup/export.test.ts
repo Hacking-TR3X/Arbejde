@@ -94,7 +94,7 @@ describe('buildBackup', () => {
 
   it('an empty app gives an empty, valid file', () => {
     const empty = buildBackup([], [], new Map(), NOW);
-    expect(empty).toEqual({ app: 'saloona', version: 2, exported: NOW.toISOString(), clients: [], visits: [], prices: {} });
+    expect(empty).toEqual({ app: 'saloona', version: 2, exported: NOW.toISOString(), clients: [], visits: [], prices: {}, treatments: [] });
     expect(reread(serializeBackup(empty))).toMatchObject({ clients: [], visits: [], warnings: [] });
   });
 

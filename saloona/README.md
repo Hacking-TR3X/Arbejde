@@ -4,7 +4,9 @@ En lille Android-app til en frisør, der klipper hjemme. Den holder styr på kun
 
 - **Snart tid:** hvem der er over tid, hvem der kommer inden for 2 uger, og de kommende aftaler.
 - **Kunder:** alfabetisk liste med søgning og filteret Dame/Herre. Kundesiden viser rytme, næste aftale, beløb brugt i alt og historik, og du kan ringe eller sende SMS.
-- **Nyt besøg:** et par tryk. Prisen og betalingsmåden er udfyldt på forhånd. Vælger du en dato frem i tiden, bliver det en booket aftale.
+- **Nyt besøg:** et par tryk. Prisen og betalingsmåden er udfyldt på forhånd. Vælger du en dato frem i tiden, bliver det en booket aftale, eventuelt med klokkeslæt.
+- **Kalender:** ugen og dagens aftaler med start- og sluttid. Appen advarer, hvis en ny aftale overlapper en anden.
+- **Prisliste:** dine behandlinger med pris og varighed (*Mere → Prisliste*). Prisen bliver foreslået, når du registrerer et besøg, og varigheden bruges til sluttiden i kalenderen.
 - **Indtjening:** pr. måned og år, pr. betalingsmåde, pr. behandling og topkunder.
 - **Backup:** gem en fil i fx Google Drev, eventuelt beskyttet med adgangskode. Du kan også hente backups fra den gamle Salonbog.
 
@@ -135,4 +137,4 @@ android/       Capacitor-projektet og vores eget plugin (dk.saloona.app)
 Du kan læse mere i [docs/PLAN.md](docs/PLAN.md) og [SECURITY.md](SECURITY.md).
 
 ### Databaseændringer
-Tilføj en ny fil i `src/data/migrations/` (fx `002_*.ts`), og registrér den i `migrations/index.ts`. Ret aldrig i en migration, der har været med i en udgivet APK.
+Tilføj en ny fil i `src/data/migrations/` (fx `004_*.ts`), og registrér den i `migrations/index.ts`. Ret aldrig i en migration, der har været med i en udgivet APK.

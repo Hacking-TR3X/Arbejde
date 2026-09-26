@@ -1,6 +1,6 @@
 /** Suggestions that make entering a visit fast: price, payment method, treatments. */
 import type { ISODate } from './dates';
-import type { PayMethod, Visit } from './types';
+import type { PayMethod, Treatment, Visit } from './types';
 
 /** Newest first: by date, then by when it was entered. */
 function newestFirst(a: Visit, b: Visit): number {
@@ -10,9 +10,9 @@ function newestFirst(a: Visit, b: Visit): number {
 
 /**
  * Price suggestion, in order:
- * 1. what this client paid last time for this treatment,
- * 2. the latest price anyone paid for this treatment,
- * 3. the default price imported from the prototype (`prices`),
+ * 1. what this client paid last time for this treatment (personal prices, e.g. a child),
+ * 2. the price in the price list (`defaults`; also holds the prototype's `prices`),
+ * 3. the latest price anyone paid for this treatment,
  * 4. nothing.
  * Only completed visits with an amount are used.
  */
@@ -31,9 +31,9 @@ export function suggestPrice(
     const own = paid.find((v) => v.clientId === clientId);
     if (own) return own.amountOre;
   }
-  const any = paid[0];
-  if (any) return any.amountOre;
-  return defaults.get(treatmentKey) ?? null;
+  const listed = defaults.get(treatmentKey);
+  if (listed !== undefined) return listed;
+  return paid[0]?.amountOre ?? null;
 }
 
 /**
@@ -69,9 +69,14 @@ export interface TreatmentOption {
 
 /**
  * Treatments sorted by how often they are used (ties: most recent first).
- * When a client is given, that client's own treatments come first.
+ * When a client is given, that client's own treatments come first. Price-list
+ * entries that were never used come last, and the price list's name wins.
  */
-export function treatmentOptions(visits: readonly Visit[], clientId: string | null = null): TreatmentOption[] {
+export function treatmentOptions(
+  visits: readonly Visit[],
+  clientId: string | null = null,
+  catalog: ReadonlyMap<string, Treatment> = new Map()
+): TreatmentOption[] {
   const map = new Map<string, TreatmentOption & { last: string; own: number }>();
   for (const v of visits) {
     let o = map.get(v.treatmentKey);
@@ -86,8 +91,13 @@ export function treatmentOptions(visits: readonly Visit[], clientId: string | nu
       o.label = v.treatment;
     }
   }
+  for (const t of catalog.values()) {
+    const o = map.get(t.key);
+    if (o) o.label = t.label;
+    else map.set(t.key, { key: t.key, label: t.label, count: 0, last: '', own: 0 });
+  }
   return [...map.values()]
-    .sort((a, b) => b.own - a.own || b.count - a.count || b.last.localeCompare(a.last))
+    .sort((a, b) => b.own - a.own || b.count - a.count || b.last.localeCompare(a.last) || a.label.localeCompare(b.label, 'da'))
     .map(({ key, label, count }) => ({ key, label, count }));
 }
 

@@ -11,7 +11,7 @@
 import { isValidISODate, type ISODate } from '../dates';
 import { oreFromKroner, parseAmount } from '../money';
 import { LIMITS, cleanLine, cleanMultiline, normalizePhone, treatmentKey } from '../text';
-import { isGender, isPayMethod, isValidId, isValidTime, type Gender, type PayMethod } from '../types';
+import { isGender, isPayMethod, isValidDuration, isValidId, isValidTime, type Gender, type PayMethod } from '../types';
 
 /** A salon's backup is a few hundred kB; 8 MB leaves ample room and keeps memory use safe. */
 export const MAX_FILE_CHARS = 8_000_000;
@@ -41,12 +41,21 @@ export interface ImportVisit {
   note: string;
 }
 
+export interface ImportTreatment {
+  key: string;
+  label: string;
+  priceOre: number | null;
+  durationMin: number | null;
+}
+
 export interface ParsedBackup {
   source: 'salonbog' | 'saloona';
   exported: string | null;
   clients: ImportClient[];
   visits: ImportVisit[];
   prices: Map<string, number>;
+  /** Price list (Saloona files only). */
+  treatments?: ImportTreatment[];
   warnings: string[];
 }
 
@@ -111,6 +120,8 @@ const WARNING_TEXT: Record<string, (n: number) => string> = {
   phoneInvalid: (n) => `${plural(n, 'telefonnummer', 'telefonnumre')} var ${pick(n, 'ugyldigt', 'ugyldige')} og blev fjernet`,
   priceInvalid: (n) => `${plural(n, 'standardpris', 'standardpriser')} var ${pick(n, 'ugyldig', 'ugyldige')} og blev sprunget over`,
   timeInvalid: (n) => `${plural(n, 'tidspunkt', 'tidspunkter')} var ${pick(n, 'ugyldigt', 'ugyldige')} og blev fjernet`,
+  treatmentInvalid: (n) => `${plural(n, 'punkt', 'punkter')} i prislisten var ${pick(n, 'ugyldigt', 'ugyldige')} og blev sprunget over eller rettet`,
+  treatmentTooMany: (n) => `${plural(n, 'behandling', 'behandlinger')} ud over de første ${MAX_PRICES} i prislisten blev sprunget over`,
   priceTooMany: (n) => `${plural(n, 'standardpris', 'standardpriser')} ud over de første ${MAX_PRICES} blev sprunget over`
 };
 
@@ -173,6 +184,7 @@ export function readBackupText(text: string): ReadResult {
   const outClients = readClients(clients, source, w, clientIdMap);
   const outVisits = readVisits(visits, clientIdMap, w);
   const prices = readPrices(own(root, 'prices'), w);
+  const treatments = source === 'saloona' ? readTreatments(own(root, 'treatments'), w) : [];
   const exported = optString(own(root, 'exported'));
 
   return {
@@ -183,6 +195,7 @@ export function readBackupText(text: string): ReadResult {
       clients: outClients,
       visits: outVisits,
       prices,
+      treatments,
       warnings: w.list()
     }
   };
@@ -344,6 +357,40 @@ function readPrices(raw: unknown, w: Warnings): Map<string, number> {
       continue;
     }
     out.set(k, ore);
+  }
+  return out;
+}
+
+function readTreatments(raw: unknown, w: Warnings): ImportTreatment[] {
+  const out: ImportTreatment[] = [];
+  if (raw === undefined || raw === null) return out;
+  if (!Array.isArray(raw)) {
+    w.add('treatmentInvalid');
+    return out;
+  }
+  if (raw.length > MAX_PRICES) w.add('treatmentTooMany', raw.length - MAX_PRICES);
+  const seen = new Set<string>();
+  for (const t of raw.slice(0, MAX_PRICES)) {
+    const nameRaw = isObj(t) ? own(t, 'name') : undefined;
+    const label = typeof nameRaw === 'string' ? cleanLine(nameRaw, LIMITS.treatment) : '';
+    const key = treatmentKey(label);
+    if (!isObj(t) || !label || !key) {
+      w.add('treatmentInvalid');
+      continue;
+    }
+    if (seen.has(key)) continue;
+    seen.add(key);
+    const price = own(t, 'price');
+    let priceOre: number | null = null;
+    if (typeof price === 'number') {
+      priceOre = oreFromKroner(price);
+      if (priceOre === null) w.add('treatmentInvalid');
+    } else if (price !== undefined && price !== null) w.add('treatmentInvalid');
+    const duration = own(t, 'duration');
+    let durationMin: number | null = null;
+    if (isValidDuration(duration)) durationMin = duration;
+    else if (duration !== undefined && duration !== null) w.add('treatmentInvalid');
+    out.push({ key, label, priceOre, durationMin });
   }
   return out;
 }

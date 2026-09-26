@@ -44,6 +44,24 @@ export interface Visit {
   updatedAt: string;
 }
 
+/** An entry in the price list: standard price and duration for a treatment. */
+export interface Treatment {
+  /** treatmentKey(label) */
+  key: string;
+  label: string;
+  priceOre: number | null;
+  durationMin: number | null;
+  updatedAt: string;
+}
+
+export const DURATION_MIN = 5;
+export const DURATION_MAX = 600;
+
+/** Whole minutes, 5–600. */
+export function isValidDuration(v: unknown): v is number {
+  return typeof v === 'number' && Number.isInteger(v) && v >= DURATION_MIN && v <= DURATION_MAX;
+}
+
 export function isGender(v: unknown): v is Gender {
   return v === 'dame' || v === 'herre';
 }

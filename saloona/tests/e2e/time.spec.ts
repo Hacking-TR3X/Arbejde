@@ -33,5 +33,5 @@ test('a visit today can get a time from "Tilføj tidspunkt"', async ({ page }) =
   await page.getByRole('button', { name: 'Gem besøg' }).click();
   await page.getByRole('button', { name: 'Kunder' }).click();
   await page.getByRole('button', { name: /Morgenkunde/ }).first().click();
-  await expect(page.getByText(/kl\. 09\.15/)).toBeVisible();
+  await expect(page.getByText(/kl\. 09\.15/).first()).toBeVisible();
 });

@@ -16,6 +16,9 @@
   import AboutScreen from './screens/AboutScreen.svelte';
   import VisitSheet from './screens/VisitSheet.svelte';
   import ClientSheet from './screens/ClientSheet.svelte';
+  import CalendarScreen from './screens/CalendarScreen.svelte';
+  import TreatmentsScreen from './screens/TreatmentsScreen.svelte';
+  import TreatmentSheet from './screens/TreatmentSheet.svelte';
   import LockScreen from './screens/LockScreen.svelte';
   import Onboarding from './screens/Onboarding.svelte';
   import StartupProblem from './screens/StartupProblem.svelte';
@@ -49,6 +52,8 @@
         {:else if page.name === 'privacy'}<PrivacyScreen />
         {:else if page.name === 'about'}<AboutScreen />
         {:else if page.name === 'missing'}<MissingScreen />
+        {:else if page.name === 'calendar'}<CalendarScreen day={page.day} />
+        {:else if page.name === 'treatments'}<TreatmentsScreen />
         {/if}
       {/key}
     {:else if nav.state.tab === 'due'}<DueScreen />
@@ -62,7 +67,9 @@
   {#if sheet}
     {#key sheet}
       {#if sheet.name === 'visit'}
-        <VisitSheet visitId={sheet.visitId} clientId={sheet.clientId} prefillName={sheet.prefillName} />
+        <VisitSheet visitId={sheet.visitId} clientId={sheet.clientId} prefillName={sheet.prefillName} date={sheet.date} />
+      {:else if sheet.name === 'treatment'}
+        <TreatmentSheet key={sheet.key} />
       {:else}
         <ClientSheet clientId={sheet.clientId} prefillName={sheet.prefillName} />
       {/if}

@@ -10,10 +10,13 @@ export type Page =
   | { name: 'security' }
   | { name: 'privacy' }
   | { name: 'about' }
-  | { name: 'missing' };
+  | { name: 'missing' }
+  | { name: 'calendar'; day?: string }
+  | { name: 'treatments' };
 
 export type Sheet =
-  | { name: 'visit'; visitId?: string; clientId?: string; prefillName?: string }
+  | { name: 'visit'; visitId?: string; clientId?: string; prefillName?: string; date?: string }
+  | { name: 'treatment'; key?: string }
   | { name: 'client'; clientId?: string; prefillName?: string };
 
 export interface NavState {
