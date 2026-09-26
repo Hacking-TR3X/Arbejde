@@ -109,13 +109,13 @@ jobs:
         working-directory: saloona/android
         run: |
           chmod +x gradlew
-          ./gradlew --no-daemon -PversionCode=${{ github.run_number }} assembleDebug assembleTester assembleRelease
+          ./gradlew --no-daemon -PversionCode=${{ github.run_number }} assembleDebug assemblePilot assembleRelease
 
       - name: Collect APKs
         working-directory: saloona/android/app/build/outputs
         run: |
           mkdir -p "$RUNNER_TEMP/apk-test" "$RUNNER_TEMP/apk-release"
-          cp apk/tester/app-tester.apk "$RUNNER_TEMP/apk-test/Saloona-test.apk"
+          cp apk/pilot/app-pilot.apk "$RUNNER_TEMP/apk-test/Saloona-test.apk"
           cp apk/release/*.apk "$RUNNER_TEMP/apk-release/"
           if [ -f mapping/release/mapping.txt ]; then
             cp mapping/release/mapping.txt "$RUNNER_TEMP/apk-release/"

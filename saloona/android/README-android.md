@@ -28,7 +28,7 @@ Begrundelsen er, at databasen er krypteret med en nøgle fra Android Keystore, o
 `network_security_config.xml` forbyder klartekst og stoler kun på systemets certifikater. Det er et ekstra forsvar, da appen ikke har netværk.
 
 ## Build-typer
-| | Debug (`assembleDebug`) | Tester (`assembleTester`) | Release (`assembleRelease`) |
+| | Debug (`assembleDebug`) | Pilot (`assemblePilot`) | Release (`assembleRelease`) |
 |---|---|---|---|
 | Pakkenavn | `dk.saloona.app.debug` | `dk.saloona.app.test` | `dk.saloona.app` |
 | Navn på telefonen | Saloona test | Saloona test | Saloona |
@@ -38,7 +38,7 @@ Begrundelsen er, at databasen er krypteret med en nøgle fra Android Keystore, o
 
 WebView-debugging følger `debuggable`-flaget: Capacitors `CapConfig` bruger `FLAG_DEBUGGABLE` som standard for `android.webContentsDebuggingEnabled`, og `capacitor.config.json` sætter den ikke. Capacitors egen logning er slået fra i alle builds (`loggingBehavior: "none"`), så argumenter til plugin-kald (fx backup-indhold) aldrig havner i logcat.
 
-Debug-buildet kan inspiceres over USB (`run-as`, `chrome://inspect`) og er kun til udvikling. Testversionen, som CI udgiver, er tester-buildet.
+Debug-buildet kan inspiceres over USB (`run-as`, `chrome://inspect`) og er kun til udvikling. Testversionen, som CI udgiver, er pilot-buildet.
 
 `versionCode` sættes med `-PversionCode=<tal>` (CI bruger run-nummeret) og er ellers 1.
 
@@ -61,6 +61,6 @@ cd android && ./gradlew assembleRelease
 ```
 
 ## CI
-`.github/workflows/saloona.yml` kører web-tjek (`npm audit`, `npm run check`, `npm test`, `npm run build`) og bygger derefter debug, tester og usigneret release og tjekker det flettede manifest (`scripts/ci-manifest-check.py`: kun de tilladte permissions og kun MainActivity eksporteret). Til sidst starter den tester og release på en emulator (Android 14). Release signeres her med en nøgle, der kun findes i det job, for at fange R8-fejl. På grenen `claude/saloona-salon-app-cxdxja` lægges `Saloona-test.apk` på prereleasen `saloona-test`, som aldrig bliver "latest".
+`.github/workflows/saloona.yml` kører web-tjek (`npm audit`, `npm run check`, `npm test`, `npm run build`) og bygger derefter debug, pilot og usigneret release og tjekker det flettede manifest (`scripts/ci-manifest-check.py`: kun de tilladte permissions og kun MainActivity eksporteret). Til sidst starter den pilot og release på en emulator (Android 14). Release signeres her med en nøgle, der kun findes i det job, for at fange R8-fejl. På grenen `claude/saloona-salon-app-cxdxja` lægges `Saloona-test.apk` på prereleasen `saloona-test`, som aldrig bliver "latest".
 
-Testversionen (tester-buildet) signeres med en fast debug-nøgle fra GitHub Actions-cachen, så en ny test-APK kan installeres oven på den gamle. Cachen slettes efter 7 dage uden brug. Så laves en ny nøgle, og den gamle testversion skal afinstalleres først.
+Testversionen (pilot-buildet) signeres med en fast debug-nøgle fra GitHub Actions-cachen, så en ny test-APK kan installeres oven på den gamle. Cachen slettes efter 7 dage uden brug. Så laves en ny nøgle, og den gamle testversion skal afinstalleres først.

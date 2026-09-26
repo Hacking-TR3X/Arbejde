@@ -62,7 +62,7 @@ npx cap sync android   # kopierer den ind i Android-projektet
 cd android
 ./gradlew assembleDebug
 ```
-APK'en ligger derefter i `android/app/build/outputs/apk/debug/app-debug.apk`. Debug-buildet kan inspiceres over USB. Brug det derfor ikke til rigtige kundedata. `./gradlew assembleTester` bygger den hærdede testversion (samme som release, signeret med din lokale debug-nøgle).
+APK'en ligger derefter i `android/app/build/outputs/apk/debug/app-debug.apk`. Debug-buildet kan inspiceres over USB. Brug det derfor ikke til rigtige kundedata. `./gradlew assemblePilot` bygger den hærdede testversion (samme som release, signeret med din lokale debug-nøgle).
 
 ### Signeret release-APK
 

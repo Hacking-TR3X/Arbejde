@@ -100,7 +100,7 @@ android {
         // debuggable, so no WebView debugging and no run-as), but with its own app id
         // and label, signed with the stable test key from CI (the debug keystore).
         // CI publishes it as Saloona-test.apk. The real app is the owner-signed release.
-        tester {
+        pilot {
             initWith release
             applicationIdSuffix ".test"
             manifestPlaceholders = [appLabel: "Saloona test"]
