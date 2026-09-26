@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Native window colours, dark theme (system dark mode). Mirrors the dark web tokens. -->
+<resources>
+    <color name="saloona_bg">#16111A</color>
+    <color name="saloona_accent">#CFA0E3</color>
+    <color name="saloona_splash_mark">#CFA0E3</color>
+    <!-- false: light status/navigation bar icons on the dark background -->
+    <bool name="saloona_light_system_bars">false</bool>
+</resources>

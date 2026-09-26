@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- Application theme. DayNight, so the native window follows the system light/dark setting.
+         Colours come from values/colors.xml (light) and values-night/colors.xml (dark), so there is
+         no white flash before the web view paints. -->
+    <style name="AppTheme" parent="Theme.AppCompat.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/saloona_accent</item>
+        <item name="colorPrimaryDark">@color/saloona_bg</item>
+        <item name="colorAccent">@color/saloona_accent</item>
+        <item name="android:windowBackground">@color/saloona_bg</item>
+        <item name="android:statusBarColor">@color/saloona_bg</item>
+        <item name="android:navigationBarColor">@color/saloona_bg</item>
+        <item name="android:windowLightStatusBar">@bool/saloona_light_system_bars</item>
+        <item name="android:windowLightNavigationBar" tools:targetApi="27">@bool/saloona_light_system_bars</item>
+    </style>
+
+    <!-- MainActivity after the splash. Capacitor's BridgeActivity also applies this in onCreate. -->
+    <style name="AppTheme.NoActionBar" parent="AppTheme">
+        <item name="windowActionBar">false</item>
+        <item name="windowNoTitle">true</item>
+        <item name="android:background">@null</item>
+    </style>
+
+    <!-- Launch theme (androidx core-splashscreen): the shears mark centred on the bg colour.
+         Light: plum mark on #F7F4F8. Dark: lilac mark on #16111A (values-night/colors.xml). -->
+    <style name="AppTheme.NoActionBarLaunch" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/saloona_bg</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_splash</item>
+        <item name="postSplashScreenTheme">@style/AppTheme.NoActionBar</item>
+        <item name="android:statusBarColor">@color/saloona_bg</item>
+        <item name="android:navigationBarColor">@color/saloona_bg</item>
+        <item name="android:windowLightStatusBar">@bool/saloona_light_system_bars</item>
+        <item name="android:windowLightNavigationBar" tools:targetApi="27">@bool/saloona_light_system_bars</item>
+    </style>
+</resources>

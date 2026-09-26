@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Splash icon (androidx core-splashscreen, no icon background). The system scales this canvas to
+     288 dp and masks it to a 192 dp circle; the mark uses about half the canvas, well inside.
+     Colour follows the theme: plum in light, lilac in dark (values-night/colors.xml). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:name="rings"
+        android:pathData="M50.8,68.4 A6.8,6.8 0 1,1 37.2,68.4 A6.8,6.8 0 1,1 50.8,68.4 M70.8,68.4 A6.8,6.8 0 1,1 57.2,68.4 A6.8,6.8 0 1,1 70.8,68.4"
+        android:strokeColor="@color/saloona_splash_mark"
+        android:strokeWidth="3.25"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+    <path
+        android:name="blades"
+        android:pathData="M47.2,62.4 L63.6,31.6 M60.8,62.4 L56.26,53.86 M51.74,45.39 L44.4,31.6"
+        android:strokeColor="@color/saloona_splash_mark"
+        android:strokeWidth="3.25"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+</vector>

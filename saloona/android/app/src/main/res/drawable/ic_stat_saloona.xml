@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Notification small icon. White on transparent; Android tints it. Same shears, simplified (no gap). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:name="rings"
+        android:pathData="M10,17.5 A3,3 0 1,1 4,17.5 A3,3 0 1,1 10,17.5 M20,17.5 A3,3 0 1,1 14,17.5 A3,3 0 1,1 20,17.5"
+        android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="2"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+    <path
+        android:name="blades"
+        android:pathData="M8.68,15.02 L16.5,3.5 M15.32,15.02 L7.5,3.5"
+        android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="2"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+</vector>

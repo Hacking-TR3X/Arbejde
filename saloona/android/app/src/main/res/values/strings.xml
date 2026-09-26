@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Saloona</string>
+    <string name="title_activity_main">Saloona</string>
+    <string name="package_name">dk.saloona.app</string>
+    <string name="custom_url_scheme">dk.saloona.app</string>
+</resources>

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Native window colours, light theme. Mirrors the web tokens bg and accent so the splash,
+     window background and system bars match the first web frame. Dark values: values-night/colors.xml. -->
+<resources>
+    <color name="saloona_bg">#F7F4F8</color>
+    <color name="saloona_accent">#74408A</color>
+    <color name="saloona_splash_mark">#74408A</color>
+    <!-- true: dark status/navigation bar icons on the light background -->
+    <bool name="saloona_light_system_bars">true</bool>
+</resources>

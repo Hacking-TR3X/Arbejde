@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Resource shrinking (release): @capacitor/local-notifications looks up the
+  notification icon by name at runtime (capacitor.config.json "smallIcon":
+  "ic_stat_saloona", via Resources.getIdentifier), which the shrinker cannot see.
+  This file is not packaged into the APK.
+-->
+<resources xmlns:tools="http://schemas.android.com/tools"
+    tools:keep="@drawable/ic_stat_*,@mipmap/ic_stat_*" />
