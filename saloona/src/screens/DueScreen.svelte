@@ -18,9 +18,7 @@
     return app.visits.length ? 'Ingen kunder er over tid' : 'Ingen besøg endnu';
   });
 
-  const daysSinceBackup = $derived(
-    app.settings.lastBackupAt ? diffDays(todayISO(new Date(app.settings.lastBackupAt)), app.today) : null
-  );
+  const daysSinceBackup = $derived(app.daysSinceBackup);
 
   function pillText(r: Rhythm): string {
     const d = r.daysUntil ?? 0;

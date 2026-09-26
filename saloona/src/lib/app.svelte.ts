@@ -64,6 +64,10 @@ class AppState {
   phase = $state<Phase>('loading');
   locked = $state(false);
   authenticating = $state(false);
+  /** False while the app is in the background. */
+  active = $state(true);
+  /** Increments every time the app returns to the foreground (the lock screen prompts once per return). */
+  activations = $state(0);
 
   clients = $state.raw<Client[]>([]);
   visits = $state.raw<Visit[]>([]);
@@ -73,12 +77,30 @@ class AppState {
 
   clientMap = $derived(new Map(this.clients.map((c) => [c.id, c])));
 
-  /** True when no backup has been taken for BACKUP_NUDGE_DAYS and there is something to lose. */
+  /**
+   * True when there is something to lose and no backup has been taken for
+   * BACKUP_NUDGE_DAYS: counted from the last backup, or – if there never was one –
+   * from when the oldest visit was entered. An import counts as a backup (the data
+   * is in the imported file).
+   */
   backupDue = $derived.by(() => {
     if (this.visits.length === 0) return false;
+    let since = this.settings.lastBackupAt;
+    if (!since) {
+      for (const v of this.visits) if (!since || v.createdAt < since) since = v.createdAt;
+    }
+    if (!since) return false;
+    const d = new Date(since);
+    if (Number.isNaN(d.getTime())) return true;
+    return diffDays(todayISO(d), this.today) >= BACKUP_NUDGE_DAYS;
+  });
+
+  /** Days since the last backup, or null if there never was one. */
+  daysSinceBackup = $derived.by(() => {
     const last = this.settings.lastBackupAt;
-    if (!last) return true;
-    return diffDays(todayISO(new Date(last)), this.today) >= BACKUP_NUDGE_DAYS;
+    if (!last) return null;
+    const d = new Date(last);
+    return Number.isNaN(d.getTime()) ? null : diffDays(todayISO(d), this.today);
   });
 
   private repo: Repo | null = null;
@@ -146,12 +168,17 @@ class AppState {
    */
   private onAppState(active: boolean): void {
     if (!active) {
-      if (this.authenticating || this.backgroundSince !== null) return;
+      this.active = false;
+      if (this.backgroundSince !== null) return;
       this.backgroundSince = Date.now();
-      this.backgroundExternal = Date.now() < this.ignoreBackgroundUntil;
+      // The system PIN screen of an ongoing prompt also pauses the app; treat it like
+      // our own pickers (grace period) instead of ignoring it.
+      this.backgroundExternal = this.authenticating || Date.now() < this.ignoreBackgroundUntil;
       if (this.settings.lockEnabled && this.settings.lockAfterSeconds === 0 && !this.backgroundExternal) this.lockNow();
       return;
     }
+    this.active = true;
+    this.activations += 1;
     this.today = todayISO();
     const since = this.backgroundSince;
     const external = this.backgroundExternal;
@@ -341,9 +368,9 @@ class AppState {
     const name = cleanLine(d.name, LIMITS.name);
     if (!name) errors.name = 'Skriv et navn';
     const phone = normalizePhone(d.phone.slice(0, 40));
-    if (phone === false) errors.phone = 'Telefonnummeret ser forkert ud';
+    if (phone === false) errors.phone = 'Telefonnummeret ser forkert ud. Skriv fx 20 30 40 50';
     const clash = this.clients.find((c) => c.id !== d.id && c.name.toLocaleLowerCase('da') === name.toLocaleLowerCase('da'));
-    if (clash) errors.name = 'Der er allerede en kunde med det navn';
+    if (clash) errors.name = 'Der er allerede en kunde med det navn. Tilføj fx et efternavn';
     if (Object.keys(errors).length) {
       haptic('reject');
       return { ok: false, errors };
@@ -400,6 +427,7 @@ class AppState {
     const name = backupFileName(this.today, !!password);
     this.expectExternalActivity();
     const done = target === 'save' ? await saveFile(name, data) : await shareFile(name, data);
+    if (!done && this.backgroundSince === null) this.ignoreBackgroundUntil = 0;
     if (done) {
       const now = new Date().toISOString();
       await this.db.saveSettings({ lastBackupAt: now });
@@ -415,6 +443,7 @@ class AppState {
 
   async applyImport(plan: ImportPlan): Promise<void> {
     await this.db.applyImport(plan);
+    if (!this.settings.lastBackupAt) await this.db.saveSettings({ lastBackupAt: new Date().toISOString() });
     await this.afterChange();
     haptic('confirm');
   }

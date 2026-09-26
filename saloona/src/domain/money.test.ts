@@ -86,7 +86,7 @@ describe('parseAmount – rejected with a Danish message', () => {
     'Skriv et beløb, fx 450',
     'Beløbet kan ikke være negativt',
     'Skriv kun tal, fx 450 eller 1.250,50',
-    'Beløbet ser forkert ud',
+    'Beløbet ser forkert ud. Skriv fx 450 eller 1.250,50',
     'Højst to decimaler',
     'Beløbet er for stort'
   ]);
@@ -105,13 +105,13 @@ describe('parseAmount – rejected with a Danish message', () => {
     ['- 50', 'Beløbet kan ikke være negativt'],
     ['kr -50', 'Beløbet kan ikke være negativt'],
     ['-0', 'Beløbet kan ikke være negativt'],
-    ['1,2,3', 'Beløbet ser forkert ud'],
-    ['1.25.0', 'Beløbet ser forkert ud'],
-    ['1,250.50', 'Beløbet ser forkert ud'], // English format
-    ['1.2345', 'Beløbet ser forkert ud'],
-    ['12.345.67', 'Beløbet ser forkert ud'],
-    ['1.2345,00', 'Beløbet ser forkert ud'],
-    ['.', 'Beløbet ser forkert ud'],
+    ['1,2,3', 'Beløbet ser forkert ud. Skriv fx 450 eller 1.250,50'],
+    ['1.25.0', 'Beløbet ser forkert ud. Skriv fx 450 eller 1.250,50'],
+    ['1,250.50', 'Beløbet ser forkert ud. Skriv fx 450 eller 1.250,50'], // English format
+    ['1.2345', 'Beløbet ser forkert ud. Skriv fx 450 eller 1.250,50'],
+    ['12.345.67', 'Beløbet ser forkert ud. Skriv fx 450 eller 1.250,50'],
+    ['1.2345,00', 'Beløbet ser forkert ud. Skriv fx 450 eller 1.250,50'],
+    ['.', 'Beløbet ser forkert ud. Skriv fx 450 eller 1.250,50'],
     [',', 'Skriv et beløb, fx 450'],
     [',-', 'Skriv et beløb, fx 450'],
     ['kr', 'Skriv et beløb, fx 450'],

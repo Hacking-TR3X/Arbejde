@@ -27,7 +27,11 @@
     clientId: initialClient,
     clientName: untrack(() => (initialClient ? (app.clientMap.get(initialClient)?.name ?? '') : (prefillName ?? ''))),
     newClientGender: null,
-    treatment: editing?.treatment ?? '',
+    // Opened from a client page: start from that client's most recent treatment,
+    // so price and payment are prefilled too.
+    treatment:
+      editing?.treatment ??
+      untrack(() => (initialClient ? (lastTreatmentFor(app.visits, initialClient, app.today)?.treatment ?? '') : '')),
     amountText: editing ? formatAmountInput(editing.amountOre) : '',
     pay: editing?.pay ?? null,
     date: editing?.date ?? untrack(() => app.today),

@@ -15,6 +15,31 @@
   let { title, onclose, children, footer }: Props = $props();
 
   let panel: HTMLDivElement | undefined = $state();
+
+  // Drag the handle/header down to close, like a native bottom sheet.
+  const CLOSE_AT = 110;
+  let dragY = $state(0);
+  let dragging = $state(false);
+  let startY = 0;
+  let pointer: number | null = null;
+
+  function dragStart(e: PointerEvent) {
+    if ((e.target as HTMLElement).closest('button')) return;
+    pointer = e.pointerId;
+    startY = e.clientY;
+    dragging = true;
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+  }
+  function dragMove(e: PointerEvent) {
+    if (pointer === e.pointerId) dragY = Math.max(0, e.clientY - startY);
+  }
+  function dragEnd(e: PointerEvent) {
+    if (pointer !== e.pointerId) return;
+    pointer = null;
+    dragging = false;
+    if (dragY > CLOSE_AT) onclose();
+    else dragY = 0;
+  }
   const titleId = `sheet-${Math.random().toString(36).slice(2, 8)}`;
 
   onMount(() => {
@@ -41,13 +66,24 @@
   aria-labelledby={titleId}
   tabindex="-1"
   bind:this={panel}
+  class:dragging
+  style:transform={dragY ? `translateY(${dragY}px)` : undefined}
   transition:fly|global={{ y: 60, duration: motionMs(240), easing: cubicOut }}
 >
-  <div class="grab" aria-hidden="true"></div>
-  <header>
-    <h2 id={titleId}>{title}</h2>
-    <button class="close" aria-label="Luk" onclick={onclose}><Icon name="close" /></button>
-  </header>
+  <div
+    class="drag-zone"
+    onpointerdown={dragStart}
+    onpointermove={dragMove}
+    onpointerup={dragEnd}
+    onpointercancel={dragEnd}
+    role="presentation"
+  >
+    <div class="grab" aria-hidden="true"></div>
+    <header>
+      <h2 id={titleId}>{title}</h2>
+      <button class="close" aria-label="Luk" onclick={onclose}><Icon name="close" /></button>
+    </header>
+  </div>
   <div class="body">
     {@render children()}
   </div>
@@ -57,6 +93,13 @@
 </div>
 
 <style>
+  .drag-zone {
+    touch-action: none;
+    flex: none;
+  }
+  .sheet:not(.dragging) {
+    transition: transform var(--dur) var(--ease);
+  }
   .scrim {
     position: fixed;
     inset: 0;

@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
   import { app } from '../lib/app.svelte';
   import Icon from '../ui/icons/Icon.svelte';
 
@@ -13,7 +12,13 @@
     else if (res === 'failed') message = 'Det lykkedes ikke. Prøv igen.';
   }
 
-  onMount(() => {
+  // Ask once when the lock screen appears while the app is visible, and once each
+  // time the app comes back to the foreground – never in a loop after "Annuller".
+  let promptedFor = -1;
+  $effect(() => {
+    const activation = app.activations;
+    if (!app.active || promptedFor === activation) return;
+    promptedFor = activation;
     void unlock();
   });
 </script>

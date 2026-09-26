@@ -26,12 +26,12 @@ export function parseAmount(input: string): ParseResult {
   let intPart: string;
   let fracPart = '';
 
-  if (commas > 1) return { ok: false, error: 'Beløbet ser forkert ud' };
+  if (commas > 1) return { ok: false, error: 'Beløbet ser forkert ud. Skriv fx 450 eller 1.250,50' };
 
   if (commas === 1) {
     // Comma is the decimal separator; dots are thousands separators.
     const [a = '', b = ''] = s.split(',');
-    if (dots > 0 && !/^\d{1,3}(\.\d{3})+$/.test(a)) return { ok: false, error: 'Beløbet ser forkert ud' };
+    if (dots > 0 && !/^\d{1,3}(\.\d{3})+$/.test(a)) return { ok: false, error: 'Beløbet ser forkert ud. Skriv fx 450 eller 1.250,50' };
     intPart = a.replace(/\./g, '');
     fracPart = b;
   } else if (dots === 0) {
@@ -45,17 +45,17 @@ export function parseAmount(input: string): ParseResult {
     intPart = a;
     fracPart = b;
   } else {
-    return { ok: false, error: 'Beløbet ser forkert ud' };
+    return { ok: false, error: 'Beløbet ser forkert ud. Skriv fx 450 eller 1.250,50' };
   }
 
   if (intPart === '' && fracPart === '') return { ok: false, error: 'Skriv et beløb, fx 450' };
-  if (!/^\d*$/.test(intPart) || !/^\d*$/.test(fracPart)) return { ok: false, error: 'Beløbet ser forkert ud' };
+  if (!/^\d*$/.test(intPart) || !/^\d*$/.test(fracPart)) return { ok: false, error: 'Beløbet ser forkert ud. Skriv fx 450 eller 1.250,50' };
   if (fracPart.length > 2) return { ok: false, error: 'Højst to decimaler' };
   if (intPart.length > 9) return { ok: false, error: 'Beløbet er for stort' };
 
   const kr = Number(intPart || '0');
   const ore = kr * 100 + Number((fracPart + '00').slice(0, 2));
-  if (!Number.isSafeInteger(ore)) return { ok: false, error: 'Beløbet ser forkert ud' };
+  if (!Number.isSafeInteger(ore)) return { ok: false, error: 'Beløbet ser forkert ud. Skriv fx 450 eller 1.250,50' };
   if (ore > MAX_AMOUNT_ORE) return { ok: false, error: 'Beløbet er for stort' };
   return { ok: true, ore };
 }
