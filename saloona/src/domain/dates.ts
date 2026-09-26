@@ -157,7 +157,8 @@ export function formatRelativeDays(days: number): string {
 /** "hver 6. uge", "hver 10. dag", "hver 3. måned". */
 export function formatInterval(days: number): string {
   if (days <= 1) return 'hver dag';
-  if (days < 14) return `hver ${days}. dag`;
+  if (days >= 6 && days <= 8) return 'hver uge';
+  if (days < 12) return `hver ${days}. dag`;
   if (days < 63) {
     const w = Math.round(days / 7);
     return w <= 1 ? 'hver uge' : `hver ${w}. uge`;

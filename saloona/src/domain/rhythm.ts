@@ -117,7 +117,7 @@ export function dueOverview(visits: readonly Visit[], clients: ReadonlyMap<strin
   const rhythms = computeRhythms(visits, today).filter((r) => clients.has(r.clientId));
   const byDays = (a: Rhythm, b: Rhythm) => (a.daysUntil ?? 0) - (b.daysUntil ?? 0);
   const upcoming = visits
-    .filter((v) => v.date > today)
+    .filter((v) => v.date > today && clients.has(v.clientId))
     .sort((a, b) => (a.date === b.date ? a.createdAt.localeCompare(b.createdAt) : a.date < b.date ? -1 : 1))
     .map((visit) => ({ visit, client: clients.get(visit.clientId) }));
   return {

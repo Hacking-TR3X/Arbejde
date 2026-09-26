@@ -10,7 +10,7 @@ Capacitor 8-projekt. `minSdk 26` (Android 8), `targetSdk`/`compileSdk 36`. Appen
 | `POST_NOTIFICATIONS` | Påmindelsen. Appen spørger først, når påmindelsen slås til (Android 13+). |
 | `RECEIVE_BOOT_COMPLETED` | Så planlagte påmindelser overlever en genstart. |
 
-`androidx.core` tilføjer desuden `dk.saloona.app.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION`. Det er en intern signature-permission, som kun appen selv kan bruge.
+`androidx.core` tilføjer normalt også `<applicationId>.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION`. Det er en intern signature-permission, som kun appen selv kan bruge. Tjek det flettede manifest (`app/build/intermediates/merged_manifests/`) efter første build i CI.
 
 Fjernes med `tools:node="remove"`, også hvis et plugin merger dem ind: `INTERNET`, `ACCESS_NETWORK_STATE`, `ACCESS_WIFI_STATE`, `SCHEDULE_EXACT_ALARM`, `USE_EXACT_ALARM`, `WAKE_LOCK`, `VIBRATE`, `FOREGROUND_SERVICE`, `READ_EXTERNAL_STORAGE` og `WRITE_EXTERNAL_STORAGE`.
 - **Ingen `INTERNET`:** Android blokerer selv al netværkstrafik. WebView'et henter kun filer fra appen via Capacitors lokale server.

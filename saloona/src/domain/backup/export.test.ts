@@ -62,14 +62,27 @@ describe('buildBackup', () => {
     }
   });
 
-  it('prices = latest amount per treatment, over the stored defaults', () => {
+  it('prices = latest amount per treatment from completed visits, over the stored defaults', () => {
     expect(file.prices).toEqual({
       klip: 450, // 2026-09-26 (450) beats 2026-06-13 (400); the default is overridden
       farve: 1250.5,
-      permanent: 999_999.99, // note: includes the amount of a booked visit
       hårkur: 300 // only a default
+      // "permanent" is missing: its only amount belongs to a booked visit (2026-10-02)
     });
     expect(Object.getPrototypeOf(file.prices)).toBe(Object.prototype);
+  });
+
+  it('prices: a visit today counts, a booking tomorrow does not (local date of `now`)', () => {
+    // Built from local components, so the calendar date is the same in every time zone.
+    const lateEvening = new Date(2026, 8, 26, 23, 59, 59);
+    const v = [paid('a', 'Klip', '2026-09-26', 450), paid('a', 'Klip', '2026-09-27', 999), paid('a', 'Farve', '2026-09-27', 900)];
+    expect(buildBackup([], v, new Map([['farve', 80_000]]), lateEvening).prices).toEqual({ klip: 450, farve: 800 });
+    const nextMorning = new Date(2026, 8, 27, 0, 0, 1);
+    expect(buildBackup([], v, new Map(), nextMorning).prices).toEqual({ klip: 999, farve: 900 });
+  });
+
+  it('a booked visit is still exported with its amount – only `prices` ignores it', () => {
+    expect(file.visits.at(-1)).toMatchObject({ date: '2026-10-02', amount: 999_999.99 });
   });
 
   it('prices: the newest date wins regardless of order; on the same date the last one wins', () => {
@@ -128,7 +141,7 @@ describe('serializeBackup → readBackupText round trip', () => {
   });
 
   it('keeps prices', () => {
-    expect(Object.fromEntries(back.prices)).toEqual({ klip: 45_000, farve: 125_050, permanent: 99_999_999, hårkur: 30_000 });
+    expect(Object.fromEntries(back.prices)).toEqual({ klip: 45_000, farve: 125_050, hårkur: 30_000 });
   });
 
   it('replace-import of the export restores the same data', () => {

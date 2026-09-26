@@ -2,7 +2,7 @@
 
 Saloona er en Android-app til en hjemmefrisør. Den holder styr på kunder, hvor ofte de kommer, og hvad hun tjener. Den bygger på prototypen `salonbog.html`. Alt ligger kun på telefonen.
 
-Status: **Udkast – afventer ejerens godkendelse.**
+Status: **Godkendt af ejeren. Under udvikling.**
 
 ## Beslutninger (aftalt med ejeren)
 | Emne | Valg |
@@ -32,7 +32,7 @@ saloona/
   android/              Capacitor-projekt (committes), eget lokalt plugin i dk.saloona.app
 ```
 - **State:** Svelte 5-runes. Data læses fra DB ved start og efter hver skrivning. Skrivninger går altid gennem repositories.
-- **Eget Kotlin-plugin (`SaloonaNative`):** biometri/enheds-PIN, FLAG_SECURE til/fra, gem fil (`ACTION_CREATE_DOCUMENT`), åbn fil (`ACTION_OPEN_DOCUMENT`), del via share sheet, haptik (`performHapticFeedback`). Pluginnet erstatter 4–5 tredjepartsplugins.
+- **Eget Java-plugin (`SaloonaNative`, i Java for ikke at trække Kotlin-toolchain og -stdlib ind):** biometri/enheds-PIN, FLAG_SECURE til/fra, gem fil (`ACTION_CREATE_DOCUMENT`), åbn fil (`ACTION_OPEN_DOCUMENT`), del via share sheet, haptik (`performHapticFeedback`). Pluginnet erstatter 4–5 tredjepartsplugins.
 - **Ring/SMS:** `ACTION_DIAL`/`ACTION_SENDTO` med et valideret nummer. Det kræver ingen telefon-permission.
 - **Notifikationer (valgfri, slået fra som standard):** `@capacitor/local-notifications`. Når data ændres, planlægges de næste 14 dages notifikationer kl. 9 med færdigudregnet tekst. Da data kun ændres, når appen bruges, er teksten altid korrekt. Er app-låsen slået til, står der ingen navne på låseskærmen, fx "3 kunder er over tid".
 
@@ -44,11 +44,13 @@ Dev-dependencies: `vite`, `@sveltejs/vite-plugin-svelte`, `typescript`, `svelte-
 - `minSdk 26`, `targetSdk`/`compileSdk 36`, Capacitor 8.
 - **Ingen `INTERNET`-permission**, så Android selv forhindrer netværk. Det verificeres i fase 1, at WebView'et virker uden.
 - `allowBackup="false"`, og `dataExtractionRules` samt `fullBackupContent` udelukker alt. Begrundelsen er, at databasen er krypteret med en Keystore-nøgle, der ikke følger med til en anden telefon. En Google-backup ville derfor være ubrugelig og kun en ekstra kopi af persondata. Backup sker bevidst via eksport.
-- Permissions (foreløbig):
-  - `USE_BIOMETRIC` bruges til app-låsen.
+- Permissions:
+  - `USE_BIOMETRIC` bruges til app-låsen. Dertil kommer `USE_FINGERPRINT`, som androidx.biometric merger ind, og som Android 8–9 kræver til fingeraftryk.
   - `POST_NOTIFICATIONS` bruges til påmindelsen og spørges der først om, når den slås til.
   - `RECEIVE_BOOT_COMPLETED` bruges, så påmindelser overlever en genstart.
-  - Alt andet, som plugins merger ind (fx `SCHEDULE_EXACT_ALARM`), fjernes.
+  - `DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION` er androidx.cores interne signatur-permission.
+  - Alt andet fjernes med `tools:node="remove"`: INTERNET, netværksstatus, exact alarms, WAKE_LOCK, VIBRATE og storage.
+- Gradle: `androidx.biometric:1.1.0` og `androidx.webkit` erklæres eksplicit, fordi vores plugin bruger dem direkte. Det er de samme versioner, som sqlite-pluginnet og Capacitor allerede trækker ind, så APK'en får ingen nye artefakter.
 - FLAG_SECURE er sat, når app-låsen er slået til. WebView-debugging er kun slået til i debug-builds. Release bruger R8.
 
 ### Sikkerhed i webview
@@ -132,5 +134,9 @@ security-reviewer og qa-tester skal godkende hver fase, før den næste starter.
 5. **Release:** signering fra miljøvariabler eller `~/.gradle/gradle.properties`, release-APK, `SECURITY.md`, `README.md` på dansk og en sidste QA- og sikkerhedsgodkendelse.
 
 ## Miljø og begrænsninger
-- Android SDK hentes fra `dl.google.com`, som i øjeblikket er blokeret i dette cloud-miljø. Indtil ejeren tillader værten, bygges APK'er i GitHub Actions.
+- Android SDK hentes fra `dl.google.com`, som i øjeblikket er blokeret i dette cloud-miljø. Derfor bygges APK'er i GitHub Actions (`.github/workflows/saloona.yml`):
+  1. web-checks og tests
+  2. debug-APK og usigneret release med R8
+  3. røgtest i en Android-emulator (debug og en release, der er signeret med en midlertidig nøgle)
+  4. testversionen offentliggøres som prerelease `saloona-test`
 - Der er ingen emulator her (ingen KVM). UI testes i Chromium i telefonstørrelse. Den sidste test på en fysisk telefon laver ejeren efter en tjekliste.

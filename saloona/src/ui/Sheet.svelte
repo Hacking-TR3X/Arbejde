@@ -75,14 +75,14 @@
     display: flex;
     flex-direction: column;
     background: var(--bg);
-    border-radius: 24px 24px 0 0;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
     box-shadow: var(--sheet-lift);
     outline: none;
   }
   .grab {
     width: 40px;
     height: 4px;
-    border-radius: 2px;
+    border-radius: var(--radius-hair);
     background: var(--line-strong);
     margin: 8px auto 0;
     flex: none;
@@ -91,15 +91,19 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 4px 8px 0 var(--gutter);
+    gap: var(--space-2);
+    padding: var(--space-1) var(--space-2) 0 var(--gutter);
     flex: none;
   }
   h2 {
     margin: 0;
+    min-width: 0;
     font-size: 1.25rem;
     letter-spacing: -0.01em;
+    overflow-wrap: anywhere;
   }
   .close {
+    flex: none;
     width: 48px;
     height: 48px;
     border: 0;
@@ -108,7 +112,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: 50%;
+    border-radius: var(--radius-pill);
   }
   .body {
     overflow-y: auto;

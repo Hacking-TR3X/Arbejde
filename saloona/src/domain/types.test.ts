@@ -46,10 +46,14 @@ describe('isValidId', () => {
     expect(isValidId(id)).toBe(false);
   });
 
-  it('accepts the strings "__proto__" and "constructor" (they must only ever be used as Map keys)', () => {
-    // Documented: ids are only used as Map/Set keys and SQL parameters in the domain layer.
-    expect(isValidId('__proto__')).toBe(true);
-    expect(isValidId('constructor')).toBe(true);
+  it('rejects the reserved names "__proto__", "constructor" and "prototype"', () => {
+    expect(isValidId('__proto__')).toBe(false);
+    expect(isValidId('constructor')).toBe(false);
+    expect(isValidId('prototype')).toBe(false);
+    // Only the exact names are reserved.
+    expect(isValidId('__proto')).toBe(true);
+    expect(isValidId('Constructor')).toBe(true);
+    expect(isValidId('prototype1')).toBe(true);
   });
 });
 

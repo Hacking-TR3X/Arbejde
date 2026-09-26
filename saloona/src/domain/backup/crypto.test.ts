@@ -32,6 +32,21 @@ describe('constants', () => {
   });
 });
 
+describe('password length', () => {
+  it('refuses to encrypt with a password shorter than MIN_PASSWORD_LENGTH', async () => {
+    await expect(encryptBackup('{}', '', FAST)).rejects.toThrow(RangeError);
+    await expect(encryptBackup('{}', 'kort', FAST)).rejects.toThrow(RangeError);
+    await expect(encryptBackup('{}', '1234567', FAST)).rejects.toThrow('Adgangskoden er for kort');
+  });
+
+  it('accepts exactly MIN_PASSWORD_LENGTH characters', async () => {
+    const pw = '12345678';
+    expect(pw).toHaveLength(MIN_PASSWORD_LENGTH);
+    const out = await decryptBackup(await envelopeFor('{"a":1}', pw), pw);
+    expect(out).toEqual({ ok: true, text: '{"a":1}' });
+  });
+});
+
 describe('round trip', () => {
   it('encrypts and decrypts the prototype backup', async () => {
     const plain = fixtureText('salonbog-backup.json');

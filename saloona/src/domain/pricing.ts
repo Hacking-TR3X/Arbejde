@@ -36,9 +36,12 @@ export function suggestPrice(
   return defaults.get(treatmentKey) ?? null;
 }
 
-/** The client's most recent payment method, else the most used one overall. */
-export function suggestPay(visits: readonly Visit[], clientId: string | null): PayMethod | null {
-  const withPay = visits.filter((v) => v.pay !== null).sort(newestFirst);
+/**
+ * The client's most recent payment method, else the most used one overall.
+ * With `today`, booked (future) appointments are ignored.
+ */
+export function suggestPay(visits: readonly Visit[], clientId: string | null, today?: ISODate): PayMethod | null {
+  const withPay = visits.filter((v) => v.pay !== null && (today === undefined || v.date <= today)).sort(newestFirst);
   if (clientId) {
     const own = withPay.find((v) => v.clientId === clientId);
     if (own) return own.pay;

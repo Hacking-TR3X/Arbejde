@@ -5,6 +5,7 @@
   import { formatDateCompact, formatRelativeDays, diffDays, todayISO } from '../domain/dates';
   import { remindersSupported } from '../platform/reminders';
   import Icon from '../ui/icons/Icon.svelte';
+  import Chip from '../ui/Chip.svelte';
   import type { Settings } from '../data/repo';
 
   const lastBackup = $derived(app.settings.lastBackupAt ? todayISO(new Date(app.settings.lastBackupAt)) : null);
@@ -71,7 +72,7 @@
   <h2>Udseende</h2>
   <div class="chips" role="radiogroup" aria-label="Udseende">
     {#each themes as t (t.id)}
-      <button class="chip" role="radio" aria-checked={app.settings.theme === t.id} onclick={() => app.setTheme(t.id)}>{t.label}</button>
+      <Chip selected={app.settings.theme === t.id} onclick={() => app.setTheme(t.id)}>{t.label}</Chip>
     {/each}
   </div>
 

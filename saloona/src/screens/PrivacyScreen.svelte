@@ -48,12 +48,6 @@
 </div>
 
 <style>
-  .back {
-    display: inline-flex;
-    align-items: center;
-    gap: 2px;
-    margin: -6px 0 4px -4px;
-  }
   .text {
     color: var(--ink-2);
   }

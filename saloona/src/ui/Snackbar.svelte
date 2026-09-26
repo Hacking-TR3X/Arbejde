@@ -38,19 +38,24 @@
     width: 100%;
     min-height: 52px;
     padding: 6px 6px 6px 18px;
-    border-radius: 14px;
+    border-radius: var(--radius-btn);
     background: var(--ink);
     color: var(--bg);
     font-size: 0.94rem;
   }
   .text {
     flex: 1;
+    min-width: 0;
+    overflow-wrap: anywhere;
+    padding: var(--space-1) 0;
   }
   .act {
-    min-height: 44px;
+    flex: none;
+    min-height: var(--tap);
+    min-width: var(--tap);
     padding: 0 14px;
     border: 0;
-    border-radius: 10px;
+    border-radius: var(--radius-xs);
     background: none;
     color: var(--snack-action);
     font-weight: 700;

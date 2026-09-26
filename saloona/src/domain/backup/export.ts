@@ -2,6 +2,7 @@
  * Builds a backup file. The format is a superset of the Salonbog prototype's
  * format, so the known fields stay readable by the prototype.
  */
+import { todayISO } from '../dates';
 import { kronerFromOre } from '../money';
 import type { Client, Gender, PayMethod, Visit } from '../types';
 
@@ -42,9 +43,10 @@ export function buildBackup(
   now: Date
 ): BackupFile {
   // `prices` = latest paid amount per treatment, falling back to stored defaults.
+  const today = todayISO(now);
   const latest = new Map<string, { date: string; ore: number }>();
   for (const v of visits) {
-    if (v.amountOre === null) continue;
+    if (v.amountOre === null || v.date > today) continue;
     const cur = latest.get(v.treatmentKey);
     if (!cur || v.date >= cur.date) latest.set(v.treatmentKey, { date: v.date, ore: v.amountOre });
   }

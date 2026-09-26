@@ -7,7 +7,7 @@
 
 <div class="screen">
   <button class="back link" onclick={() => nav.back()}><Icon name="back" size={20} /> Mere</button>
-  <div class="brand">Saloona</div>
+  <h1 class="brand">Saloona</h1>
   <p>En lille kundebog til en frisør, der klipper hjemme. Hvem kommer snart igen, hvad har de fået, og hvad er der tjent.</p>
   <div class="group facts">
     <div class="row"><span class="grow">Version</span><span class="end">{version}</span></div>
@@ -19,16 +19,10 @@
 </div>
 
 <style>
-  .back {
-    display: inline-flex;
-    align-items: center;
-    gap: 2px;
-    margin: -6px 0 4px -4px;
-  }
   .facts {
     margin-top: 16px;
   }
-  .end {
-    white-space: normal !important;
+  .facts .end {
+    white-space: normal;
   }
 </style>

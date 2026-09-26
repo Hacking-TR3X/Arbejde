@@ -44,15 +44,38 @@
   --ok: #2f6f4f;
   --ok-soft: #e7f2eb;
   --track: #efeaf2;
+  /* Borders that identify a control (inputs, chips, switch, outline buttons) and small
+     icons that carry meaning (chevrons). At least 3:1 against --bg and --surface. */
+  --outline: #93899a;
+  /* Inactive month bars: at least 3:1 against --surface. */
+  --bar-muted: #aa87b9;
+  --danger-ink: #ffffff;
+  --hero-bg: #74408a;
+  --hero-ink: #ffffff;
+  --nav-bg: #ffffff;
   --scrim: rgba(42, 30, 48, 0.32);
   --lift: 0 1px 2px rgba(42, 30, 48, 0.05), 0 4px 16px rgba(42, 30, 48, 0.04);
   --sheet-lift: 0 -8px 32px rgba(42, 30, 48, 0.12);
+  --knob-shadow: 0 1px 3px rgba(42, 30, 48, 0.3);
   --snack-action: #e3c6ef;
 
+  --radius-lg: 24px;
   --radius: 18px;
+  --radius-btn: 14px;
   --radius-sm: 12px;
+  --radius-xs: 8px;
+  --radius-chip: 20px;
+  --radius-hair: 2px;
+  --radius-pill: 999px;
   --tap: 48px;
   --gutter: 20px;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
 
   --font: 'Bricolage Grotesque', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   --brand: 'Italiana', 'Didot', 'Bodoni 72', Georgia, serif;
@@ -88,9 +111,16 @@
     --ok: #78c99d;
     --ok-soft: #1c3026;
     --track: #2d2433;
+    --outline: #706479;
+    --bar-muted: #7b5e89;
+    --danger-ink: #1b1120;
+    --hero-bg: #3d2449;
+    --hero-ink: #f2edf5;
+    --nav-bg: #1c1621;
     --scrim: rgba(0, 0, 0, 0.5);
     --lift: none;
     --sheet-lift: 0 -8px 32px rgba(0, 0, 0, 0.4);
+    --knob-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
     --snack-action: #5f3371;
     color-scheme: dark;
   }
@@ -115,9 +145,16 @@
   --ok: #78c99d;
   --ok-soft: #1c3026;
   --track: #2d2433;
+  --outline: #706479;
+  --bar-muted: #7b5e89;
+  --danger-ink: #1b1120;
+  --hero-bg: #3d2449;
+  --hero-ink: #f2edf5;
+  --nav-bg: #1c1621;
   --scrim: rgba(0, 0, 0, 0.5);
   --lift: none;
   --sheet-lift: 0 -8px 32px rgba(0, 0, 0, 0.4);
+  --knob-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
   --snack-action: #5f3371;
   color-scheme: dark;
 }
@@ -148,6 +185,8 @@ body {
   -webkit-font-smoothing: antialiased;
   -webkit-tap-highlight-color: transparent;
   overscroll-behavior-y: none;
+  /* Safety net: nothing may widen the layout viewport (long names, 200 % text). */
+  overflow-x: clip;
 }
 button,
 input,
@@ -162,6 +201,10 @@ button {
 :focus-visible {
   outline: 3px solid var(--accent);
   outline-offset: 2px;
+}
+::placeholder {
+  color: var(--muted);
+  opacity: 1;
 }
 [hidden] {
   display: none !important;
@@ -184,10 +227,12 @@ button {
   margin: 0 auto;
   padding: calc(var(--safe-top) + 14px) var(--gutter) calc(var(--nav-h) + var(--safe-bottom) + 40px);
   min-height: 100vh;
+  overflow-wrap: break-word;
 }
 .brand {
   font-family: var(--brand);
   font-size: 2.1rem;
+  font-weight: 400;
   line-height: 1;
   color: var(--accent);
   letter-spacing: 0.04em;
@@ -200,6 +245,7 @@ h1 {
   letter-spacing: -0.02em;
   margin: 0 0 4px;
   font-variation-settings: 'opsz' 72;
+  overflow-wrap: anywhere;
 }
 h2 {
   font-size: 1rem;
@@ -229,9 +275,6 @@ h2 .count {
   border-radius: var(--radius);
   border: 1px solid var(--line);
   overflow: hidden;
-}
-.group > * + * {
-  border-top: 1px solid var(--line);
 }
 
 /* A plain list row inside a group */
@@ -271,8 +314,17 @@ a.row:active {
   white-space: nowrap;
 }
 .chev {
-  color: var(--line-strong);
+  color: var(--outline);
   flex: none;
+}
+/* Hairlines between the rows of a grouped list. Declared after .row and with a higher
+   specificity, because rows reset `border` (buttons have a UA border). */
+.group > :not(:first-child) {
+  border-top: 1px solid var(--line);
+}
+/* Rows sit inside a clipping group: draw their focus ring inside. */
+.group :is(.row, .brk-row):focus-visible {
+  outline-offset: -3px;
 }
 
 /* ---------- Buttons ---------- */
@@ -282,10 +334,11 @@ a.row:active {
   justify-content: center;
   gap: 8px;
   min-height: var(--tap);
-  padding: 0 20px;
+  padding: 0 var(--space-5);
   border: 0;
-  border-radius: 14px;
+  border-radius: var(--radius-btn);
   font-weight: 620;
+  text-align: center;
   background: var(--accent);
   color: var(--accent-ink);
   transition: background var(--dur) var(--ease), transform var(--dur) var(--ease);
@@ -308,23 +361,23 @@ a.row:active {
 .btn.outline {
   background: var(--surface);
   color: var(--accent);
-  border: 1px solid var(--line-strong);
+  border: 1px solid var(--outline);
 }
 .btn.danger {
   background: transparent;
   color: var(--late);
-  border: 1px solid var(--line-strong);
+  border: 1px solid var(--outline);
 }
 .btn.danger.solid {
   background: var(--late);
-  color: #fff;
+  color: var(--danger-ink);
   border-color: var(--late);
 }
+/* Smaller type and padding, same 48 px touch height. */
 .btn.small {
-  min-height: 40px;
-  padding: 0 14px;
+  padding: 0 var(--space-4);
   font-size: 0.92rem;
-  border-radius: 12px;
+  border-radius: var(--radius-sm);
 }
 .btn-row {
   display: flex;
@@ -342,43 +395,62 @@ a.row:active {
   color: var(--accent);
   font-weight: 620;
 }
+/* "‹ Tilbage" at the top of sub-pages */
+.back {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin: -6px 0 var(--space-1) -4px;
+}
 
 /* ---------- Chips ---------- */
 .chips {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: var(--space-2);
 }
 .chip {
   min-height: 40px;
-  padding: 0 15px;
-  border-radius: 999px;
-  border: 1px solid var(--line-strong);
+  min-width: 48px;
+  max-width: 100%;
+  padding: 6px 15px;
+  border-radius: var(--radius-chip);
+  border: 1px solid var(--outline);
   background: var(--surface);
   color: var(--ink);
   font-size: 0.93rem;
+  line-height: 1.25;
+  text-align: left;
+  overflow-wrap: anywhere;
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
   position: relative;
 }
-/* Grow the touch target to 48dp without changing the look */
+/* Grow the touch target to 48 x 48 without changing the look (rows are 8 px apart). */
 .chip::after {
   content: '';
   position: absolute;
   inset: -4px -2px;
 }
+/* Selected: tinted fill, accent border and a check mark (Chip.svelte), so the state
+   never depends on colour alone. */
 .chip[aria-pressed='true'],
 .chip[aria-checked='true'] {
   background: var(--accent-soft);
   border-color: var(--accent);
   color: var(--accent);
-  font-weight: 620;
+}
+/* Leading icon or check mark */
+.chip.lead {
+  padding-left: 10px;
 }
 .chip .n {
   color: var(--muted);
   font-weight: 500;
   font-size: 0.85rem;
+  font-variant-numeric: tabular-nums;
 }
 .chip[aria-pressed='true'] .n,
 .chip[aria-checked='true'] .n {
@@ -406,7 +478,7 @@ textarea.input {
   width: 100%;
   min-height: 50px;
   background: var(--surface);
-  border: 1px solid var(--line-strong);
+  border: 1px solid var(--outline);
   border-radius: var(--radius-sm);
   padding: 12px 14px;
   font-size: 16px;
@@ -415,11 +487,12 @@ textarea.input {
 }
 .input:focus {
   border-color: var(--accent);
-  outline: 2px solid var(--accent-soft);
-  outline-offset: 0;
+  outline: none;
+  box-shadow: 0 0 0 1px var(--accent);
 }
 .input[aria-invalid='true'] {
   border-color: var(--late);
+  box-shadow: 0 0 0 1px var(--late);
 }
 textarea.input {
   min-height: 88px;
@@ -446,9 +519,9 @@ textarea.input {
   -webkit-appearance: none;
   width: 52px;
   height: 32px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--track);
-  border: 1px solid var(--line-strong);
+  border: 1px solid var(--outline);
   position: relative;
   flex: none;
   transition: background var(--dur) var(--ease);
@@ -460,9 +533,9 @@ textarea.input {
   left: 3px;
   width: 24px;
   height: 24px;
-  border-radius: 50%;
+  border-radius: var(--radius-pill);
   background: var(--surface);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+  box-shadow: var(--knob-shadow);
   transition: transform var(--dur) var(--ease);
 }
 .switch:checked {
@@ -472,6 +545,12 @@ textarea.input {
 .switch:checked::before {
   transform: translateX(20px);
 }
+.switch:disabled {
+  opacity: 0.55;
+}
+.switch-row:has(.switch:disabled) {
+  cursor: default;
+}
 
 /* ---------- Status ---------- */
 .pill {
@@ -480,7 +559,7 @@ textarea.input {
   font-size: 0.82rem;
   white-space: nowrap;
   padding: 5px 10px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--accent-soft);
   color: var(--accent);
 }
@@ -499,14 +578,14 @@ textarea.input {
 .bar {
   height: 4px;
   background: var(--track);
-  border-radius: 2px;
+  border-radius: var(--radius-hair);
   overflow: hidden;
 }
 .bar > i {
   display: block;
   height: 100%;
   width: 0;
-  border-radius: 2px;
+  border-radius: var(--radius-hair);
   background: var(--accent);
 }
 .late .bar > i {
@@ -523,12 +602,13 @@ textarea.input {
   font-size: 0.75rem;
   font-weight: 620;
   padding: 2px 8px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--accent-soft);
   color: var(--accent);
   margin-left: 6px;
   vertical-align: 2px;
-  white-space: nowrap;
+  max-width: 100%;
+  overflow-wrap: anywhere;
 }
 
 /* ---------- Empty states & notes ---------- */
@@ -548,18 +628,22 @@ textarea.input {
   font-size: 0.9rem;
   color: var(--muted);
 }
-.banner .btn {
-  white-space: nowrap;
-  flex: none;
-}
 .banner {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: var(--space-1) var(--space-3);
   background: var(--accent-soft);
   border-radius: var(--radius-sm);
-  padding: 8px 8px 8px 14px;
+  padding: var(--space-2) var(--space-2) var(--space-2) 14px;
   margin: 0 0 18px;
   font-size: 0.92rem;
+}
+.banner > span {
+  flex: 1 1 8em;
+}
+.banner .btn {
+  flex: none;
+  margin-left: auto;
 }

@@ -25,14 +25,15 @@ export interface OpenFileResult {
   /** File contents decoded as UTF-8. Absent when canceled or too large. */
   data?: string;
   tooLarge?: boolean;
+  error?: 'read_failed';
 }
 
 export interface SaloonaNativePlugin {
   /** Whether fingerprint/face or the phone's own screen lock can be used. */
   lockAvailability(): Promise<LockAvailability>;
   /**
-   * Shows the system BiometricPrompt. Allows BIOMETRIC_WEAK | DEVICE_CREDENTIAL
-   * (API 30+) or setDeviceCredentialAllowed(true) (API 26–29), so the phone's
+   * Shows the system BiometricPrompt with BIOMETRIC_WEAK | DEVICE_CREDENTIAL
+   * (supported by androidx.biometric 1.1.0 on API 26+), so the phone's
    * PIN/pattern/password is always the fallback.
    */
   authenticate(options: { title: string; subtitle?: string }): Promise<AuthResult>;
@@ -40,14 +41,14 @@ export interface SaloonaNativePlugin {
   setSecureScreen(options: { enabled: boolean }): Promise<void>;
 
   /** ACTION_CREATE_DOCUMENT: the user picks where to save (Drev, Downloads …). */
-  saveFile(options: { fileName: string; mimeType: string; data: string }): Promise<{ saved: boolean }>;
+  saveFile(options: { fileName: string; mimeType: string; data: string }): Promise<{ saved: boolean; error?: 'write_failed' }>;
   /** ACTION_OPEN_DOCUMENT: reads the chosen file as UTF-8, refusing files above maxBytes. */
   openFile(options: { mimeTypes: string[]; maxBytes: number }): Promise<OpenFileResult>;
   /**
    * Writes the data to cache/exports/, shares it through the FileProvider with a
    * chooser (ACTION_SEND), and deletes older export files.
    */
-  shareFile(options: { fileName: string; mimeType: string; data: string; title: string }): Promise<{ shared: boolean }>;
+  shareFile(options: { fileName: string; mimeType: string; data: string; title: string }): Promise<{ shared: boolean; error?: 'write_failed' | 'no_app' }>;
   /** Deletes everything in cache/exports/. Called on start-up. */
   clearExportCache(): Promise<void>;
 

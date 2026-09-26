@@ -13,7 +13,8 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { addDays, diffDays, fromDayNumber, todayISO, toDayNumber, weekday } from './dates';
 import { computeRhythms } from './rhythm';
 import { periodRange } from './earnings';
-import { visit } from '../../tests/helpers/factories';
+import { buildBackup } from './backup/export';
+import { paid, visit } from '../../tests/helpers/factories';
 
 const ORIGINAL_TZ = process.env.TZ;
 
@@ -234,6 +235,14 @@ for (const tz of ZONES) {
       expect(r?.intervalDays).toBe(42);
       expect(r?.expected).toBe('2026-06-21');
       expect(r?.daysUntil).toBe(-126);
+    });
+
+    it('backup prices use the local date of `now` to tell visits from bookings', () => {
+      const at = new Date('2026-09-26T22:30:00Z');
+      const localToday = INSTANTS[0]!.expect[tz]!;
+      const v = [paid('a', 'Klip', '2026-09-26', 450), paid('a', 'Klip', '2026-09-27', 500)];
+      const prices = buildBackup([], v, new Map(), at).prices;
+      expect(prices).toEqual({ klip: localToday === '2026-09-27' ? 500 : 450 });
     });
 
     it('periods do not depend on the zone', () => {

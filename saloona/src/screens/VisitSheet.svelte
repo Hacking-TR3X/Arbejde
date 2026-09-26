@@ -10,6 +10,7 @@
   import { GENDER_LABELS, GENDERS, PAY_LABELS, PAY_METHODS, type Client } from '../domain/types';
   import Sheet from '../ui/Sheet.svelte';
   import Icon from '../ui/icons/Icon.svelte';
+  import Chip from '../ui/Chip.svelte';
 
   interface Props {
     visitId?: string;
@@ -95,7 +96,7 @@
         const ore = suggestPrice(app.visits, cid, key, app.prices, app.today);
         draft.amountText = formatAmountInput(ore);
       }
-      if (!payTouched) draft.pay = suggestPay(app.visits, cid);
+      if (!payTouched) draft.pay = suggestPay(app.visits, cid, app.today);
     });
   });
 
@@ -180,25 +181,22 @@
           bind:value={draft.clientName}
           oninput={onNameInput}
           aria-invalid={errors.client ? 'true' : undefined}
+          aria-describedby={errors.client ? 'err-client' : undefined}
         />
-        {#if errors.client}<p class="error-text">{errors.client}</p>{/if}
+        {#if errors.client}<p class="error-text" id="err-client">{errors.client}</p>{/if}
         <div class="chips suggest">
           {#each typedName ? matches : quickClients as c (c.id)}
-            <button type="button" class="chip" onclick={() => chooseClient(c)}>{c.name}</button>
+            <Chip kind="action" onclick={() => chooseClient(c)}>{c.name}</Chip>
           {/each}
         </div>
         {#if isNewClient}
           <div class="new-client">
-            <span class="hint">Ny kunde. Dame eller herre?</span>
-            <div class="chips" role="radiogroup" aria-label="Dame eller herre">
+            <span class="hint" id="lbl-new-gender">Ny kunde. Dame eller herre?</span>
+            <div class="chips" role="radiogroup" aria-labelledby="lbl-new-gender">
               {#each GENDERS as g (g)}
-                <button
-                  type="button"
-                  class="chip"
-                  role="radio"
-                  aria-checked={draft.newClientGender === g}
-                  onclick={() => (draft.newClientGender = draft.newClientGender === g ? null : g)}>{GENDER_LABELS[g]}</button
-                >
+                <Chip selected={draft.newClientGender === g} onclick={() => (draft.newClientGender = draft.newClientGender === g ? null : g)}>
+                  {GENDER_LABELS[g]}
+                </Chip>
               {/each}
             </div>
           </div>
@@ -220,12 +218,20 @@
         bind:value={draft.treatment}
         oninput={() => (errors.treatment = undefined)}
         aria-invalid={errors.treatment ? 'true' : undefined}
+        aria-describedby={errors.treatment ? 'err-treat' : undefined}
       />
-      {#if errors.treatment}<p class="error-text">{errors.treatment}</p>{/if}
+      {#if errors.treatment}<p class="error-text" id="err-treat">{errors.treatment}</p>{/if}
       {#if treatments.length}
         <div class="chips suggest">
           {#each treatments as t (t.key)}
-            <button type="button" class="chip" aria-pressed={tKey === t.key} onclick={() => (draft.treatment = t.label)}>{t.label}</button>
+            <Chip
+              kind="toggle"
+              selected={tKey === t.key}
+              onclick={() => {
+                draft.treatment = t.label;
+                errors.treatment = undefined;
+              }}>{t.label}</Chip
+            >
           {/each}
         </div>
       {/if}
@@ -249,26 +255,23 @@
             errors.amount = undefined;
           }}
           aria-invalid={errors.amount ? 'true' : undefined}
-          aria-describedby="amount-unit"
+          aria-describedby={errors.amount ? 'amount-unit err-amount' : 'amount-unit'}
         />
         <span class="unit" id="amount-unit">kr.</span>
       </div>
-      {#if errors.amount}<p class="error-text">{errors.amount}</p>{/if}
+      {#if errors.amount}<p class="error-text" id="err-amount">{errors.amount}</p>{/if}
     </div>
 
     <div class="field">
       <span class="label" id="lbl-pay">Betaling</span>
       <div class="chips" role="radiogroup" aria-labelledby="lbl-pay">
         {#each PAY_METHODS as p (p)}
-          <button
-            type="button"
-            class="chip"
-            role="radio"
-            aria-checked={draft.pay === p}
+          <Chip
+            selected={draft.pay === p}
             onclick={() => {
               payTouched = true;
               draft.pay = draft.pay === p ? null : p;
-            }}>{PAY_LABELS[p]}</button
+            }}>{PAY_LABELS[p]}</Chip
           >
         {/each}
       </div>
@@ -278,12 +281,11 @@
     <div class="field">
       <span class="label" id="lbl-date">Dato</span>
       <div class="chips" role="radiogroup" aria-labelledby="lbl-date">
-        <button type="button" class="chip" role="radio" aria-checked={dateMode === 'today'} onclick={() => setDate('today')}>I dag</button>
-        <button type="button" class="chip" role="radio" aria-checked={dateMode === 'yesterday'} onclick={() => setDate('yesterday')}>I går</button>
-        <button type="button" class="chip" role="radio" aria-checked={dateMode === 'other'} onclick={() => setDate('other')}>
-          <Icon name="calendar" size={18} />
+        <Chip selected={dateMode === 'today'} onclick={() => setDate('today')}>I dag</Chip>
+        <Chip selected={dateMode === 'yesterday'} onclick={() => setDate('yesterday')}>I går</Chip>
+        <Chip icon="calendar" selected={dateMode === 'other'} onclick={() => setDate('other')}>
           {dateMode === 'other' && isValidISODate(draft.date) ? formatDateShort(draft.date, app.today) : 'Anden dag'}
-        </button>
+        </Chip>
       </div>
       {#if dateMode === 'other'}
         <input
@@ -294,10 +296,11 @@
           max="2100-12-31"
           bind:value={draft.date}
           aria-invalid={errors.date ? 'true' : undefined}
+          aria-describedby={errors.date ? 'err-date' : undefined}
         />
         <p class="note">{booking ? 'En dag frem i tiden bliver en booket aftale.' : 'Vælg en dag frem i tiden for at booke en aftale.'}</p>
       {/if}
-      {#if errors.date}<p class="error-text">{errors.date}</p>{/if}
+      {#if errors.date}<p class="error-text" id="err-date">{errors.date}</p>{/if}
     </div>
 
     <!-- Note -->
@@ -340,12 +343,15 @@
     background: var(--accent-soft);
   }
   .chosen-name {
+    min-width: 0;
     font-weight: 620;
     color: var(--accent);
     font-size: 1.05rem;
+    overflow-wrap: anywhere;
   }
   .chosen .link {
-    padding: 0 10px;
+    flex: none;
+    padding: 0 var(--space-3);
   }
   .new-client {
     margin-top: 12px;

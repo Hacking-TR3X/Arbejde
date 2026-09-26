@@ -304,11 +304,11 @@ describe('dueOverview', () => {
     expect(o.upcoming.map((u) => u.visit.id)).toEqual(['tomorrow', 'early-entry', 'late-entry', 'next-year']);
   });
 
-  it('upcoming keeps appointments of unknown clients with client = undefined', () => {
-    // Documented behaviour: unlike the rhythm lists, upcoming is not filtered by the client map.
-    const o = dueOverview([visit('ghost', 'Klip', t(2))], new Map(), today);
-    expect(o.upcoming).toHaveLength(1);
-    expect(o.upcoming[0]!.client).toBeUndefined();
+  it('upcoming leaves out appointments of clients that are not in the map', () => {
+    const o = dueOverview([visit('ghost', 'Klip', t(2)), visit('a', 'Klip', t(3))], clientMap(client('a', 'Anne')), today);
+    expect(o.upcoming.map((u) => u.visit.clientId)).toEqual(['a']);
+    expect(o.upcoming.every((u) => u.client !== undefined)).toBe(true);
+    expect(dueOverview([visit('ghost', 'Klip', t(2))], new Map(), today).upcoming).toEqual([]);
   });
 
   it('collecting: only groups with completed dates, most dates first, then most recent', () => {

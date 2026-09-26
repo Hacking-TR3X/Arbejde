@@ -77,12 +77,28 @@
   {#if protect}
     <div class="field">
       <label for="bk-p1">Adgangskode <span class="hint">(mindst {MIN_PASSWORD_LENGTH} tegn)</span></label>
-      <input id="bk-p1" class="input" type="password" autocomplete="new-password" bind:value={pass1} aria-invalid={passError ? 'true' : undefined} />
+      <input
+        id="bk-p1"
+        class="input"
+        type="password"
+        autocomplete="new-password"
+        bind:value={pass1}
+        aria-invalid={passError ? 'true' : undefined}
+        aria-describedby={passError ? 'bk-err' : undefined}
+      />
     </div>
     <div class="field">
       <label for="bk-p2">Gentag adgangskode</label>
-      <input id="bk-p2" class="input" type="password" autocomplete="new-password" bind:value={pass2} aria-invalid={passError ? 'true' : undefined} />
-      {#if passError}<p class="error-text">{passError}</p>{/if}
+      <input
+        id="bk-p2"
+        class="input"
+        type="password"
+        autocomplete="new-password"
+        bind:value={pass2}
+        aria-invalid={passError ? 'true' : undefined}
+        aria-describedby={passError ? 'bk-err' : undefined}
+      />
+      {#if passError}<p class="error-text" id="bk-err">{passError}</p>{/if}
     </div>
   {/if}
   <div class="btn-row actions">
@@ -100,12 +116,6 @@
 </div>
 
 <style>
-  .back {
-    display: inline-flex;
-    align-items: center;
-    gap: 2px;
-    margin: -6px 0 4px -4px;
-  }
   .status {
     display: flex;
     flex-direction: column;

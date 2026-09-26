@@ -36,6 +36,7 @@ async function deriveKey(password: string, salt: Uint8Array<ArrayBuffer>, iterat
 }
 
 export async function encryptBackup(plainJson: string, password: string, iterations = PBKDF2_ITERATIONS): Promise<string> {
+  if (password.length < MIN_PASSWORD_LENGTH) throw new RangeError('Adgangskoden er for kort');
   const salt = crypto.getRandomValues(new Uint8Array(16));
   const iv = crypto.getRandomValues(new Uint8Array(12));
   const key = await deriveKey(password, salt, iterations);

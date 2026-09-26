@@ -111,6 +111,24 @@ describe('suggestPay', () => {
     expect(suggestPay([visit('a', 'Klip', '2026-01-01')], 'a')).toBeNull();
   });
 
+  it('with today given, booked (future) appointments are ignored', () => {
+    const v = [
+      paid('morten', 'Klip', '2026-08-01', 450, 'kontant'),
+      visit('morten', 'Klip', '2026-10-10', { pay: 'mp_noah' }), // booked with a pay method
+      visit('x', 'Klip', '2026-10-11', { pay: 'mp_noah' }),
+      visit('y', 'Klip', '2026-10-12', { pay: 'mp_noah' })
+    ];
+    expect(suggestPay(v, 'morten', today)).toBe('kontant');
+    expect(suggestPay(v, 'new-client', today)).toBe('kontant'); // overall favourite also ignores bookings
+    expect(suggestPay(v, 'morten', '2026-10-10')).toBe('mp_noah'); // the day has come
+    // Without today the old behaviour is kept (all visits).
+    expect(suggestPay(v, 'morten')).toBe('mp_noah');
+  });
+
+  it('with today given and only future pay methods → null', () => {
+    expect(suggestPay([visit('a', 'Klip', '2026-10-10', { pay: 'kontant' })], 'a', today)).toBeNull();
+  });
+
   it('only the latest 200 visits decide the overall favourite', () => {
     const old = Array.from({ length: 300 }, (_, i) => paid(`o${i}`, 'Klip', '2025-01-01', 450, 'kontant', { id: `o${i}` }));
     const recent = Array.from({ length: 200 }, (_, i) => paid(`r${i}`, 'Klip', '2026-06-01', 450, 'mp_mig', { id: `r${i}` }));

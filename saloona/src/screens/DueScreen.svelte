@@ -14,7 +14,8 @@
     if (overview.upcoming.length) parts.push(overview.upcoming.length === 1 ? '1 aftale' : `${overview.upcoming.length} aftaler`);
     if (overview.late.length) parts.push(`${overview.late.length} over tid`);
     if (overview.soon.length) parts.push(`${overview.soon.length} inden for 2 uger`);
-    return parts.length ? parts.join(' · ') : 'Ingen kunder er over tid';
+    if (parts.length) return parts.join(' · ');
+    return app.visits.length ? 'Ingen kunder er over tid' : 'Ingen besøg endnu';
   });
 
   const daysSinceBackup = $derived(
@@ -144,11 +145,12 @@
                 <span class="title">{c?.name}</span>
                 <span class="meta">{r.treatment}{r.booked ? ` · booket ${formatDateShort(r.booked, app.today)}` : ''}</span>
               </span>
-              <span class="dots" aria-label={`${r.dates.length} af ${MIN_DATES} besøg`}>
+              <span class="dots" aria-hidden="true">
                 {#each Array.from({ length: MIN_DATES }, (_, i) => i) as i (i)}
                   <i class:on={i < r.dates.length}></i>
                 {/each}
               </span>
+              <span class="sr-only">{r.dates.length} af {MIN_DATES} besøg</span>
             </button>
           {/each}
         </div>
@@ -169,9 +171,10 @@
     background: var(--surface);
     border: 1px solid var(--line);
     border-radius: var(--radius);
-    padding: 14px 16px 12px;
+    padding: 14px var(--space-4) var(--space-3);
     color: inherit;
     box-shadow: var(--lift);
+    overflow-wrap: anywhere;
   }
   .card.late {
     border-color: color-mix(in srgb, var(--late) 22%, var(--line));
@@ -181,9 +184,10 @@
   }
   .top {
     display: flex;
+    flex-wrap: wrap;
     justify-content: space-between;
     align-items: flex-start;
-    gap: 12px;
+    gap: var(--space-1) var(--space-3);
   }
   .who {
     display: flex;
@@ -205,11 +209,12 @@
   }
   .meta {
     display: flex;
+    flex-wrap: wrap;
     justify-content: space-between;
     color: var(--muted);
     font-size: 0.8rem;
     margin-top: 7px;
-    gap: 12px;
+    gap: 0 var(--space-3);
   }
   .row .meta {
     display: block;
@@ -222,7 +227,8 @@
   .when {
     display: flex;
     flex-direction: column;
-    width: 84px;
+    width: 5.5em;
+    max-width: 40%;
     flex: none;
   }
   .when b {
@@ -266,8 +272,8 @@
   .dots i {
     width: 8px;
     height: 8px;
-    border-radius: 50%;
-    border: 1.5px solid var(--line-strong);
+    border-radius: var(--radius-pill);
+    border: 1.5px solid var(--outline);
   }
   .dots i.on {
     background: var(--accent);

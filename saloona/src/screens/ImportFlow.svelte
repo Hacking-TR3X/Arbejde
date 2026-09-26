@@ -7,6 +7,7 @@
   import { formatDateCompact, isValidISODate, todayISO } from '../domain/dates';
   import { openFile } from '../platform';
   import Icon from '../ui/icons/Icon.svelte';
+  import Chip from '../ui/Chip.svelte';
 
   let { ondone }: { ondone?: () => void } = $props();
 
@@ -119,7 +120,7 @@
   >
     <p><b>{step.name}</b> er beskyttet med en adgangskode.</p>
     <label for="imp-pass">Adgangskode</label>
-    <input id="imp-pass" class="input" type="password" autocomplete="off" bind:value={password} />
+    <input id="imp-pass" class="input" type="password" autocomplete="off" bind:value={password} aria-describedby={error ? 'imp-err' : undefined} />
     <div class="btn-row">
       <button type="button" class="btn outline" onclick={() => (step = { kind: 'idle' })}>Annullér</button>
       <button type="submit" class="btn" disabled={busy || !password}>{busy ? 'Åbner…' : 'Åbn fil'}</button>
@@ -141,8 +142,8 @@
 
     {#if app.clients.length}
       <div class="chips" role="radiogroup" aria-label="Hvordan">
-        <button class="chip" role="radio" aria-checked={mode === 'merge'} onclick={() => (mode = 'merge')}>Flet med appen</button>
-        <button class="chip" role="radio" aria-checked={mode === 'replace'} onclick={() => (mode = 'replace')}>Erstat alt</button>
+        <Chip selected={mode === 'merge'} onclick={() => (mode = 'merge')}>Flet med appen</Chip>
+        <Chip selected={mode === 'replace'} onclick={() => (mode = 'replace')}>Erstat alt</Chip>
       </div>
       <p class="note">
         {#if mode === 'merge'}
@@ -163,14 +164,14 @@
     </div>
   </div>
 {/if}
-{#if error}<p class="error-text" role="alert">{error}</p>{/if}
+{#if error}<p class="error-text" id="imp-err" role="alert">{error}</p>{/if}
 
 <style>
   .wide {
     width: 100%;
   }
   .panel {
-    border: 1px solid var(--line-strong);
+    border: 1px solid var(--line);
     border-radius: var(--radius);
     padding: 16px;
     background: var(--surface);

@@ -1,9 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Resource shrinking (release): @capacitor/local-notifications looks up the
-  notification icon by name at runtime (capacitor.config.json "smallIcon":
-  "ic_stat_saloona", via Resources.getIdentifier), which the shrinker cannot see.
+  Resource shrinking (release) cannot see resources that are looked up by name
+  at runtime (Resources.getIdentifier):
+  - @capacitor/local-notifications: the notification icon from
+    capacitor.config.json ("smallIcon": "ic_stat_saloona").
+  - Cordova's ConfigXmlParser (bundled with Capacitor): res/xml/config.xml.
   This file is not packaged into the APK.
 -->
 <resources xmlns:tools="http://schemas.android.com/tools"
-    tools:keep="@drawable/ic_stat_*,@mipmap/ic_stat_*" />
+    tools:keep="@drawable/ic_stat_*,@mipmap/ic_stat_*,@xml/config" />

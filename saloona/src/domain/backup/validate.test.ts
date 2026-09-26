@@ -152,10 +152,15 @@ describe('prototype note → tag', () => {
   it.each([
     ['Barn', 'Barn', ''],
     ['  Barn  ', 'Barn', ''],
-    ['Kort hår', 'Kort hår', ''],
+    ['Barn.', 'Barn.', ''],
+    ['Ærø-pige', 'Ærø-pige', ''],
+    ['x'.repeat(16), 'x'.repeat(16), ''],
+    ['x'.repeat(17), null, 'x'.repeat(17)],
+    ['Kort hår', null, 'Kort hår'], // two words stay a note
+    ['Ikke parfume', null, 'Ikke parfume'],
+    ['Barn\tx', null, 'Barn\tx'],
     ['Barn af Hanne', null, 'Barn af Hanne'],
     ['Barn\nallergisk', null, 'Barn\nallergisk'],
-    ['x'.repeat(17), null, 'x'.repeat(17)],
     ['', null, '']
   ])('%j → tag %j, note %j', (note, tag, rest) => {
     const c = plain(withClient({ note })).clients[0]!;
@@ -187,7 +192,23 @@ describe('Saloona-only fields', () => {
     for (const phone of ['javascript:alert(1)', 'tel:12345678', '12345678?body=x', '1'.repeat(100)]) {
       const b = plain(withClient({ phone }, 'saloona'));
       expect(b.clients[0]!.phone).toBeNull();
-      expect(b.warnings).toEqual(['1 telefonnummer var ugyldige og blev fjernet']);
+      expect(b.warnings).toEqual(['1 telefonnummer var ugyldigt og blev fjernet']);
+    }
+  });
+
+  it('accepts a phone number stored as a whole number', () => {
+    expect(plain(withClient({ phone: 12345678 }, 'saloona')).clients[0]!.phone).toBe('12345678');
+    expect(plain(withClient({ phone: 4512345678 }, 'saloona')).clients[0]!.phone).toBe('4512345678');
+    const short = plain(withClient({ phone: 12 }, 'saloona'));
+    expect(short.clients[0]!.phone).toBeNull();
+    expect(short.warnings).toEqual(['1 telefonnummer var ugyldigt og blev fjernet']);
+  });
+
+  it('drops other phone types silently (documented)', () => {
+    for (const phone of [12345678.5, 2 ** 53, true, {}, ['12345678']]) {
+      const b = plain(withClient({ phone }, 'saloona'));
+      expect(b.clients[0]!.phone).toBeNull();
+      expect(b.warnings).toEqual([]);
     }
   });
 
@@ -279,9 +300,20 @@ describe('size limits', () => {
     expect(b.exported).toBeNull();
   });
 
-  it('rejects over-long ids', () => {
-    const b = plain(file({ clients: [{ id: 'x'.repeat(65), name: 'A' }], visits: [] }));
-    expect(b.clients).toEqual([]);
+  it('ids of 65–128 characters get a derived safe id; longer ids are rejected', () => {
+    const b = plain(
+      file({
+        clients: [
+          { id: 'x'.repeat(65), name: 'A' },
+          { id: 'y'.repeat(128), name: 'B' },
+          { id: 'z'.repeat(129), name: 'C' }
+        ],
+        visits: [{ id: 'v1', clientId: 'y'.repeat(128), treatment: 'Klip', date: '2026-09-26' }]
+      })
+    );
+    expect(b.clients.map((c) => c.name)).toEqual(['A', 'B']);
+    for (const c of b.clients) expect(c.id).toMatch(/^k[0-9a-z]+(_\d+)?$/);
+    expect(b.visits[0]!.clientId).toBe(b.clients[1]!.id);
     expect(b.warnings).toEqual(['1 kunde uden gyldigt id eller navn blev sprunget over']);
   });
 
@@ -289,7 +321,7 @@ describe('size limits', () => {
     const depth = 100_000;
     const text = `{"app":"salonbog","clients":[],"visits":[],"prices":${'['.repeat(depth)}${']'.repeat(depth)}}`;
     expect(() => readBackupText(text)).not.toThrow();
-    expect(plain(text).warnings).toEqual(['1 standardpris var ugyldige og blev sprunget over']);
+    expect(plain(text).warnings).toEqual(['1 standardpris var ugyldig og blev sprunget over']);
   });
 });
 
@@ -304,8 +336,13 @@ describe('bad clients are skipped with a Danish warning', () => {
           42,
           ['c9', 'Laura'],
           { name: 'Uden id' },
-          { id: 'a b', name: 'Mellemrum i id' },
-          { id: 1718000000000, name: 'Tal-id' },
+          { id: '', name: 'Tomt id' },
+          { id: null, name: 'Null-id' },
+          { id: 1.5, name: 'Brøk-id' },
+          { id: 2 ** 53, name: 'For stort tal-id' },
+          { id: true, name: 'Bool-id' },
+          { id: {}, name: 'Objekt-id' },
+          { id: 'z'.repeat(129), name: 'Langt id' },
           { id: 'c2', name: '' },
           { id: 'c3', name: '   ' },
           { id: 'c4', name: 42 },
@@ -315,7 +352,7 @@ describe('bad clients are skipped with a Danish warning', () => {
       })
     );
     expect(b.clients.map((c) => c.id)).toEqual(['c1']);
-    expect(b.warnings).toEqual(['11 kunder uden gyldigt id eller navn blev sprunget over']);
+    expect(b.warnings).toEqual(['16 kunder uden gyldigt id eller navn blev sprunget over']);
   });
 
   it('a duplicated id: the first one is kept', () => {
@@ -375,8 +412,10 @@ describe('bad visits are skipped with a Danish warning', () => {
           null,
           'v1',
           { clientId: 'c1', treatment: 'Klip', date: '2026-09-26' },
-          { id: 'v 1', clientId: 'c1', treatment: 'Klip', date: '2026-09-26' },
-          { id: 'v2', clientId: 'c 1', treatment: 'Klip', date: '2026-09-26' },
+          { id: '', clientId: 'c1', treatment: 'Klip', date: '2026-09-26' },
+          { id: 1.5, clientId: 'c1', treatment: 'Klip', date: '2026-09-26' },
+          { id: 'v2', clientId: {}, treatment: 'Klip', date: '2026-09-26' },
+          { id: 'v2b', treatment: 'Klip', date: '2026-09-26' },
           { id: 'v3', clientId: 'c1', treatment: '', date: '2026-09-26' },
           { id: 'v4', clientId: 'c1', treatment: '   ', date: '2026-09-26' },
           { id: 'v5', clientId: 'c1', treatment: 42, date: '2026-09-26' },
@@ -385,7 +424,13 @@ describe('bad visits are skipped with a Danish warning', () => {
       })
     );
     expect(b.visits).toEqual([]);
-    expect(b.warnings).toEqual(['9 besøg med manglende eller ugyldige felter blev sprunget over']);
+    expect(b.warnings).toEqual(['11 besøg med manglende eller ugyldige felter blev sprunget over']);
+  });
+
+  it('a visit whose clientId has an unusual format but matches no client is an orphan', () => {
+    const b = plain(withVisit({ clientId: 'c 1' }));
+    expect(b.visits).toEqual([]);
+    expect(b.warnings).toEqual(['1 besøg hørte ikke til nogen kunde og blev sprunget over']);
   });
 
   it('a visit for an unknown client', () => {
@@ -467,7 +512,7 @@ describe('amounts', () => {
       const b = plain(withVisit({ amount }));
       expect(b.visits).toHaveLength(1);
       expect(b.visits[0]!.amountOre).toBeNull();
-      expect(b.warnings).toEqual(['1 beløb var ugyldige og blev fjernet']);
+      expect(b.warnings).toEqual(['1 beløb var ugyldigt og blev fjernet']);
     }
   );
 
@@ -477,7 +522,7 @@ describe('amounts', () => {
       '"visits":[{"id":"v1","clientId":"c1","treatment":"Klip","date":"2026-09-26","amount":1e400}]}';
     const b = plain(text);
     expect(b.visits[0]!.amountOre).toBeNull();
-    expect(b.warnings).toEqual(['1 beløb var ugyldige og blev fjernet']);
+    expect(b.warnings).toEqual(['1 beløb var ugyldigt og blev fjernet']);
   });
 
   it('unknown pay is removed, known pay is kept', () => {
@@ -487,7 +532,7 @@ describe('amounts', () => {
     for (const pay of ['kort', 'Kontant', 'MobilePay', 1, true]) {
       const b = plain(withVisit({ pay }));
       expect(b.visits[0]!.pay).toBeNull();
-      expect(b.warnings).toEqual(['1 betalingsmåde var ukendte og blev fjernet']);
+      expect(b.warnings).toEqual(['1 betalingsmåde var ukendt og blev fjernet']);
     }
     for (const pay of ['', null, undefined]) {
       expect(plain(withVisit({ pay })).warnings).toEqual([]);
@@ -505,9 +550,20 @@ describe('prices', () => {
     ]);
   });
 
+  it('accepts amounts written as text', () => {
+    const b = plain(file({ prices: { klip: '450', farve: '1.250,50', permanent: '700 kr.', skæg: ' 99,95 ' } }));
+    expect(Object.fromEntries(b.prices)).toEqual({ klip: 45_000, farve: 125_050, permanent: 70_000, skæg: 9_995 });
+    expect(b.warnings).toEqual([]);
+  });
+
   it.each([
     [{ klip: -1 }],
-    [{ klip: '450' }],
+    [{ klip: 'abc' }],
+    [{ klip: '-50' }],
+    [{ klip: '' }],
+    [{ klip: '12,345' }],
+    [{ klip: '1'.repeat(21) }],
+    [{ klip: '1.250.000' }],
     [{ klip: null }],
     [{ klip: {} }],
     [{ klip: 2_000_000 }],
@@ -516,13 +572,13 @@ describe('prices', () => {
   ])('invalid entry %j is skipped with a warning', (prices) => {
     const b = plain(file({ prices }));
     expect(b.prices.size).toBe(0);
-    expect(b.warnings).toEqual(['1 standardpris var ugyldige og blev sprunget over']);
+    expect(b.warnings).toEqual(['1 standardpris var ugyldig og blev sprunget over']);
   });
 
   it.each([[['klip', 450]], ['klip'], [42], [true]])('prices of the wrong type (%j) give one warning', (prices) => {
     const b = plain(file({ prices }));
     expect(b.prices.size).toBe(0);
-    expect(b.warnings).toEqual(['1 standardpris var ugyldige og blev sprunget over']);
+    expect(b.warnings).toEqual(['1 standardpris var ugyldig og blev sprunget over']);
   });
 
   it('missing or null prices are fine', () => {
@@ -531,9 +587,19 @@ describe('prices', () => {
     expect(plain(noPrices).prices.size).toBe(0);
   });
 
-  it(`reads at most MAX_PRICES (${MAX_PRICES}) entries`, () => {
+  it(`reads at most MAX_PRICES (${MAX_PRICES}) entries and says how many were skipped`, () => {
     const prices = Object.fromEntries(Array.from({ length: MAX_PRICES + 500 }, (_, i) => [`behandling ${i}`, 100]));
-    expect(plain(file({ prices })).prices.size).toBe(MAX_PRICES);
+    const b = plain(file({ prices }));
+    expect(b.prices.size).toBe(MAX_PRICES);
+    expect(b.prices.has('behandling 0')).toBe(true);
+    expect(b.prices.has(`behandling ${MAX_PRICES}`)).toBe(false);
+    expect(b.warnings).toEqual([`500 standardpriser ud over de første ${MAX_PRICES} blev sprunget over`]);
+  });
+
+  it('one price too many gives a singular warning; exactly MAX_PRICES gives none', () => {
+    const make = (n: number) => Object.fromEntries(Array.from({ length: n }, (_, i) => [`b${i}`, 100]));
+    expect(plain(file({ prices: make(MAX_PRICES + 1) })).warnings).toEqual([`1 standardpris ud over de første ${MAX_PRICES} blev sprunget over`]);
+    expect(plain(file({ prices: make(MAX_PRICES) })).warnings).toEqual([]);
   });
 });
 
@@ -563,7 +629,7 @@ describe('prototype pollution', () => {
   it('does not pollute Object.prototype at any level', () => {
     const b = plain(HOSTILE);
     assertNotPolluted();
-    expect(b.clients.map((c) => c.id)).toEqual(['c1', '__proto__', 'constructor']);
+    expect(b.clients.map((c) => c.name)).toEqual(['Morten', 'Proto', 'Constructor']);
   });
 
   it('never reads inherited values', () => {
@@ -583,9 +649,16 @@ describe('prototype pollution', () => {
     expect(b.prices instanceof Map).toBe(true);
   });
 
-  it('client ids "__proto__" and "constructor" work as ordinary ids', () => {
+  it('client ids "__proto__" and "constructor" are replaced by derived ids, links kept', () => {
     const b = plain(HOSTILE);
-    expect(b.visits.find((v) => v.id === 'v2')?.clientId).toBe('__proto__');
+    const proto = b.clients.find((c) => c.name === 'Proto')!;
+    const ctor = b.clients.find((c) => c.name === 'Constructor')!;
+    for (const c of [proto, ctor]) {
+      expect(c.id).toMatch(/^k[0-9a-z]+(_\d+)?$/);
+      expect(isValidId(c.id)).toBe(true);
+    }
+    expect(proto.id).not.toBe(ctor.id);
+    expect(b.visits.find((v) => v.id === 'v2')?.clientId).toBe(proto.id);
   });
 });
 
@@ -745,12 +818,8 @@ describe('fuzz: any mutation of a valid file is handled without throwing', () =>
 });
 
 describe('Danish grammar in warnings', () => {
-  // BUG (Low, UX): for n = 1 the warning uses the plural adjective:
-  // "1 beløb var ugyldige", "1 betalingsmåde var ukendte", "1 telefonnummer var ugyldige",
-  // "1 standardpris var ugyldige". Correct Danish is "var ugyldigt" / "var ukendt" /
-  // "var ugyldig". The texts are shown in the import preview.
-  // src/domain/backup/validate.ts:103, :104, :106, :107.
-  it.fails('singular warnings use the singular adjective (validate.ts:103-107)', () => {
+  // Fixed (was BUG Lav): singular warnings now use the singular adjective.
+  it('singular warnings use the singular adjective', () => {
     const b = plain(
       file({
         app: 'saloona',
@@ -759,7 +828,131 @@ describe('Danish grammar in warnings', () => {
         prices: { klip: -1 }
       })
     );
-    expect(b.warnings).toHaveLength(4);
-    for (const w of b.warnings) expect(w).not.toMatch(/ var (ugyldige|ukendte) /);
+    expect(b.warnings).toEqual([
+      '1 telefonnummer var ugyldigt og blev fjernet',
+      '1 beløb var ugyldigt og blev fjernet',
+      '1 betalingsmåde var ukendt og blev fjernet',
+      '1 standardpris var ugyldig og blev sprunget over'
+    ]);
+  });
+
+  it('plural warnings keep the plural adjective', () => {
+    const b = plain(
+      file({
+        app: 'saloona',
+        clients: [
+          { id: 'c1', name: 'Morten', phone: 'abc' },
+          { id: 'c2', name: 'Hanne', phone: 'tel:1' }
+        ],
+        visits: [
+          { id: 'v1', clientId: 'c1', treatment: 'Klip', date: '2026-09-26', amount: -1, pay: 'kort' },
+          { id: 'v2', clientId: 'c2', treatment: 'Klip', date: '2026-09-26', amount: 'abc', pay: 'visa' }
+        ],
+        prices: { klip: -1, farve: 'x' }
+      })
+    );
+    expect(b.warnings).toEqual([
+      '2 telefonnumre var ugyldige og blev fjernet',
+      '2 beløb var ugyldige og blev fjernet',
+      '2 betalingsmåder var ukendte og blev fjernet',
+      '2 standardpriser var ugyldige og blev sprunget over'
+    ]);
+  });
+});
+
+describe('ids from other apps', () => {
+  it('safe-format ids are kept exactly', () => {
+    const b = plain(fixtureText('salonbog-backup.json'));
+    expect(b.clients.map((c) => c.id)).toEqual(Array.from({ length: 13 }, (_, i) => `c${String(i + 1).padStart(2, '0')}`));
+    expect(b.visits.every((v) => /^v\d\d$/.test(v.id))).toBe(true);
+  });
+
+  it('whole-number ids (e.g. Date.now()) are kept as strings, and links work with number or string', () => {
+    const b = plain({
+      app: 'salonbog',
+      clients: [
+        { id: 1718000000000, name: 'Morten' },
+        { id: 1718000000001, name: 'Hanne' }
+      ],
+      visits: [
+        { id: 1718000000100, clientId: 1718000000000, treatment: 'Klip', date: '2026-09-01' },
+        { id: 1718000000101, clientId: '1718000000001', treatment: 'Farve', date: '2026-09-02' },
+        { id: -5, clientId: 1718000000000, treatment: 'Skæg', date: '2026-09-03' }
+      ]
+    });
+    expect(b.clients.map((c) => c.id)).toEqual(['1718000000000', '1718000000001']);
+    expect(b.visits.map((v) => [v.id, v.clientId])).toEqual([
+      ['1718000000100', '1718000000000'],
+      ['1718000000101', '1718000000001'],
+      ['-5', '1718000000000']
+    ]);
+    expect(b.warnings).toEqual([]);
+  });
+
+  it('other string ids get a derived safe id; client–visit links are kept', () => {
+    const odd = ['1.5', 'a b', 'æøå', 'id/with/slash', '__proto__', 'constructor', 'prototype', 'x'.repeat(65)];
+    const b = plain({
+      app: 'salonbog',
+      clients: odd.map((id, i) => ({ id, name: `Kunde ${i}` })),
+      visits: odd.map((clientId, i) => ({ id: `v.${i}`, clientId, treatment: 'Klip', date: '2026-09-01' }))
+    });
+    expect(b.warnings).toEqual([]);
+    expect(b.clients).toHaveLength(odd.length);
+    expect(new Set(b.clients.map((c) => c.id)).size).toBe(odd.length);
+    for (const c of b.clients) {
+      expect(c.id).toMatch(/^k[0-9a-z]+(_\d+)?$/);
+      expect(isValidId(c.id)).toBe(true);
+    }
+    // Visit i belongs to client i.
+    b.visits.forEach((v, i) => {
+      expect(v.clientId).toBe(b.clients[i]!.id);
+      expect(v.id).toMatch(/^b[0-9a-z]+(_\d+)?$/); // "v.0" is not a safe id either
+    });
+  });
+
+  it('derived ids are the same on every read of the same file, so merging it again recognises it', () => {
+    const text = JSON.stringify({
+      app: 'salonbog',
+      clients: [{ id: 'a b', name: 'A' }],
+      visits: [{ id: 'v 1', clientId: 'a b', treatment: 'Klip', date: '2026-09-01' }]
+    });
+    expect(plain(text).clients[0]!.id).toBe(plain(text).clients[0]!.id);
+    expect(plain(text).visits[0]!.id).toBe(plain(text).visits[0]!.id);
+  });
+
+  it('a derived id never collides with a safe id already in the file', () => {
+    const first = plain({ app: 'salonbog', clients: [{ id: 'a b', name: 'A' }], visits: [] }).clients[0]!.id;
+    const b = plain({ app: 'salonbog', clients: [{ id: first, name: 'Safe' }, { id: 'a b', name: 'A' }], visits: [] });
+    expect(new Set(b.clients.map((c) => c.id)).size).toBe(2);
+    expect(b.clients[0]!.id).toBe(first);
+  });
+
+  it('a number id and the same digits as a string are the same id (duplicate)', () => {
+    const b = plain({ app: 'salonbog', clients: [{ id: 42, name: 'A' }, { id: '42', name: 'B' }], visits: [] });
+    expect(b.clients.map((c) => [c.id, c.name])).toEqual([['42', 'A']]);
+    expect(b.warnings).toEqual(['1 kunde stod der to gange og blev kun taget med én gang']);
+  });
+
+  it('a repeated non-safe id is a duplicate too (clients and visits)', () => {
+    const b = plain({
+      app: 'salonbog',
+      clients: [{ id: 'a b', name: 'A' }, { id: 'a b', name: 'B' }],
+      visits: [
+        { id: 'v 1', clientId: 'a b', treatment: 'Klip', date: '2026-09-01' },
+        { id: 'v 1', clientId: 'a b', treatment: 'Farve', date: '2026-09-02' }
+      ]
+    });
+    expect(b.clients.map((c) => c.name)).toEqual(['A']);
+    expect(b.visits.map((v) => v.treatment)).toEqual(['Klip']);
+    expect(b.warnings).toEqual([
+      '1 kunde stod der to gange og blev kun taget med én gang',
+      '1 besøg stod der to gange og blev kun taget med én gang'
+    ]);
+  });
+
+  it('fresh ids never collide with kept ids in a large file', () => {
+    const clients = Array.from({ length: 2000 }, (_, i) => ({ id: i % 2 ? `k${i}` : `k ${i}`, name: `Kunde ${i}` }));
+    const b = plain({ app: 'salonbog', clients, visits: [] });
+    expect(new Set(b.clients.map((c) => c.id)).size).toBe(2000);
   });
 });

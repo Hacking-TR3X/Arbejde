@@ -5,6 +5,7 @@
   import { LIMITS, formatPhone } from '../domain/text';
   import { GENDER_LABELS, GENDERS } from '../domain/types';
   import Sheet from '../ui/Sheet.svelte';
+  import Chip from '../ui/Chip.svelte';
 
   let { clientId, prefillName }: { clientId?: string; prefillName?: string } = $props();
 
@@ -58,17 +59,16 @@
         bind:value={draft.name}
         oninput={() => (errors.name = undefined)}
         aria-invalid={errors.name ? 'true' : undefined}
+        aria-describedby={errors.name ? 'c-name-err' : undefined}
       />
-      {#if errors.name}<p class="error-text">{errors.name}</p>{/if}
+      {#if errors.name}<p class="error-text" id="c-name-err">{errors.name}</p>{/if}
     </div>
 
     <div class="field">
       <span class="label" id="c-gender">Dame eller herre</span>
       <div class="chips" role="radiogroup" aria-labelledby="c-gender">
         {#each GENDERS as g (g)}
-          <button type="button" class="chip" role="radio" aria-checked={draft.gender === g} onclick={() => (draft.gender = draft.gender === g ? null : g)}>
-            {GENDER_LABELS[g]}
-          </button>
+          <Chip selected={draft.gender === g} onclick={() => (draft.gender = draft.gender === g ? null : g)}>{GENDER_LABELS[g]}</Chip>
         {/each}
       </div>
     </div>
@@ -90,8 +90,9 @@
         bind:value={draft.phone}
         oninput={() => (errors.phone = undefined)}
         aria-invalid={errors.phone ? 'true' : undefined}
+        aria-describedby={errors.phone ? 'c-phone-err' : undefined}
       />
-      {#if errors.phone}<p class="error-text">{errors.phone}</p>{/if}
+      {#if errors.phone}<p class="error-text" id="c-phone-err">{errors.phone}</p>{/if}
     </div>
 
     <div class="field">

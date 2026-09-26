@@ -2,7 +2,7 @@
   "appId": "dk.saloona.app",
   "appName": "Saloona",
   "webDir": "dist",
-  "loggingBehavior": "debug",
+  "loggingBehavior": "none",
   "server": {
     "androidScheme": "https",
     "hostname": "localhost"

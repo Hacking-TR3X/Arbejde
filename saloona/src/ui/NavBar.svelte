@@ -2,6 +2,7 @@
   import { nav, type Tab } from '../lib/nav.svelte';
   import Icon from './icons/Icon.svelte';
   import type { IconName } from './icons/icons';
+  import { motionMs } from './motion';
 
   const tabs: { id: Tab; label: string; icon: IconName }[] = [
     { id: 'due', label: 'Snart tid', icon: 'clock' },
@@ -14,7 +15,7 @@
 
   function go(tab: Tab) {
     if (nav.state.tab === tab && nav.state.pages.length === 0) {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      window.scrollTo({ top: 0, behavior: motionMs(1) ? 'smooth' : 'auto' });
       return;
     }
     nav.switchTab(tab);
@@ -45,16 +46,14 @@
     right: 0;
     bottom: 0;
     z-index: 10;
-    background: color-mix(in srgb, var(--surface) 94%, transparent);
-    -webkit-backdrop-filter: blur(12px);
-    backdrop-filter: blur(12px);
+    background: var(--nav-bg);
     border-top: 1px solid var(--line);
     padding-bottom: var(--safe-bottom);
   }
   .inner {
     max-width: 560px;
     margin: 0 auto;
-    height: var(--nav-h);
+    min-height: var(--nav-h);
     display: grid;
     grid-template-columns: repeat(5, 1fr);
     align-items: center;
@@ -63,8 +62,9 @@
   .tab {
     background: none;
     border: 0;
-    height: 100%;
+    align-self: stretch;
     min-width: 48px;
+    min-height: var(--tap);
     padding: 6px 2px;
     display: flex;
     flex-direction: column;
@@ -73,6 +73,13 @@
     gap: 3px;
     color: var(--muted);
     font-size: 0.72rem;
+    line-height: 1.2;
+  }
+  .lbl {
+    max-width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
   .ic {
     display: flex;
@@ -80,7 +87,7 @@
     justify-content: center;
     width: 56px;
     height: 30px;
-    border-radius: 999px;
+    border-radius: var(--radius-pill);
     transition: background var(--dur) var(--ease);
   }
   .tab[aria-current='page'] {
@@ -93,7 +100,7 @@
   .plus {
     width: 54px;
     height: 54px;
-    border-radius: 18px;
+    border-radius: var(--radius);
     background: var(--accent);
     color: var(--accent-ink);
     display: flex;

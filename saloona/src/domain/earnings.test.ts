@@ -113,11 +113,21 @@ describe('computeEarnings', () => {
 
   it('byTreatment groups spellings and sorts by total', () => {
     const e = computeEarnings(visits, clients, 'month', today);
-    expect(e.byTreatment.map((s) => [s.key, s.total, s.count])).toEqual([
-      ['klip', 165_000, 4],
-      ['farve', 125_050, 1],
-      ['farve + klip', 110_000, 1]
+    expect(e.byTreatment.map((s) => [s.key, s.label, s.total, s.count])).toEqual([
+      ['klip', 'Klip', 165_000, 4], // "Klip" on 26/9 is newer than "klip" on 19/9
+      ['farve', 'Farve', 125_050, 1],
+      ['farve + klip', 'Farve + klip', 110_000, 1]
     ]);
+  });
+
+  it('byTreatment label is the most recent spelling, whatever the input order', () => {
+    const v = [paid('a', 'KLIP', '2026-09-20', 100), paid('a', 'klip', '2026-09-01', 100), paid('a', 'Klip', '2026-09-10', 100)];
+    for (const order of [v, [...v].reverse(), [v[1]!, v[0]!, v[2]!]]) {
+      expect(computeEarnings(order, clients, 'month', today).byTreatment[0]!.label).toBe('KLIP');
+    }
+    // Same date: the one that comes last wins.
+    const same = [paid('a', 'klip', '2026-09-20', 100), paid('a', 'Klip', '2026-09-20', 100)];
+    expect(computeEarnings(same, clients, 'month', today).byTreatment[0]!.label).toBe('Klip');
   });
 
   it('topClients: at most 5, highest first, deleted clients labelled "Slettet kunde"', () => {

@@ -8,23 +8,31 @@ export const LIMITS = {
   phone: 24
 } as const;
 
-// C0/C1 control characters except tab and newline, plus bidi overrides.
-const CONTROL_RE = /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f-\u009f‪-‮⁦-⁩]/g;
+// C0/C1 control characters except tab and newline, zero-width space, LRM/RLM, word joiner,
+// bidi overrides and BOM. ZWNJ/ZWJ (U+200C/U+200D) stay: they are part of emoji sequences.
+const CONTROL_RE = /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f-\u009f\u200b\u200e\u200f\u202a-\u202e\u2060\u2066-\u2069\ufeff]/g;
+
+/** Cuts to at most `max` characters without splitting a surrogate pair (emoji). */
+export function truncate(value: string, max: number): string {
+  if (value.length <= max) return value;
+  const chars = Array.from(value);
+  return chars.length <= max ? value : chars.slice(0, max).join('');
+}
 
 /** Single-line text: trims, collapses whitespace, removes control characters. */
 export function cleanLine(value: string, max: number): string {
-  return value.normalize('NFC').replace(CONTROL_RE, '').replace(/\s+/g, ' ').trim().slice(0, max);
+  return truncate(value.normalize('NFC').replace(CONTROL_RE, '').replace(/\s+/g, ' ').trim(), max).trim();
 }
 
 /** Multi-line text (notes): keeps line breaks, trims each end. */
 export function cleanMultiline(value: string, max: number): string {
-  return value
+  const cleaned = value
     .normalize('NFC')
     .replace(/\r\n?/g, '\n')
     .replace(CONTROL_RE, '')
     .replace(/\n{3,}/g, '\n\n')
-    .trim()
-    .slice(0, max);
+    .trim();
+  return truncate(cleaned, max).trim();
 }
 
 /** Key used to group treatments: "  Klip " and "klip" are the same treatment. */

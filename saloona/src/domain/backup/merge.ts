@@ -70,16 +70,34 @@ export function planImport(
   }
 
   const byId = new Map(existing.clients.map((c) => [c.id, c]));
-  const byName = new Map<string, Client>();
-  for (const c of existing.clients) if (!byName.has(nameKey(c.name))) byName.set(nameKey(c.name), c);
+  // Several existing clients may share a name; each can be claimed once.
+  const byName = new Map<string, Client[]>();
+  for (const c of existing.clients) {
+    const k = nameKey(c.name);
+    const list = byName.get(k);
+    if (list) list.push(c);
+    else byName.set(k, [c]);
+  }
 
   const usedClientIds = new Set(existing.clients.map((c) => c.id));
   const idMap = new Map<string, string>();
   const insertClients: Client[] = [];
   const updates = new Map<string, Client>();
 
+  // Pass 1: id matches claim their client first, so a same-named client with
+  // another id in the file can never be merged into it.
+  const claimed = new Set<string>();
   for (const c of incoming.clients) {
-    const match = byId.get(c.id) ?? byName.get(nameKey(c.name));
+    const m = byId.get(c.id);
+    if (m) claimed.add(m.id);
+  }
+
+  for (const c of incoming.clients) {
+    let match = byId.get(c.id);
+    if (!match) {
+      match = byName.get(nameKey(c.name))?.find((x) => !claimed.has(x.id));
+      if (match) claimed.add(match.id);
+    }
     if (match) {
       stats.matchedClients++;
       idMap.set(c.id, match.id);
@@ -101,13 +119,18 @@ export function planImport(
     idMap.set(c.id, id);
     const client: Client = { ...c, id, createdAt: now, updatedAt: now };
     insertClients.push(client);
-    byName.set(nameKey(client.name), client);
     stats.newClients++;
   }
 
   const visitIds = new Set(existing.visits.map((v) => v.id));
   const signature = (clientId: string, date: string, key: string) => `${clientId}\u0000${date}\u0000${key}`;
-  const signatures = new Set(existing.visits.map((v) => signature(v.clientId, v.date, v.treatmentKey)));
+  // Multiset: a family client can have several "Klip" the same day. Each existing
+  // visit absorbs at most one look-alike from the file; the rest are new.
+  const existingBySig = new Map<string, number>();
+  for (const v of existing.visits) {
+    const sig = signature(v.clientId, v.date, v.treatmentKey);
+    existingBySig.set(sig, (existingBySig.get(sig) ?? 0) + 1);
+  }
   const insertVisits: Visit[] = [];
 
   for (const v of incoming.visits) {
@@ -115,12 +138,17 @@ export function planImport(
     if (!clientId) continue; // validated earlier; defensive
     const key = treatmentKey(v.treatment);
     const sig = signature(clientId, v.date, key);
-    if (visitIds.has(v.id) || signatures.has(sig)) {
+    if (visitIds.has(v.id)) {
+      stats.duplicateVisits++;
+      continue;
+    }
+    const left = existingBySig.get(sig) ?? 0;
+    if (left > 0) {
+      existingBySig.set(sig, left - 1);
       stats.duplicateVisits++;
       continue;
     }
     visitIds.add(v.id);
-    signatures.add(sig);
     insertVisits.push({ ...v, clientId, treatmentKey: key, createdAt: now, updatedAt: now });
     stats.newVisits++;
   }

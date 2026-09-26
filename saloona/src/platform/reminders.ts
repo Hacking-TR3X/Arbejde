@@ -87,7 +87,9 @@ export async function scheduleReminders(
       body: text.body,
       channelId: CHANNEL,
       smallIcon: 'ic_stat_saloona',
-      schedule: { at, allowWhileIdle: false }
+      // Inexact alarm: we deliberately do not hold SCHEDULE_EXACT_ALARM.
+      schedule: { at, allowWhileIdle: true },
+      isExactNotification: false
     });
   }
   if (notifications.length) await ln.schedule({ notifications });

@@ -73,7 +73,8 @@
   >
     {@render children()}
   </div>
-  <button class="sr-only" onclick={onremove}>{label}</button>
+  <!-- For keyboard and screen reader users. Hidden until it gets keyboard focus. -->
+  <button class="del" onclick={onremove}>{label}</button>
 </div>
 
 <style>
@@ -95,8 +96,35 @@
     font-size: 0.9rem;
   }
   .armed .behind {
-    color: #fff;
+    color: var(--danger-ink);
     background: var(--late);
+  }
+  .del {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+    border: 0;
+  }
+  .del:focus-visible {
+    width: auto;
+    height: auto;
+    margin: 0;
+    clip-path: none;
+    top: 50%;
+    right: var(--space-3);
+    transform: translateY(-50%);
+    min-height: var(--tap);
+    padding: 0 var(--space-4);
+    border-radius: var(--radius-sm);
+    background: var(--late);
+    color: var(--danger-ink);
+    font-weight: 620;
+    outline-offset: 2px;
   }
   .front {
     position: relative;

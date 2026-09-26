@@ -10,8 +10,12 @@ import {
   normalizePhone,
   phoneUri,
   searchRank,
-  treatmentKey
+  treatmentKey,
+  truncate
 } from './text';
+import { rng } from '../../tests/helpers/factories';
+
+const LONE_SURROGATE = /[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/;
 
 describe('LIMITS', () => {
   it('has the agreed field lengths', () => {
@@ -55,23 +59,97 @@ describe('cleanLine', () => {
     expect(cleanLine('Søren Ærø-Åberg (farmor)', 80)).toBe('Søren Ærø-Åberg (farmor)');
   });
 
-  // BUG (Low): cleanLine trims *before* slicing, so a cut that lands right after a
-  // space leaves trailing whitespace. The doc comment promises "trims", and
-  // cleanLine is not idempotent: cleanLine(cleanLine(x)) !== cleanLine(x).
-  // src/domain/text.ts:283 – slice before trim (or trimEnd after slice) fixes it.
-  it.fails('never returns trailing whitespace after cutting (text.ts:283)', () => {
-    const s = cleanLine(`${'a'.repeat(79)} b`, 80);
-    expect(s).toBe('a'.repeat(79));
+  // Fixed: cleanLine trims again after cutting (text.ts:23).
+  it('never returns trailing whitespace after cutting', () => {
+    expect(cleanLine(`${'a'.repeat(79)} b`, 80)).toBe('a'.repeat(79));
+    expect(cleanLine('Morten Hansen', 7)).toBe('Morten');
   });
 
-  // BUG (Low): slice() counts UTF-16 code units, so a cut in the middle of an
-  // emoji (surrogate pair) leaves a lone surrogate – invalid Unicode that the
-  // UTF-8 encoder turns into U+FFFD when the value is saved or exported.
-  // src/domain/text.ts:283 and :294.
-  it.fails('never splits a surrogate pair when cutting (text.ts:283)', () => {
+  // Fixed: cutting counts code points, so an emoji is never split (text.ts:15).
+  it('never splits a surrogate pair when cutting', () => {
     const s = cleanLine(`${'a'.repeat(79)}😀`, 80);
-    const loneSurrogate = /[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/;
-    expect(s).not.toMatch(loneSurrogate);
+    expect(s).not.toMatch(LONE_SURROGATE);
+    expect(s).toBe(`${'a'.repeat(79)}😀`); // 80 code points fit
+    expect(cleanLine(`${'a'.repeat(80)}😀`, 80)).toBe('a'.repeat(80));
+  });
+
+  it('removes zero-width space, LRM/RLM, word joiner and BOM', () => {
+    for (const cp of [0x200b, 0x200e, 0x200f, 0x2060, 0xfeff]) {
+      expect(cleanLine(`Mor${String.fromCharCode(cp)}ten`, 80)).toBe('Morten');
+    }
+    // A zero-width space between two spaces must not leave a double space.
+    expect(cleanLine(`Morten ${String.fromCharCode(0x200b)} Hansen`, 80)).toBe('Morten Hansen');
+  });
+
+  it('keeps ZWNJ/ZWJ so emoji sequences survive', () => {
+    const hairdresser = '\u{1F487}\u200D\u2640\uFE0F';
+    expect(cleanLine(`Klip ${hairdresser}`, 80)).toBe(`Klip ${hairdresser}`);
+    expect(cleanLine(`a${String.fromCharCode(0x200c)}b`, 80)).toBe(`a${String.fromCharCode(0x200c)}b`);
+  });
+
+  it('keeps characters just outside the removed ranges', () => {
+    expect(cleanLine('a b', 80)).toBe('a b'); // hair space is whitespace → collapsed
+    expect(cleanLine('a‐b', 80)).toBe('a‐b'); // hyphen
+    expect(cleanLine('a⁡b', 80)).toBe('a⁡b'); // function application (not stripped)
+    expect(cleanLine('a⁥b', 80)).toBe('a⁥b');
+  });
+});
+
+describe('truncate', () => {
+  it('returns short strings unchanged', () => {
+    expect(truncate('', 5)).toBe('');
+    expect(truncate('Morten', 6)).toBe('Morten');
+    expect(truncate('Morten', 100)).toBe('Morten');
+  });
+
+  it('cuts by code points, not UTF-16 units', () => {
+    expect(truncate('Morten', 3)).toBe('Mor');
+    expect(truncate('😀😀😀', 2)).toBe('😀😀');
+    expect(truncate('a😀b', 2)).toBe('a😀');
+    expect(truncate('😀', 1)).toBe('😀'); // length 2 in UTF-16, 1 code point
+    expect(truncate('😀x', 1)).toBe('😀');
+    expect(truncate('abc', 0)).toBe('');
+  });
+
+  it('never leaves a lone surrogate for any cut position', () => {
+    const s = 'Hår 💇‍♀️ og 🇩🇰 farve 👨‍👩‍👧 slut';
+    for (let max = 0; max <= s.length + 1; max++) {
+      const t = truncate(s, max);
+      expect(t).not.toMatch(LONE_SURROGATE);
+      expect(Array.from(t).length).toBeLessThanOrEqual(max);
+      expect(s.startsWith(t)).toBe(true);
+    }
+  });
+
+  it('keeps Danish letters (one code point each after NFC)', () => {
+    expect(truncate('æøåÆØÅ', 3)).toBe('æøå');
+  });
+});
+
+describe('cleanLine / cleanMultiline properties', () => {
+  const alphabet = ['a', 'Z', 'æ', 'Å', ' ', '  ', '\t', '\n', '\r\n', '\u0000', '‮', '​', '‍', '﻿', '😀', 'é', '-', '.'];
+  const rand = rng(99);
+  const samples = Array.from({ length: 1500 }, () =>
+    Array.from({ length: Math.floor(rand() * 40) }, () => alphabet[Math.floor(rand() * alphabet.length)]!).join('')
+  );
+
+  it('are idempotent, trimmed, within the limit and well-formed', () => {
+    for (const x of samples) {
+      for (const max of [1, 5, 13, 80]) {
+        const line = cleanLine(x, max);
+        expect(cleanLine(line, max)).toBe(line);
+        expect(line).toBe(line.trim());
+        expect(Array.from(line).length).toBeLessThanOrEqual(max);
+        expect(line).not.toMatch(LONE_SURROGATE);
+        expect(line).not.toMatch(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f-\u009f\u200b\u200e\u200f\u202a-\u202e\u2060\u2066-\u2069\ufeff\n\t]/);
+        const multi = cleanMultiline(x, max);
+        expect(cleanMultiline(multi, max)).toBe(multi);
+        expect(multi).toBe(multi.trim());
+        expect(Array.from(multi).length).toBeLessThanOrEqual(max);
+        expect(multi).not.toMatch(LONE_SURROGATE);
+        expect(multi).not.toMatch(/\r|\n{3,}/);
+      }
+    }
   });
 });
 
@@ -96,6 +174,15 @@ describe('cleanMultiline', () => {
 
   it('cuts to the maximum length', () => {
     expect(cleanMultiline('x'.repeat(100_000), LIMITS.note)).toHaveLength(LIMITS.note);
+  });
+
+  it('trims again after cutting and never splits an emoji', () => {
+    expect(cleanMultiline(`${'a'.repeat(9)}\n\nb`, 10)).toBe('a'.repeat(9));
+    expect(cleanMultiline(`${'a'.repeat(9)}😀😀`, 10)).toBe(`${'a'.repeat(9)}😀`);
+  });
+
+  it('removes zero-width characters and BOM', () => {
+    expect(cleanMultiline('\ufeffNote\u200b med\u2060 tekst', 2000)).toBe('Note med tekst');
   });
 });
 

@@ -6,6 +6,7 @@
   import { computeRhythms } from '../domain/rhythm';
   import type { Client, Gender } from '../domain/types';
   import Icon from '../ui/icons/Icon.svelte';
+  import Chip from '../ui/Chip.svelte';
 
   type Filter = 'all' | Gender;
   let filter = $state<Filter>('all');
@@ -101,9 +102,7 @@
 
     <div class="chips filters" role="radiogroup" aria-label="Vis">
       {#each filters as f (f.id)}
-        <button class="chip" role="radio" aria-checked={filter === f.id} onclick={() => (filter = f.id)}>
-          {f.label} <span class="n">{counts[f.id]}</span>
-        </button>
+        <Chip selected={filter === f.id} onclick={() => (filter = f.id)}>{f.label} <span class="n">{counts[f.id]}</span></Chip>
       {/each}
     </div>
 
@@ -132,10 +131,11 @@
 <style>
   .head {
     display: flex;
+    flex-wrap: wrap;
     justify-content: space-between;
     align-items: center;
-    gap: 12px;
-    margin-bottom: 16px;
+    gap: var(--space-2) var(--space-3);
+    margin-bottom: var(--space-4);
   }
   .head h1 {
     margin: 0;

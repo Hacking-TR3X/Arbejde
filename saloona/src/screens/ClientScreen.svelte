@@ -47,7 +47,14 @@
 </script>
 
 <div class="screen">
-  <button class="back link" onclick={() => nav.back()}><Icon name="back" size={20} /> Tilbage</button>
+  <div class="topbar">
+    <button class="back link" onclick={() => nav.back()}><Icon name="back" size={20} /> Tilbage</button>
+    {#if client}
+      <button class="link edit" aria-label="Rediger kunde" onclick={() => nav.openSheet({ name: 'client', clientId: id })}>
+        <Icon name="edit" size={20} /> Rediger
+      </button>
+    {/if}
+  </div>
 
   {#if !client}
     <div class="empty"><p>Kunden findes ikke længere.</p></div>
@@ -62,18 +69,23 @@
         .join(' · ')}
     </p>
 
-    <div class="actions">
-      <button class="btn" onclick={() => nav.openSheet({ name: 'visit', clientId: id })}><Icon name="plus" size={20} /> Registrér besøg</button>
-      {#if canCall}
-        <button class="btn outline icon" aria-label={`Ring til ${client.name}`} onclick={() => call('tel')}><Icon name="phone" /></button>
-        <button class="btn outline icon" aria-label={`Send SMS til ${client.name}`} onclick={() => call('sms')}><Icon name="message" /></button>
-      {/if}
-      <button class="btn outline icon" aria-label="Rediger kunde" onclick={() => nav.openSheet({ name: 'client', clientId: id })}><Icon name="edit" /></button>
-    </div>
+    <button class="btn block register" onclick={() => nav.openSheet({ name: 'visit', clientId: id })}>
+      <Icon name="plus" size={20} /> Registrér besøg
+    </button>
 
     {#if client.phone || client.note}
       <div class="info">
-        {#if client.phone}<p class="phone">{formatPhone(client.phone)}</p>{/if}
+        {#if client.phone}
+          <div class="contact">
+            <span class="phone">{formatPhone(client.phone)}</span>
+            {#if canCall}
+              <span class="contact-actions">
+                <button class="btn small outline" aria-label={`Ring til ${client.name}`} onclick={() => call('tel')}><Icon name="phone" size={18} /> Ring</button>
+                <button class="btn small outline" aria-label={`SMS til ${client.name}`} onclick={() => call('sms')}><Icon name="message" size={18} /> SMS</button>
+              </span>
+            {/if}
+          </div>
+        {/if}
         {#if client.note}<p class="client-note">{client.note}</p>{/if}
       </div>
     {/if}
@@ -102,7 +114,7 @@
               <span class="title">{r.treatment}</span>
               <span class="meta">
                 {#if r.intervalDays}
-                  {capitalizeFirst(formatInterval(r.intervalDays))} · næste ca. {r.expected ? formatDateShort(r.expected, app.today) : ''}
+                  {capitalizeFirst(formatInterval(r.intervalDays))} · forventet {r.expected ? formatDateShort(r.expected, app.today) : ''}
                 {:else}
                   Samler data · {r.dates.length} af {MIN_DATES} besøg
                 {/if}
@@ -119,7 +131,7 @@
     {#if completed.length}
       <div class="stats">
         <div><b>{formatAmount(total)}</b><span>brugt i alt</span></div>
-        <div><b>{completed.length}</b><span>{completed.length === 1 ? 'besøg' : 'besøg'}</span></div>
+        <div><b>{completed.length}</b><span>besøg</span></div>
         <div><b>{paid ? formatAmount(Math.round(total / paid)) : '–'}</b><span>pr. besøg</span></div>
       </div>
     {/if}
@@ -157,52 +169,61 @@
 </div>
 
 <style>
-  .back {
+  .topbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--space-3);
+  }
+  .edit {
     display: inline-flex;
     align-items: center;
-    gap: 2px;
-    margin: -6px 0 4px -4px;
-  }
-  h1 {
-    overflow-wrap: anywhere;
+    gap: 6px;
+    margin: -6px -4px var(--space-1) 0;
+    padding: 0 var(--space-1);
   }
   .tag.big {
     font-size: 0.85rem;
     vertical-align: 5px;
     margin-left: 10px;
   }
-  .actions {
-    display: flex;
-    gap: 10px;
+  .register {
+    margin-top: var(--space-1);
   }
-  .actions .btn:first-child {
-    flex: 1;
-  }
-  .btn.icon {
-    width: 50px;
-    padding: 0;
-    flex: none;
-  }
+  /* Contact and note: a quiet, borderless panel, not another card */
   .info {
-    margin-top: 16px;
-    padding: 12px 16px;
+    margin-top: var(--space-4);
+    padding: var(--space-3) var(--space-4);
     border-radius: var(--radius-sm);
-    background: var(--surface-2);
-    border: 1px solid var(--line);
+    background: var(--accent-soft);
   }
   .info p {
     margin: 0;
   }
+  .contact {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2) var(--space-3);
+  }
   .phone {
     font-weight: 620;
     font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+  .contact-actions {
+    display: flex;
+    gap: var(--space-2);
   }
   .client-note {
-    color: var(--ink-2);
+    color: var(--ink);
     white-space: pre-line;
   }
-  .phone + .client-note {
-    margin-top: 6px !important;
+  .contact + .client-note {
+    margin-top: var(--space-3);
+    padding-top: var(--space-3);
+    border-top: 1px solid color-mix(in srgb, var(--accent) 18%, transparent);
   }
   .row .title,
   .row .meta {
@@ -216,33 +237,43 @@
     white-space: pre-line;
     margin-top: 2px;
   }
-  .amount {
+  .hist .amount {
     color: var(--ink);
     font-weight: 620;
     align-self: flex-start;
     padding-top: 1px;
+    font-variant-numeric: tabular-nums;
   }
-  .amount.missing {
+  .hist .amount.missing {
     color: var(--soon);
     font-weight: 500;
     font-size: 0.82rem;
   }
   .hist {
     align-items: flex-start;
+    flex-wrap: wrap;
+  }
+  /* With very large text the amount moves under the treatment instead of squeezing it */
+  .hist .grow {
+    flex: 1 1 10em;
+  }
+  .hist .amount {
+    margin-left: auto;
   }
   .stats {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    display: flex;
+    flex-wrap: wrap;
     gap: 1px;
-    margin-top: 24px;
+    margin-top: var(--space-6);
     background: var(--line);
     border-radius: var(--radius);
     overflow: hidden;
     border: 1px solid var(--line);
   }
   .stats div {
+    flex: 1 1 6.5em;
     background: var(--surface);
-    padding: 12px 10px;
+    padding: var(--space-3) 10px;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -251,7 +282,7 @@
   .stats b {
     font-size: 1.02rem;
     font-weight: 650;
-    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
   }
   .stats span {
     color: var(--muted);

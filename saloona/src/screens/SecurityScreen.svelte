@@ -5,6 +5,7 @@
   import { snackbar } from '../lib/snackbar.svelte';
   import { lockAvailability } from '../platform';
   import Icon from '../ui/icons/Icon.svelte';
+  import Chip from '../ui/Chip.svelte';
 
   let available = $state<boolean | null>(null);
   let busy = $state(false);
@@ -51,14 +52,14 @@
   </div>
 
   {#if available === false}
-    <p class="note warn">Telefonen har ingen skærmlås. Slå en PIN-kode, et mønster eller fingeraftryk til under telefonens indstillinger for sikkerhed først.</p>
+    <p class="note warn">Telefonen har ingen skærmlås. Slå en PIN-kode, et mønster eller fingeraftryk til i telefonens indstillinger først.</p>
   {/if}
 
   {#if app.settings.lockEnabled}
     <h2>Lås igen</h2>
     <div class="chips" role="radiogroup" aria-label="Lås igen">
       {#each delays as d (d.s)}
-        <button class="chip" role="radio" aria-checked={app.settings.lockAfterSeconds === d.s} onclick={() => app.setLockAfter(d.s)}>{d.label}</button>
+        <Chip selected={app.settings.lockAfterSeconds === d.s} onclick={() => app.setLockAfter(d.s)}>{d.label}</Chip>
       {/each}
     </div>
     <p class="note">Hvor længe Saloona må være i baggrunden, før du skal låse op igen.</p>
@@ -73,12 +74,6 @@
 </div>
 
 <style>
-  .back {
-    display: inline-flex;
-    align-items: center;
-    gap: 2px;
-    margin: -6px 0 4px -4px;
-  }
   .title,
   .meta {
     display: block;

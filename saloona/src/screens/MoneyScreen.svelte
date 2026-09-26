@@ -5,6 +5,7 @@
   import { formatAmount, formatNumber } from '../domain/money';
   import { PAY_LABELS, isPayMethod } from '../domain/types';
   import Icon from '../ui/icons/Icon.svelte';
+  import Chip from '../ui/Chip.svelte';
 
   let period = $state<PeriodId>('month');
 
@@ -12,6 +13,7 @@
   const bars = $derived(monthBars(app.visits, app.today, 6));
   const maxBar = $derived(Math.max(1, ...bars.map((b) => b.total)));
   const anyAmounts = $derived(app.visits.some((v) => v.amountOre !== null));
+  const missingAll = $derived(app.visits.filter((v) => v.amountOre === null && v.date <= app.today).length);
 
   function payLabel(key: string): string {
     return isPayMethod(key) ? PAY_LABELS[key] : 'Ikke angivet';
@@ -21,12 +23,11 @@
     return e.total ? Math.round((s.total / e.total) * 100) : 0;
   }
 
-  /** Short bar labels: 12.450 → "12,5k" */
+  /** Short bar labels in whole kroner: "4.050", "12.450", from a million "1,2 mio." */
   function compact(ore: number): string {
-    const kr = ore / 100;
-    if (kr >= 10_000) return `${(kr / 1000).toFixed(0)}k`;
-    if (kr >= 1000) return `${(kr / 1000).toFixed(1).replace('.', ',')}k`;
-    return String(Math.round(kr));
+    const kr = Math.round(ore / 100);
+    if (kr >= 1_000_000) return `${(kr / 1_000_000).toFixed(1).replace('.', ',')}\u00a0mio.`;
+    return formatNumber(kr * 100);
   }
 </script>
 
@@ -45,9 +46,19 @@
   {/if}
 {/snippet}
 
+{#snippet missingButton(n: number)}
+  <button class="missing" onclick={() => nav.open({ name: 'missing' })}>
+    <span class="grow">
+      <b>{n}&nbsp;besøg mangler beløb</b>
+      <span>Skriv beløbene ind, så tallene passer</span>
+    </span>
+    <Icon name="forward" size={20} />
+  </button>
+{/snippet}
+
 {#snippet sliceBody(s: Slice, name: string)}
   <span class="brk-top">
-    <span class="brk-name">{name} <small>{s.count} {s.count === 1 ? 'besøg' : 'besøg'}</small></span>
+    <span class="brk-name">{name} <small>{s.count}&nbsp;besøg</small></span>
     <span class="brk-sum">{formatAmount(s.total)}</span>
   </span>
   <span class="bar" aria-hidden="true"><i style:width={`${share(s)}%`}></i></span>
@@ -57,36 +68,33 @@
   <h1>Indtjening</h1>
   <p class="sub">Kun gennemførte besøg med beløb tæller med.</p>
 
-  <div class="chips periods" role="radiogroup" aria-label="Periode">
-    {#each PERIODS as p (p.id)}
-      <button class="chip" role="radio" aria-checked={period === p.id} onclick={() => (period = p.id)}>{p.label}</button>
-    {/each}
-  </div>
-
-  <section class="hero" aria-label="Total">
-    <span class="hero-title">{periodTitle(period, app.today)}</span>
-    <span class="big">{formatAmount(e.total)}</span>
-    <span class="hero-meta">
-      {e.count}
-      {e.count === 1 ? 'besøg' : 'besøg'}{#if e.average !== null}&nbsp;· gennemsnit {formatAmount(e.average)}{/if}
-    </span>
-  </section>
-
-  {#if e.missing.length}
-    <button class="missing" onclick={() => nav.open({ name: 'missing' })}>
-      <span class="grow">
-        <b>{e.missing.length} {e.missing.length === 1 ? 'besøg mangler' : 'besøg mangler'} beløb</b>
-        <span>Skriv beløbet ind, så tallene passer</span>
-      </span>
-      <Icon name="forward" size={20} />
-    </button>
-  {/if}
-
   {#if !anyAmounts}
+    {#if missingAll}
+      {@render missingButton(missingAll)}
+    {/if}
     <div class="empty">
-      <p>Når du skriver beløb på dine besøg, kan du se her, hvad du har tjent, og hvordan kunderne betaler.</p>
+      <p>Her kan du se, hvad du tjener. Skriv beløbet, når du registrerer et besøg, så kommer tallene af sig selv.</p>
     </div>
   {:else}
+    <div class="chips periods" role="radiogroup" aria-label="Periode">
+      {#each PERIODS as p (p.id)}
+        <Chip selected={period === p.id} onclick={() => (period = p.id)}>{p.label}</Chip>
+      {/each}
+    </div>
+
+    <section class="hero" aria-label="Indtjening i perioden">
+      <span class="hero-title">{periodTitle(period, app.today)}</span>
+      <!-- A normal space before "kr." so a very large total wraps there, not inside the number -->
+      <span class="big">{formatNumber(e.total)} kr.</span>
+      <span class="hero-meta">
+        {e.count}&nbsp;besøg{#if e.average !== null}&nbsp;· gennemsnit {formatAmount(e.average)}{/if}
+      </span>
+    </section>
+
+    {#if e.missing.length}
+      {@render missingButton(e.missing.length)}
+    {/if}
+
     <h2>Seneste 6 måneder</h2>
     <div class="months" role="img" aria-label={bars.map((b) => `${b.label}: ${formatNumber(b.total)} kr.`).join(', ')}>
       {#each bars as b (b.key)}
@@ -110,13 +118,18 @@
   .periods {
     margin-bottom: 14px;
   }
+  /* The one hero surface in the app */
   .hero {
     display: flex;
     flex-direction: column;
-    background: var(--accent);
-    color: var(--accent-ink);
-    border-radius: 22px;
-    padding: 20px 20px 18px;
+    background: var(--hero-bg);
+    color: var(--hero-ink);
+    border-radius: var(--radius-lg);
+    padding: var(--space-5) var(--space-5) 18px;
+  }
+  .hero-meta,
+  .hero-title {
+    overflow-wrap: anywhere;
   }
   .hero-title {
     font-size: 0.9rem;
@@ -129,7 +142,8 @@
     line-height: 1.1;
     font-variation-settings: 'opsz' 96;
     font-variant-numeric: tabular-nums;
-    margin: 4px 0 2px;
+    margin: var(--space-1) 0 2px;
+    overflow-wrap: anywhere;
   }
   .hero-meta {
     font-size: 0.92rem;
@@ -145,9 +159,12 @@
     min-height: 56px;
     text-align: left;
     border-radius: var(--radius-sm);
-    border: 1px solid color-mix(in srgb, var(--soon) 30%, var(--line));
+    border: 0;
     background: var(--soon-soft);
     color: var(--ink);
+  }
+  .missing :global(.icon) {
+    color: var(--soon);
   }
   .missing .grow {
     flex: 1;
@@ -186,8 +203,8 @@
     display: block;
     width: 100%;
     max-width: 30px;
-    border-radius: 8px;
-    background: var(--track);
+    border-radius: var(--radius-xs);
+    background: var(--bar-muted);
     min-height: 3px;
   }
   .mcol.cur i {
@@ -198,6 +215,7 @@
     font-weight: 620;
     white-space: nowrap;
     min-height: 1em;
+    font-variant-numeric: tabular-nums;
   }
   .mcol small {
     color: var(--muted);
@@ -230,7 +248,8 @@
   }
   .brk-name small {
     color: var(--muted);
-    margin-left: 4px;
+    margin-left: var(--space-1);
+    white-space: nowrap;
   }
   .brk-sum {
     font-weight: 620;

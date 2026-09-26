@@ -106,9 +106,14 @@ describe('Suggestions in the visit sheet', () => {
   });
 
   it('payment method', () => {
-    expect(suggestPay(data.visits, 'c01')).toBe('kontant'); // Morten's latest
-    expect(suggestPay(data.visits, 'c08')).toBe('mp_mig');
-    expect(suggestPay(data.visits, 'c07')).toBe('kontant'); // Arne never paid – most used overall
+    expect(suggestPay(data.visits, 'c01', TODAY)).toBe('kontant'); // Morten's latest
+    expect(suggestPay(data.visits, 'c08', TODAY)).toBe('mp_mig');
+    expect(suggestPay(data.visits, 'c07', TODAY)).toBe('kontant'); // Arne never paid – most used overall
+  });
+
+  it('treatment chips and client tags survive the import', () => {
+    expect(clients.get('c06')?.tag).toBe('Barn');
+    expect(clients.get('c13')?.tag).toBeNull();
   });
 
   it('treatment chips: most used first, Morten’s own first for Morten', () => {

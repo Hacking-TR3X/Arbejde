@@ -9,7 +9,7 @@ export type ParseResult =
   | { ok: true; ore: number | null }
   | { ok: false; error: string };
 
-const SPACES = /[\s   ]/g;
+const SPACES = /[\s\u00a0\u202f\u2009]/g;
 
 export function parseAmount(input: string): ParseResult {
   let s = input.replace(SPACES, '').toLowerCase();
@@ -66,7 +66,7 @@ function groupThousands(n: number): string {
 
 /** "1.250 kr." or "1.250,50 kr." (non-breaking space before "kr."). */
 export function formatAmount(ore: number): string {
-  return `${formatNumber(ore)} kr.`;
+  return `${formatNumber(ore)}\u00a0kr.`;
 }
 
 /** "1.250" or "1.250,50" */

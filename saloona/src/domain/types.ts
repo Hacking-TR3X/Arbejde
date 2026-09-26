@@ -57,8 +57,10 @@ export function isCompleted(visit: Pick<Visit, 'date'>, today: ISODate): boolean
 
 const ID_RE = /^[A-Za-z0-9_-]{1,64}$/;
 
+const RESERVED_IDS = new Set(['__proto__', 'constructor', 'prototype']);
+
 export function isValidId(v: unknown): v is string {
-  return typeof v === 'string' && ID_RE.test(v);
+  return typeof v === 'string' && ID_RE.test(v) && !RESERVED_IDS.has(v);
 }
 
 /** Random 20-character id (base36, ~103 bits). */

@@ -99,10 +99,19 @@ export function computeEarnings(
   const treat = new Map<string, Slice>();
   const cli = new Map<string, Slice>();
 
-  const add = (map: Map<string, Slice>, key: string, label: string, amount: number) => {
+  const labelDate = new Map<string, string>();
+  const add = (map: Map<string, Slice>, key: string, label: string, amount: number, date?: string) => {
     const s = map.get(key) ?? { key, label, total: 0, count: 0 };
     s.total += amount;
     s.count += 1;
+    if (date !== undefined) {
+      // Show the spelling used most recently, like the rest of the app.
+      const seen = labelDate.get(key);
+      if (seen === undefined || date >= seen) {
+        labelDate.set(key, date);
+        s.label = label;
+      }
+    }
     map.set(key, s);
   };
 
@@ -114,7 +123,7 @@ export function computeEarnings(
     total += v.amountOre;
     paidCount += 1;
     add(pay, v.pay ?? 'none', v.pay ?? 'none', v.amountOre);
-    add(treat, v.treatmentKey, v.treatment, v.amountOre);
+    add(treat, v.treatmentKey, v.treatment, v.amountOre, v.date);
     add(cli, v.clientId, clients.get(v.clientId)?.name ?? 'Slettet kunde', v.amountOre);
   }
 
