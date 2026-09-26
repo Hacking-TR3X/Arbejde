@@ -85,15 +85,15 @@ describe('prototype backup (tests/fixtures/salonbog-backup.json)', () => {
 
   it('keeps names, genders and the prototype’s short note as a tag', () => {
     const byName = new Map(b.clients.map((c) => [c.name, c]));
-    expect(byName.get('Morten')).toEqual({ id: 'c01', name: 'Morten', gender: 'herre', tag: null, phone: null, note: '' });
-    expect(byName.get('Sirius')).toMatchObject({ gender: 'herre', tag: 'Barn', note: '' });
-    expect(byName.get('Hanne')?.gender).toBe('dame');
-    expect(byName.get('Farmor')).toMatchObject({
+    expect(byName.get('Holger')).toEqual({ id: 'c01', name: 'Holger', gender: 'herre', tag: null, phone: null, note: '' });
+    expect(byName.get('Theo')).toMatchObject({ gender: 'herre', tag: 'Barn', note: '' });
+    expect(byName.get('Grete')?.gender).toBe('dame');
+    expect(byName.get('Oldemor')).toMatchObject({
       tag: null,
       note: 'Vil helst have tid om formiddagen. Tåler ikke parfumeret shampoo.'
     });
-    expect(byName.get('Gammel skoleveninde')?.gender).toBe('dame');
-    expect(byName.get('Familie Køge')).toMatchObject({ gender: null, tag: null, note: 'Mor, far og de to drenge' });
+    expect(byName.get('Gammel nabo')?.gender).toBe('dame');
+    expect(byName.get('Familie Søby')).toMatchObject({ gender: null, tag: null, note: 'Mor, far og de to drenge' });
   });
 
   it('converts amounts to øre and keeps payment methods', () => {
@@ -138,7 +138,7 @@ describe('older prototype file without app, amount, pay and prices', () => {
     expect(b.prices.size).toBe(0);
     expect(b.warnings).toEqual([]);
     expect(b.visits.every((v) => v.amountOre === null && v.pay === null)).toBe(true);
-    expect(b.clients.find((c) => c.name === 'Sirius')?.tag).toBe('Barn');
+    expect(b.clients.find((c) => c.name === 'Theo')?.tag).toBe('Barn');
   });
 
   it('accepts a file without version and exported', () => {

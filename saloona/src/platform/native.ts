@@ -51,6 +51,11 @@ export interface SaloonaNativePlugin {
   shareFile(options: { fileName: string; mimeType: string; data: string; title: string }): Promise<{ shared: boolean; error?: 'write_failed' | 'no_app' }>;
   /** Deletes everything in cache/exports/. Called on start-up. */
   clearExportCache(): Promise<void>;
+  /**
+   * Deletes the SQLCipher database file (and -journal/-wal/-shm) without needing its key.
+   * Only for the "key lost" recovery path and as a fallback for "Slet alle data".
+   */
+  deleteDatabaseFiles(): Promise<{ deleted: boolean }>;
 
   /** ACTION_DIAL with tel:<number>. No CALL_PHONE permission needed. */
   dial(options: { number: string }): Promise<void>;

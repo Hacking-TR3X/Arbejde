@@ -98,6 +98,9 @@
     <div class="search">
       <span class="search-ic"><Icon name="search" size={20} /></span>
       <input class="input" type="search" placeholder="Søg efter navn" aria-label="Søg efter kunde" bind:value={query} enterkeyhint="search" autocomplete="off" />
+      {#if query}
+        <button class="clear" aria-label="Ryd søgning" onclick={() => (query = '')}><Icon name="close" size={20} /></button>
+      {/if}
     </div>
 
     <div class="chips filters" role="radiogroup" aria-label="Vis">
@@ -120,10 +123,15 @@
     {:else if filtered.length === 0}
       <div class="empty"><p>Ingen kunder er markeret som {filter === 'dame' ? 'dame' : 'herre'} endnu.</p></div>
     {:else}
-      {#each sections as s (s.letter)}
-        <h2 class="letter" aria-label={`Bogstav ${s.letter}`}>{s.letter}</h2>
-        <div class="group">{#each s.clients as c (c.id)}{@render clientRow(c)}{/each}</div>
-      {/each}
+      <!-- One continuous list. The letter sits in a left gutter, like the phone's own contacts. -->
+      <div class="group alpha">
+        {#each sections as s (s.letter)}
+          <div class="block">
+            <h2 class="initial" aria-label={`Bogstav ${s.letter}`}>{s.letter}</h2>
+            {#each s.clients as c (c.id)}{@render clientRow(c)}{/each}
+          </div>
+        {/each}
+      </div>
     {/if}
   {/if}
 </div>
@@ -145,6 +153,27 @@
   }
   .search .input {
     padding-left: 44px;
+    padding-right: 48px;
+  }
+  /* Our own clear button instead of the browser's blue one */
+  .search .input::-webkit-search-cancel-button {
+    -webkit-appearance: none;
+    appearance: none;
+  }
+  .clear {
+    position: absolute;
+    right: 1px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: var(--tap);
+    height: var(--tap);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 0;
+    background: none;
+    color: var(--muted);
+    border-radius: var(--radius-sm);
   }
   .search-ic {
     position: absolute;
@@ -155,12 +184,29 @@
     display: flex;
   }
   .filters {
-    margin: 12px 0 4px;
+    margin: var(--space-3) 0 var(--space-4);
   }
-  .letter {
-    margin: 20px 0 8px 4px;
-    font-size: 0.9rem;
+  .block {
+    position: relative;
+  }
+  .initial {
+    position: absolute;
+    top: var(--space-3);
+    left: 0;
+    width: 48px;
+    margin: 0;
+    display: block;
+    text-align: center;
+    font-size: 1rem;
+    line-height: 1.45;
     color: var(--accent);
+    pointer-events: none;
+  }
+  .alpha .row {
+    padding-left: 48px;
+  }
+  .block > .row + .row {
+    border-top: 1px solid var(--line);
   }
   .row .title,
   .row .meta {

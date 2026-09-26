@@ -66,16 +66,18 @@
 
 <div class="screen">
   <h1>Indtjening</h1>
-  <p class="sub">Kun gennemførte besøg med beløb tæller med.</p>
 
   {#if !anyAmounts}
-    {#if missingAll}
-      {@render missingButton(missingAll)}
-    {/if}
-    <div class="empty">
-      <p>Her kan du se, hvad du tjener. Skriv beløbet, når du registrerer et besøg, så kommer tallene af sig selv.</p>
+    <div class="nodata">
+      <div class="empty">
+        <p>Her kan du se, hvad du tjener. Skriv beløbet, når du registrerer et besøg, så kommer tallene af sig selv.</p>
+      </div>
+      {#if missingAll}
+        {@render missingButton(missingAll)}
+      {/if}
     </div>
   {:else}
+    <p class="sub">Kun gennemførte besøg med beløb tæller med.</p>
     <div class="chips periods" role="radiogroup" aria-label="Periode">
       {#each PERIODS as p (p.id)}
         <Chip selected={period === p.id} onclick={() => (period = p.id)}>{p.label}</Chip>
@@ -117,6 +119,9 @@
 <style>
   .periods {
     margin-bottom: 14px;
+  }
+  .nodata {
+    margin-top: var(--space-4);
   }
   /* The one hero surface in the app */
   .hero {
@@ -180,6 +185,7 @@
     color: var(--ink-2);
   }
   .months {
+    container-type: inline-size;
     display: flex;
     align-items: flex-end;
     gap: 8px;
@@ -225,6 +231,13 @@
     color: var(--accent);
     font-weight: 620;
   }
+  /* Large text: the amounts no longer fit over the bars. They are still in the chart's
+     label and in the period totals. */
+  @container (max-width: 14em) {
+    .mcol b {
+      display: none;
+    }
+  }
   .brk-row {
     display: block;
     width: 100%;
@@ -239,10 +252,13 @@
   }
   .brk-top {
     display: flex;
+    flex-wrap: wrap;
     justify-content: space-between;
-    gap: 12px;
+    gap: 0 var(--space-3);
   }
+  /* With very large text the sum moves under the name instead of squeezing it */
   .brk-name {
+    flex: 1 1 10em;
     min-width: 0;
     overflow-wrap: anywhere;
   }
@@ -252,6 +268,7 @@
     white-space: nowrap;
   }
   .brk-sum {
+    margin-left: auto;
     font-weight: 620;
     white-space: nowrap;
     font-variant-numeric: tabular-nums;

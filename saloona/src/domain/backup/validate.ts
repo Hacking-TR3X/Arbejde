@@ -13,7 +13,8 @@ import { oreFromKroner, parseAmount } from '../money';
 import { LIMITS, cleanLine, cleanMultiline, normalizePhone, treatmentKey } from '../text';
 import { isGender, isPayMethod, isValidId, type Gender, type PayMethod } from '../types';
 
-export const MAX_FILE_CHARS = 20_000_000;
+/** A salon's backup is a few hundred kB; 8 MB leaves ample room and keeps memory use safe. */
+export const MAX_FILE_CHARS = 8_000_000;
 export const MAX_CLIENTS = 20_000;
 export const MAX_VISITS = 200_000;
 export const MAX_PRICES = 2_000;

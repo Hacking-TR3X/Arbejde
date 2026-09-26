@@ -258,9 +258,9 @@ describe('searchRank', () => {
     ['Åse', 'å', 3],
     ['Åse', 'Å', 3],
     ['Kåre', 'år', 1],
-    ['Familie Køge', 'køge', 2],
-    ['Familie Køge', 'KØGE', 2],
-    ['Gammel skoleveninde', 'skole', 2],
+    ['Familie Søby', 'søby', 2],
+    ['Familie Søby', 'SØBY', 2],
+    ['Gammel nabo', 'nabo', 2],
     ['Søren', 'so', 0], // ø is its own letter, not o
     ['Åse', 'Å', 3], // decomposed query
     ['Åse', 'å', 3] // decomposed name

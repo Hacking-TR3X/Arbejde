@@ -49,7 +49,7 @@
     height: 64px;
     align-items: center;
     justify-content: center;
-    border-radius: 50%;
+    border-radius: var(--radius-pill);
     background: var(--accent-soft);
     color: var(--accent);
   }

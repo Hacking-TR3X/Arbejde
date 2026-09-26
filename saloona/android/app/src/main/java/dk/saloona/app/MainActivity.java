@@ -36,6 +36,8 @@ public class MainActivity extends BridgeActivity {
         Bridge currentBridge = getBridge();
         if (currentBridge != null && currentBridge.getWebView() != null) {
             currentBridge.getWebView().setBackgroundColor(Color.TRANSPARENT);
+            // The web app never loads content:// URLs itself; file access goes through our plugin.
+            currentBridge.getWebView().getSettings().setAllowContentAccess(false);
         }
 
         registerBackHandler();

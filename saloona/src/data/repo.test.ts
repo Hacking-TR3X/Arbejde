@@ -93,7 +93,7 @@ describe('repo', () => {
     const file = JSON.stringify({
       app: 'salonbog',
       version: 1,
-      clients: [{ id: 'a1', name: 'Morten', gender: 'herre' }, { id: 'a2', name: 'maria' }],
+      clients: [{ id: 'a1', name: 'Holger', gender: 'herre' }, { id: 'a2', name: 'maria' }],
       visits: [{ id: 'x1', clientId: 'a1', treatment: 'Klip', date: '2026-06-13', note: '', amount: 350, pay: 'mp_mig' }],
       prices: { klip: 350 }
     });
@@ -102,12 +102,12 @@ describe('repo', () => {
     const existing = await repo.load();
     await repo.applyImport(planImport(existing, read.backup, 'merge', NOW));
     const merged = await repo.load();
-    expect(merged.clients.map((c) => c.name).sort()).toEqual(['Maria', 'Morten']);
+    expect(merged.clients.map((c) => c.name).sort()).toEqual(['Holger', 'Maria']);
     expect(merged.visits).toHaveLength(1);
     expect(merged.prices.get('klip')).toBe(35000);
 
     await repo.applyImport(planImport(merged, read.backup, 'replace', NOW));
     const replaced = await repo.load();
-    expect(replaced.clients.map((c) => c.name).sort()).toEqual(['Morten', 'maria']);
+    expect(replaced.clients.map((c) => c.name).sort()).toEqual(['Holger', 'maria']);
   });
 });

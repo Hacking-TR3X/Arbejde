@@ -58,12 +58,12 @@ describe('periodTitle', () => {
 describe('computeEarnings', () => {
   const today = '2026-09-26';
   const clients = clientMap(
-    client('morten', 'Morten'),
-    client('hanne', 'Hanne'),
-    client('laura', 'Laura'),
-    client('sophie', 'Sophie'),
-    client('jan', 'Jan'),
-    client('arne', 'Arne')
+    client('morten', 'Holger'),
+    client('hanne', 'Grete'),
+    client('laura', 'Ingrid'),
+    client('sophie', 'Vera'),
+    client('jan', 'Kaj'),
+    client('arne', 'Poul')
   );
   const visits = [
     paid('morten', 'Klip', '2026-09-26', 450, 'kontant'), // today
@@ -133,14 +133,14 @@ describe('computeEarnings', () => {
   it('topClients: at most 5, highest first, deleted clients labelled "Slettet kunde"', () => {
     const e = computeEarnings(visits, clients, 'month', today);
     expect(e.topClients).toHaveLength(5);
-    expect(e.topClients.map((s) => s.label)).toEqual(['Hanne', 'Laura', 'Morten', 'Sophie', 'Jan']);
+    expect(e.topClients.map((s) => s.label)).toEqual(['Grete', 'Ingrid', 'Holger', 'Vera', 'Kaj']);
     const withGone = computeEarnings([paid('gone', 'Klip', '2026-09-05', 5000, 'kontant')], clients, 'month', today);
     expect(withGone.topClients).toEqual([{ key: 'gone', label: 'Slettet kunde', total: 500_000, count: 1 }]);
   });
 
   it('topClients: ties are broken by number of visits', () => {
     const v = [paid('morten', 'Klip', '2026-09-01', 450), paid('hanne', 'Klip', '2026-09-02', 225), paid('hanne', 'Klip', '2026-09-03', 225)];
-    expect(computeEarnings(v, clients, 'month', today).topClients.map((s) => s.label)).toEqual(['Hanne', 'Morten']);
+    expect(computeEarnings(v, clients, 'month', today).topClients.map((s) => s.label)).toEqual(['Grete', 'Holger']);
   });
 
   it('last month, year and all', () => {

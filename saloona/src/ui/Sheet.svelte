@@ -33,7 +33,7 @@
   });
 </script>
 
-<div class="scrim" transition:fade={{ duration: motionMs(180) }} onclick={onclose} aria-hidden="true"></div>
+<div class="scrim" transition:fade|global={{ duration: motionMs(180) }} onclick={onclose} aria-hidden="true"></div>
 <div
   class="sheet"
   role="dialog"
@@ -41,7 +41,7 @@
   aria-labelledby={titleId}
   tabindex="-1"
   bind:this={panel}
-  transition:fly={{ y: 60, duration: motionMs(240), easing: cubicOut }}
+  transition:fly|global={{ y: 60, duration: motionMs(240), easing: cubicOut }}
 >
   <div class="grab" aria-hidden="true"></div>
   <header>

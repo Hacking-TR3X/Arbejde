@@ -15,9 +15,9 @@ function reread(text: string): ParsedBackup {
 }
 
 const clients: Client[] = [
-  client('c1', 'Morten', { gender: 'herre', phone: '+4512345678', note: 'Kort i siderne\nIkke for kort foran' }),
-  client('c2', 'Sirius', { gender: 'herre', tag: 'Barn' }),
-  client('c3', 'Familie Køge', { note: 'Barn' }), // short note stays a note in Saloona files
+  client('c1', 'Holger', { gender: 'herre', phone: '+4512345678', note: 'Kort i siderne\nIkke for kort foran' }),
+  client('c2', 'Theo', { gender: 'herre', tag: 'Barn' }),
+  client('c3', 'Familie Holm', { note: 'Barn' }), // short note stays a note in Saloona files
   client('c4', 'Søren Ærø-Åberg', { gender: 'dame', tag: 'Nabo', phone: '12345678' })
 ];
 
@@ -42,9 +42,9 @@ describe('buildBackup', () => {
 
   it('writes clients in the prototype-compatible shape, optional fields only when set', () => {
     expect(file.clients).toEqual([
-      { id: 'c1', name: 'Morten', gender: 'herre', phone: '+4512345678', note: 'Kort i siderne\nIkke for kort foran' },
-      { id: 'c2', name: 'Sirius', gender: 'herre', tag: 'Barn', note: '' },
-      { id: 'c3', name: 'Familie Køge', note: 'Barn' },
+      { id: 'c1', name: 'Holger', gender: 'herre', phone: '+4512345678', note: 'Kort i siderne\nIkke for kort foran' },
+      { id: 'c2', name: 'Theo', gender: 'herre', tag: 'Barn', note: '' },
+      { id: 'c3', name: 'Familie Holm', note: 'Barn' },
       { id: 'c4', name: 'Søren Ærø-Åberg', gender: 'dame', tag: 'Nabo', phone: '12345678', note: '' }
     ]);
   });

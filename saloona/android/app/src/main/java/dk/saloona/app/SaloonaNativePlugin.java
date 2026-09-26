@@ -75,6 +75,8 @@ public class SaloonaNativePlugin extends Plugin {
 
     /** Sub-directory of getCacheDir() that the FileProvider exposes (res/xml/file_paths.xml). */
     private static final String EXPORT_DIR = "exports";
+    /** @capacitor-community/sqlite stores database "saloona" as "saloonaSQLite.db". */
+    private static final String DATABASE_FILE = "saloonaSQLite.db";
     private static final int MAX_EXPORT_NAME_LENGTH = 80;
 
     /** Upper bound for openFile's maxBytes, so a bad argument cannot exhaust memory. */
@@ -536,13 +538,16 @@ public class SaloonaNativePlugin extends Plugin {
                 return ret.put("tooLarge", true);
             }
             String text = new String(buffer.toByteArray(), StandardCharsets.UTF_8);
-            if (!text.isEmpty() && text.charAt(0) == '﻿') {
+            if (!text.isEmpty() && text.charAt(0) == '\uFEFF') {
                 text = text.substring(1);
             }
             return ret.put("data", text);
         } catch (IOException | RuntimeException e) {
             Logger.error(LOG_TAG, "openFile: læsning fejlede (" + e.getClass().getSimpleName() + ")", null);
             return ret.put("error", "read_failed");
+        } catch (OutOfMemoryError e) {
+            // A huge file must not crash the app; report it like any other too-large file.
+            return ret.put("tooLarge", true);
         }
     }
 
@@ -627,6 +632,18 @@ public class SaloonaNativePlugin extends Plugin {
                 call.resolve(new JSObject().put("shared", false).put("error", "no_app"));
             }
         });
+    }
+
+    /**
+     * deleteDatabaseFiles(): last resort when the database exists but its key is gone.
+     * Deletes the SQLCipher file with its -journal/-wal/-shm files, so the next start
+     * creates a fresh database and key. Works without the key (the sqlite plugin's own
+     * deleteDatabase needs an open connection, which needs the key).
+     */
+    @PluginMethod
+    public void deleteDatabaseFiles(PluginCall call) {
+        boolean deleted = getContext().deleteDatabase(DATABASE_FILE);
+        call.resolve(new JSObject().put("deleted", deleted));
     }
 
     /** clearExportCache(): deletes everything in cache/exports/. Called on start-up. */

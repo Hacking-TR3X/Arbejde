@@ -17,11 +17,11 @@ describe('suggestPrice', () => {
     paid('morten', 'Klip', '2026-08-08', 425),
     paid('hanne', 'Klip', '2026-09-20', 500),
     paid('hanne', 'Farve', '2026-09-04', 1250.5),
-    visit('morten', 'Klip', '2026-09-24') // newest Morten visit, but no amount
+    visit('morten', 'Klip', '2026-09-24') // newest Holger visit, but no amount
   ];
 
   it('1. the client’s own latest amount for the same treatment', () => {
-    // Hanne paid 500 more recently, and Morten’s newest visit has no amount – his own 425 wins.
+    // Grete paid 500 more recently, and Holger’s newest visit has no amount – his own 425 wins.
     expect(suggestPrice(visits, 'morten', 'klip', DEFAULTS, today)).toBe(42_500);
   });
 

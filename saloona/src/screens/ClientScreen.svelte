@@ -216,6 +216,10 @@
     display: flex;
     gap: var(--space-2);
   }
+  /* On the tinted panel the grey outline is too faint (2.8:1); the accent edge is 6:1. */
+  .contact-actions .btn {
+    border-color: var(--accent);
+  }
   .client-note {
     color: var(--ink);
     white-space: pre-line;
@@ -238,6 +242,7 @@
     margin-top: 2px;
   }
   .hist .amount {
+    margin-left: auto;
     color: var(--ink);
     font-weight: 620;
     align-self: flex-start;
@@ -256,9 +261,6 @@
   /* With very large text the amount moves under the treatment instead of squeezing it */
   .hist .grow {
     flex: 1 1 10em;
-  }
-  .hist .amount {
-    margin-left: auto;
   }
   .stats {
     display: flex;

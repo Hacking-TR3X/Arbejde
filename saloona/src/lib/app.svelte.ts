@@ -57,6 +57,8 @@ export type FieldErrors = Partial<Record<'client' | 'treatment' | 'amount' | 'da
 export type Result = { ok: true; id?: string } | { ok: false; errors: FieldErrors };
 
 export const BACKUP_NUDGE_DAYS = 14;
+/** Grace period (seconds) for a trip to a system picker or share sheet started by the app. */
+const EXTERNAL_GRACE_S = 300;
 
 class AppState {
   phase = $state<Phase>('loading');
@@ -81,6 +83,7 @@ class AppState {
 
   private repo: Repo | null = null;
   private backgroundSince: number | null = null;
+  private backgroundExternal = false;
   private ignoreBackgroundUntil = 0;
   private reminderTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -89,6 +92,8 @@ class AppState {
   async start(): Promise<void> {
     this.watchClock();
     onAppStateChange((active) => this.onAppState(active));
+    // Plain-text backups shared earlier must not linger, whatever happens next.
+    await clearExportCache();
     try {
       const db = await openDb();
       await migrate(db);
@@ -100,7 +105,6 @@ class AppState {
         await setSecureScreen(true);
       }
       this.phase = 'ready';
-      void clearExportCache();
       this.queueReminders();
     } catch (e) {
       if (e instanceof DbKeyLostError) this.phase = 'keylost';
@@ -134,25 +138,39 @@ class AppState {
     setInterval(tick, 30_000);
   }
 
+  /**
+   * Re-lock after the app has been in the background.
+   * A trip to a system picker/share sheet started by us still counts as background
+   * time, but with a grace period of at least EXTERNAL_GRACE_S so a quick save does
+   * not force a new unlock. With "Straks" the app locks as soon as it is hidden.
+   */
   private onAppState(active: boolean): void {
     if (!active) {
-      if (Date.now() >= this.ignoreBackgroundUntil && !this.authenticating) this.backgroundSince = Date.now();
+      if (this.authenticating || this.backgroundSince !== null) return;
+      this.backgroundSince = Date.now();
+      this.backgroundExternal = Date.now() < this.ignoreBackgroundUntil;
+      if (this.settings.lockEnabled && this.settings.lockAfterSeconds === 0 && !this.backgroundExternal) this.lockNow();
       return;
     }
     this.today = todayISO();
     const since = this.backgroundSince;
+    const external = this.backgroundExternal;
     this.backgroundSince = null;
+    this.backgroundExternal = false;
+    this.ignoreBackgroundUntil = 0;
     if (since === null || !this.settings.lockEnabled || this.locked) return;
-    if ((Date.now() - since) / 1000 >= this.settings.lockAfterSeconds) this.locked = true;
+    const limit = external ? Math.max(this.settings.lockAfterSeconds, EXTERNAL_GRACE_S) : this.settings.lockAfterSeconds;
+    if ((Date.now() - since) / 1000 >= limit) this.lockNow();
   }
 
-  /** Call before opening a system picker/share sheet so returning from it does not lock the app. */
+  private lockNow(): void {
+    this.locked = true;
+    snackbar.dismiss();
+  }
+
+  /** Call right before opening a system picker/share sheet (see onAppState). */
   expectExternalActivity(): void {
     this.ignoreBackgroundUntil = Date.now() + 10 * 60_000;
-  }
-
-  private externalActivityDone(): void {
-    this.ignoreBackgroundUntil = 0;
   }
 
   // ---------- lock ----------
@@ -177,9 +195,13 @@ class AppState {
     if (enabled) {
       const avail = await lockAvailability();
       if (!avail.available) return 'unavailable';
+    }
+    // Turning the lock on proves the phone's credential works; turning it off
+    // requires the owner, not just whoever holds the unlocked app.
+    if (enabled || (await lockAvailability()).available) {
       this.authenticating = true;
       const res = await authenticate().finally(() => (this.authenticating = false));
-      if (!res.success) return res.error === 'unavailable' ? 'unavailable' : 'canceled';
+      if (!res.success) return res.error === 'unavailable' && enabled ? 'unavailable' : 'canceled';
     }
     await this.db.saveSettings({ lockEnabled: enabled });
     this.settings = { ...this.settings, lockEnabled: enabled };
@@ -377,18 +399,14 @@ class AppState {
     if (password) data = await encryptBackup(data, password);
     const name = backupFileName(this.today, !!password);
     this.expectExternalActivity();
-    try {
-      const done = target === 'save' ? await saveFile(name, data) : await shareFile(name, data);
-      if (done) {
-        const now = new Date().toISOString();
-        await this.db.saveSettings({ lastBackupAt: now });
-        this.settings = { ...this.settings, lastBackupAt: now };
-        haptic('confirm');
-      }
-      return done;
-    } finally {
-      this.externalActivityDone();
+    const done = target === 'save' ? await saveFile(name, data) : await shareFile(name, data);
+    if (done) {
+      const now = new Date().toISOString();
+      await this.db.saveSettings({ lastBackupAt: now });
+      this.settings = { ...this.settings, lastBackupAt: now };
+      haptic('confirm');
     }
+    return done;
   }
 
   planImport(backup: ParsedBackup, mode: ImportMode): ImportPlan {
@@ -404,6 +422,7 @@ class AppState {
   // ---------- wipe ----------
 
   async wipeAll(): Promise<void> {
+    await clearExportCache();
     await cancelReminders();
     await setSecureScreen(false);
     await destroyDb();

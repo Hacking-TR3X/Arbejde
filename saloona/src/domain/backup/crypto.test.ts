@@ -72,7 +72,7 @@ describe('round trip', () => {
   it('the envelope has the documented shape and hides the content', async () => {
     const plain = fixtureText('salonbog-backup.json');
     const text = await encryptBackup(plain, PASSWORD, FAST);
-    expect(text).not.toContain('Morten');
+    expect(text).not.toContain('Holger');
     expect(text).not.toContain(PASSWORD);
     const env = JSON.parse(text) as EncryptedEnvelope;
     expect(env.app).toBe('saloona');

@@ -108,7 +108,8 @@
     color: var(--muted);
     font-size: 0.88rem;
   }
-  .warn {
+  /* .row .meta in app.css has the same specificity and comes later in the bundle */
+  .meta.warn {
     color: var(--soon);
   }
 </style>

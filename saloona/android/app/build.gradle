@@ -96,6 +96,17 @@ android {
                 signingConfig signingConfigs.release
             }
         }
+        // Hardened test build for the owner's phone: identical to release (R8, not
+        // debuggable, so no WebView debugging and no run-as), but with its own app id
+        // and label, signed with the stable test key from CI (the debug keystore).
+        // CI publishes it as Saloona-test.apk. The real app is the owner-signed release.
+        tester {
+            initWith release
+            applicationIdSuffix ".test"
+            manifestPlaceholders = [appLabel: "Saloona test"]
+            signingConfig signingConfigs.debug
+            matchingFallbacks = ['release']
+        }
     }
 }
 

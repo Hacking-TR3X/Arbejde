@@ -2,10 +2,10 @@
   "version": 1,
   "exported": "2025-11-02T19:40:12.000Z",
   "clients": [
-    { "id": "c01", "name": "Morten", "gender": "herre", "note": "" },
-    { "id": "c06", "name": "Sirius", "gender": "herre", "note": "Barn" },
-    { "id": "c08", "name": "Hanne", "gender": "dame", "note": "" },
-    { "id": "c13", "name": "Familie Køge", "note": "" }
+    { "id": "c01", "name": "Holger", "gender": "herre", "note": "" },
+    { "id": "c06", "name": "Theo", "gender": "herre", "note": "Barn" },
+    { "id": "c08", "name": "Grete", "gender": "dame", "note": "" },
+    { "id": "c13", "name": "Familie Søby", "note": "" }
   ],
   "visits": [
     { "id": "w01", "clientId": "c01", "treatment": "Klip", "date": "2025-08-16", "note": "" },

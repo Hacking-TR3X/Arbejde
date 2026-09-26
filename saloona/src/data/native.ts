@@ -7,6 +7,7 @@
  * afterwards and is not part of any backup (allowBackup=false).
  */
 import { CapacitorSQLite, SQLiteConnection, type SQLiteDBConnection } from '@capacitor-community/sqlite';
+import { SaloonaNative } from '../platform/native';
 import { DbKeyLostError, type Db, type Row, type SqlValue, type Statement } from './db';
 
 const DB_NAME = 'saloona';
@@ -55,6 +56,8 @@ export async function openNativeDb(): Promise<Db> {
       ? await sqlite.retrieveConnection(DB_NAME, false)
       : await sqlite.createConnection(DB_NAME, true, 'secret', 1, false);
   await connection.open();
+  // Overwrite deleted content inside the (encrypted) pages as well.
+  await connection.query('PRAGMA secure_delete = ON').catch(() => undefined);
   return new NativeDb(connection);
 }
 
@@ -62,25 +65,25 @@ export async function openNativeDb(): Promise<Db> {
 export async function destroyNativeDb(): Promise<void> {
   sqlite ??= new SQLiteConnection(CapacitorSQLite);
   try {
-    if (connection) {
-      await connection.delete();
-    } else if ((await sqlite.isDatabase(DB_NAME)).result) {
-      const conn = await sqlite.createConnection(DB_NAME, true, 'secret', 1, false);
-      await conn.delete();
-    }
-  } finally {
-    try {
-      await sqlite.closeConnection(DB_NAME, false);
-    } catch {
-      // already closed
-    }
-    connection = null;
-    if ((await sqlite.isSecretStored()).result) await sqlite.clearEncryptionSecret();
+    if (connection) await connection.delete();
+  } catch {
+    // fall through to the file-level delete below
+  }
+  try {
+    await sqlite.closeConnection(DB_NAME, false);
+  } catch {
+    // already closed
+  }
+  connection = null;
+  // Make sure the file is gone (also covers a connection that could not be opened).
+  await SaloonaNative.deleteDatabaseFiles();
+  // Forget the key only once the data it protects is gone.
+  if (!(await sqlite.isDatabase(DB_NAME)).result && (await sqlite.isSecretStored()).result) {
+    await sqlite.clearEncryptionSecret();
   }
 }
 
 /** Last resort when the key is lost: remove the unreadable file so the app can start fresh. */
 export async function discardUnreadableNativeDb(): Promise<void> {
-  sqlite ??= new SQLiteConnection(CapacitorSQLite);
-  await CapacitorSQLite.deleteDatabase({ database: DB_NAME, readonly: false }).catch(() => undefined);
+  await SaloonaNative.deleteDatabaseFiles();
 }

@@ -131,7 +131,7 @@ describe('merge – prototype fixture', () => {
     const old = parse(fixtureText('salonbog-backup-old.json'));
     const plan = planImport(now, old, 'merge', NOW, makeId);
     expect(plan.stats).toMatchObject({ newClients: 0, matchedClients: 4, newVisits: 5, duplicateVisits: 0 });
-    expect(plan.updateClients).toEqual([]); // Familie Køge keeps her note
+    expect(plan.updateClients).toEqual([]); // Familie Søby keeps her note
     assertConsistent(apply(now, plan));
   });
 
@@ -139,7 +139,7 @@ describe('merge – prototype fixture', () => {
     const before = apply(EMPTY, planImport(EMPTY, parse(fixtureText('salonbog-backup-old.json')), 'replace', NOW, makeId));
     const plan = planImport(before, file, 'merge', NOW, makeId);
     expect(plan.stats).toMatchObject({ newClients: 9, matchedClients: 4, newVisits: 28 });
-    expect(plan.updateClients.map((c) => [c.name, c.note])).toEqual([['Familie Køge', 'Mor, far og de to drenge']]);
+    expect(plan.updateClients.map((c) => [c.name, c.note])).toEqual([['Familie Søby', 'Mor, far og de to drenge']]);
   });
 });
 
@@ -315,7 +315,7 @@ describe('merge – existing values win, blanks are filled', () => {
   it('fills in empty gender, tag, phone and note, and keeps name and createdAt', () => {
     const plan = planImport(
       existing,
-      backup([ic('c2', 'HANNE', { gender: 'dame', tag: 'Farmor', phone: '+4512345678', note: 'Kaffe med mælk' })]),
+      backup([ic('c2', 'HANNE', { gender: 'dame', tag: 'Oldemor', phone: '+4512345678', note: 'Kaffe med mælk' })]),
       'merge',
       NOW,
       makeId
@@ -325,7 +325,7 @@ describe('merge – existing values win, blanks are filled', () => {
         id: 'e2',
         name: 'Hanne',
         gender: 'dame',
-        tag: 'Farmor',
+        tag: 'Oldemor',
         phone: '+4512345678',
         note: 'Kaffe med mælk',
         createdAt: '2026-02-02T00:00:00.000Z',
@@ -381,9 +381,9 @@ describe('merge – matching visits', () => {
     expect(plan.stats).toMatchObject({ visitsInFile: 1, newVisits: 0, duplicateVisits: 0 });
   });
 
-  it('look-alikes inside one file are all imported (Familie Køge: 4× Klip the same day)', () => {
+  it('look-alikes inside one file are all imported (Familie Søby: 4× Klip the same day)', () => {
     const incoming = backup(
-      [ic('c13', 'Familie Køge')],
+      [ic('c13', 'Familie Søby')],
       ['v1', 'v2', 'v3', 'v4'].map((id, n) => iv(id, 'c13', n % 2 ? 'klip' : 'Klip', '2026-09-05', { amountOre: 40_000 }))
     );
     const plan = planImport(EMPTY, incoming, 'merge', NOW, makeId);
@@ -396,11 +396,11 @@ describe('merge – matching visits', () => {
 
   it('each existing visit absorbs at most one look-alike from the file', () => {
     const existing: ExistingData = {
-      clients: [client('c13', 'Familie Køge')],
+      clients: [client('c13', 'Familie Søby')],
       visits: [visit('c13', 'Klip', '2026-09-05', { id: 'e1' })],
       prices: new Map()
     };
-    const incoming = backup([ic('c13', 'Familie Køge')], ['v1', 'v2', 'v3', 'v4'].map((id) => iv(id, 'c13', 'Klip', '2026-09-05')));
+    const incoming = backup([ic('c13', 'Familie Søby')], ['v1', 'v2', 'v3', 'v4'].map((id) => iv(id, 'c13', 'Klip', '2026-09-05')));
     const plan = planImport(existing, incoming, 'merge', NOW, makeId);
     expect(plan.stats).toMatchObject({ newVisits: 3, duplicateVisits: 1 });
     expect(plan.insertVisits.map((v) => v.id)).toEqual(['v2', 'v3', 'v4']);
@@ -408,24 +408,24 @@ describe('merge – matching visits', () => {
 
   it('more existing look-alikes than in the file → nothing new', () => {
     const existing: ExistingData = {
-      clients: [client('c13', 'Familie Køge')],
+      clients: [client('c13', 'Familie Søby')],
       visits: [visit('c13', 'Klip', '2026-09-05', { id: 'e1' }), visit('c13', 'Klip', '2026-09-05', { id: 'e2' })],
       prices: new Map()
     };
-    const plan = planImport(existing, backup([ic('c13', 'Familie Køge')], [iv('v1', 'c13', 'KLIP', '2026-09-05')]), 'merge', NOW, makeId);
+    const plan = planImport(existing, backup([ic('c13', 'Familie Søby')], [iv('v1', 'c13', 'KLIP', '2026-09-05')]), 'merge', NOW, makeId);
     expect(plan.stats).toMatchObject({ newVisits: 0, duplicateVisits: 1 });
   });
 
   it('an id match does not use up a look-alike slot', () => {
     const existing: ExistingData = {
-      clients: [client('c13', 'Familie Køge')],
+      clients: [client('c13', 'Familie Søby')],
       visits: [visit('c13', 'Klip', '2026-09-05', { id: 'e1' }), visit('c13', 'Klip', '2026-09-05', { id: 'e2' })],
       prices: new Map()
     };
     // e1 matches on id; v9 is absorbed by one of the two look-alikes; v10 is absorbed by the other.
     const plan = planImport(
       existing,
-      backup([ic('c13', 'Familie Køge')], [iv('e1', 'c13', 'Klip', '2026-09-05'), iv('v9', 'c13', 'Klip', '2026-09-05'), iv('v10', 'c13', 'Klip', '2026-09-05'), iv('v11', 'c13', 'Klip', '2026-09-05')]),
+      backup([ic('c13', 'Familie Søby')], [iv('e1', 'c13', 'Klip', '2026-09-05'), iv('v9', 'c13', 'Klip', '2026-09-05'), iv('v10', 'c13', 'Klip', '2026-09-05'), iv('v11', 'c13', 'Klip', '2026-09-05')]),
       'merge',
       NOW,
       makeId
@@ -452,7 +452,7 @@ describe('merge – matching visits', () => {
 
   it('merging into an empty app gives the same rows as replace', () => {
     const incoming = backup(
-      [ic('a1', 'Anne'), ic('a2', 'anne'), ic('k', 'Familie Køge')],
+      [ic('a1', 'Anne'), ic('a2', 'anne'), ic('k', 'Familie Søby')],
       [
         iv('v1', 'a1', 'Klip', '2026-09-01'),
         iv('v2', 'a2', 'Klip', '2026-09-01'),

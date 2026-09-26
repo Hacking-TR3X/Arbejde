@@ -33,11 +33,16 @@ export async function requestReminderPermission(): Promise<boolean> {
   return status.display === 'granted';
 }
 
+/**
+ * Cancels pending reminders AND removes any that are already showing, so names
+ * never linger in the notification shade after the lock is turned on or data is wiped.
+ */
 export async function cancelReminders(): Promise<void> {
   if (!remindersSupported()) return;
   const ln = await plugin();
-  const ids = Array.from({ length: REMINDER_DAYS + 1 }, (_, i) => ({ id: BASE_ID + i }));
-  await ln.cancel({ notifications: ids }).catch(() => undefined);
+  const ids = Array.from({ length: REMINDER_DAYS + 1 }, (_, i) => BASE_ID + i);
+  await ln.removeDeliveredNotificationsById({ ids }).catch(() => undefined);
+  await ln.cancel({ notifications: ids.map((id) => ({ id })) }).catch(() => undefined);
 }
 
 /** Text for a given day, or null if nobody is overdue. Names are left out when the app is locked. */

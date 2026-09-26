@@ -43,8 +43,8 @@ test('imports a Salonbog prototype backup', async ({ page }) => {
   await fresh(page);
   await importFixture(page);
   await page.getByRole('button', { name: 'Kunder' }).click();
-  await expect(page.getByRole('button', { name: /Morten/ })).toBeVisible();
-  await expect(page.getByRole('button', { name: /Sirius.*Barn/ })).toBeVisible();
+  await expect(page.getByRole('button', { name: /Holger/ })).toBeVisible();
+  await expect(page.getByRole('button', { name: /Theo.*Barn/ })).toBeVisible();
 });
 
 test('a regular client visit can be registered in a few taps', async ({ page }) => {
@@ -78,7 +78,7 @@ test('swiping a visit away deletes it, and Fortryd brings it back', async ({ pag
   await fresh(page);
   await importFixture(page);
   await page.getByRole('button', { name: 'Kunder' }).click();
-  await page.getByRole('button', { name: /Morten/ }).click();
+  await page.getByRole('button', { name: /Holger/ }).click();
   const rows = page.locator('.hist');
   const before = await rows.count();
   const box = await page.locator('.swipe').first().boundingBox();
@@ -97,7 +97,7 @@ test('a visit can be deleted from its edit sheet', async ({ page }) => {
   await fresh(page);
   await importFixture(page);
   await page.getByRole('button', { name: 'Kunder' }).click();
-  await page.getByRole('button', { name: /Morten/ }).click();
+  await page.getByRole('button', { name: /Holger/ }).click();
   const rows = page.locator('.hist');
   const before = await rows.count();
   await rows.first().click();
@@ -110,12 +110,12 @@ test('back navigation closes the sheet before leaving the page', async ({ page }
   await fresh(page);
   await importFixture(page);
   await page.getByRole('button', { name: 'Kunder' }).click();
-  await page.getByRole('button', { name: /Morten/ }).click();
+  await page.getByRole('button', { name: /Holger/ }).click();
   await page.getByRole('button', { name: 'Registrér besøg' }).click();
   await expect(page.getByRole('dialog')).toBeVisible();
   await page.goBack();
   await expect(page.getByRole('dialog')).toBeHidden();
-  await expect(page.getByRole('heading', { name: 'Morten' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Holger' })).toBeVisible();
   await page.goBack();
   await expect(page.getByRole('heading', { name: 'Kunder' })).toBeVisible();
 });

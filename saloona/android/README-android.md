@@ -27,18 +27,18 @@ Begrundelsen er, at databasen er krypteret med en nøgle fra Android Keystore, o
 
 `network_security_config.xml` forbyder klartekst og stoler kun på systemets certifikater. Det er et ekstra forsvar, da appen ikke har netværk.
 
-## Debug og release
-| | Debug (`assembleDebug`) | Release (`assembleRelease`) |
-|---|---|---|
-| Pakkenavn | `dk.saloona.app.debug` | `dk.saloona.app` |
-| Navn på telefonen | Saloona test | Saloona |
-| WebView-debugging | til | fra |
-| Capacitor-logning | til | fra |
-| R8 og resource shrinking | nej | ja (`proguard-rules.pro`) |
+## Build-typer
+| | Debug (`assembleDebug`) | Tester (`assembleTester`) | Release (`assembleRelease`) |
+|---|---|---|---|
+| Pakkenavn | `dk.saloona.app.debug` | `dk.saloona.app.test` | `dk.saloona.app` |
+| Navn på telefonen | Saloona test | Saloona test | Saloona |
+| `debuggable`, WebView-debugging | til | fra | fra |
+| R8 og resource shrinking | nej | ja | ja (`proguard-rules.pro`) |
+| Signering | lokal debug-nøgle | debug-/testnøgle (CI-cache) | ejerens nøgle fra miljøvariabler eller `~/.gradle/gradle.properties` |
 
-WebView-debugging følger `debuggable`-flaget: Capacitors `CapConfig` bruger `FLAG_DEBUGGABLE` som standard for `android.webContentsDebuggingEnabled`, og `capacitor.config.json` sætter den ikke. Logning følger `loggingBehavior: "debug"`.
+WebView-debugging følger `debuggable`-flaget: Capacitors `CapConfig` bruger `FLAG_DEBUGGABLE` som standard for `android.webContentsDebuggingEnabled`, og `capacitor.config.json` sætter den ikke. Capacitors egen logning er slået fra i alle builds (`loggingBehavior: "none"`), så argumenter til plugin-kald (fx backup-indhold) aldrig havner i logcat.
 
-**Bemærk:** debug-builds logger argumenterne til plugin-kald i logcat, fx backup-indhold og telefonnumre. Det gør Capacitor selv (`Bridge.callPluginMethod`). Brug derfor ikke testversionen til rigtige kundedata.
+Debug-buildet kan inspiceres over USB (`run-as`, `chrome://inspect`) og er kun til udvikling. Testversionen, som CI udgiver, er tester-buildet.
 
 `versionCode` sættes med `-PversionCode=<tal>` (CI bruger run-nummeret) og er ellers 1.
 
@@ -61,6 +61,6 @@ cd android && ./gradlew assembleRelease
 ```
 
 ## CI
-`.github/workflows/saloona.yml` kører web-tjek (`npm audit`, `npm run check`, `npm test`, `npm run build`) og bygger derefter debug og usigneret release. Til sidst starter den begge APK'er på en emulator (Android 14). Release signeres her med en nøgle, der kun findes i det job, for at fange R8-fejl. På grenen `claude/saloona-salon-app-cxdxja` lægges `Saloona-test.apk` på prereleasen `saloona-test`, som aldrig bliver "latest".
+`.github/workflows/saloona.yml` kører web-tjek (`npm audit`, `npm run check`, `npm test`, `npm run build`) og bygger derefter debug, tester og usigneret release og tjekker det flettede manifest (`scripts/ci-manifest-check.py`: kun de tilladte permissions og kun MainActivity eksporteret). Til sidst starter den tester og release på en emulator (Android 14). Release signeres her med en nøgle, der kun findes i det job, for at fange R8-fejl. På grenen `claude/saloona-salon-app-cxdxja` lægges `Saloona-test.apk` på prereleasen `saloona-test`, som aldrig bliver "latest".
 
-Testversionen signeres med en fast debug-nøgle fra GitHub Actions-cachen, så en ny test-APK kan installeres oven på den gamle. Cachen slettes efter 7 dage uden brug. Så laves en ny nøgle, og den gamle testversion skal afinstalleres først.
+Testversionen (tester-buildet) signeres med en fast debug-nøgle fra GitHub Actions-cachen, så en ny test-APK kan installeres oven på den gamle. Cachen slettes efter 7 dage uden brug. Så laves en ny nøgle, og den gamle testversion skal afinstalleres først.

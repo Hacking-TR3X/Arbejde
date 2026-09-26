@@ -31,34 +31,34 @@ const nameOf = (id: string) => clients.get(id)?.name;
 describe('Snart tid after importing the prototype backup', () => {
   const o = dueOverview(data.visits, clients, TODAY);
 
-  it('over tid: Mads (43 days) before Lauge (10 days); Hanne is hidden by her booking', () => {
+  it('over tid: Egon (43 days) before Aksel (10 days); Grete is hidden by her booking', () => {
     expect(o.late.map((r) => [nameOf(r.clientId), r.treatment, r.daysUntil])).toEqual([
-      ['Mads', 'Klip', -43],
-      ['Lauge', 'Klip', -10]
+      ['Egon', 'Klip', -43],
+      ['Aksel', 'Klip', -10]
     ]);
-    expect(o.late.some((r) => nameOf(r.clientId) === 'Hanne')).toBe(false);
+    expect(o.late.some((r) => nameOf(r.clientId) === 'Grete')).toBe(false);
   });
 
-  it('inden for 2 uger: Sirius in exactly 14 days', () => {
-    expect(o.soon.map((r) => [nameOf(r.clientId), r.treatment, r.daysUntil])).toEqual([['Sirius', 'Børneklip', 14]]);
+  it('inden for 2 uger: Theo in exactly 14 days', () => {
+    expect(o.soon.map((r) => [nameOf(r.clientId), r.treatment, r.daysUntil])).toEqual([['Theo', 'Børneklip', 14]]);
   });
 
-  it('senere: Morten every 35 days, next 2026-10-31', () => {
+  it('senere: Holger every 35 days, next 2026-10-31', () => {
     expect(o.later.map((r) => [nameOf(r.clientId), r.expected, formatInterval(r.intervalDays!)])).toEqual([
-      ['Morten', '2026-10-31', 'hver 5. uge']
+      ['Holger', '2026-10-31', 'hver 5. uge']
     ]);
   });
 
-  it('kommende aftaler: Hanne, Farve, 2026-10-02', () => {
-    expect(o.upcoming.map((u) => [u.client?.name, u.visit.treatment, u.visit.date])).toEqual([['Hanne', 'Farve', '2026-10-02']]);
+  it('kommende aftaler: Grete, Farve, 2026-10-02', () => {
+    expect(o.upcoming.map((u) => [u.client?.name, u.visit.treatment, u.visit.date])).toEqual([['Grete', 'Farve', '2026-10-02']]);
   });
 
-  it('samler data: Buster first (2 dates), then single visits newest first', () => {
+  it('samler data: Otto first (2 dates), then single visits newest first', () => {
     const list = o.collecting.map((r) => `${nameOf(r.clientId)}/${r.treatment}/${r.dates.length}`);
-    expect(list[0]).toBe('Buster/Børneklip/2');
-    expect(list).toContain('Morten/Skæg/1');
-    expect(list).toContain('Gammel skoleveninde/Klip/1');
-    expect(list.at(-1)).toBe('Gammel skoleveninde/Klip/1'); // oldest single visit (2026-02-27)
+    expect(list[0]).toBe('Otto/Børneklip/2');
+    expect(list).toContain('Holger/Skæg/1');
+    expect(list).toContain('Gammel nabo/Klip/1');
+    expect(list.at(-1)).toBe('Gammel nabo/Klip/1'); // oldest single visit (2026-02-27)
   });
 });
 
@@ -69,7 +69,7 @@ describe('Indtjening after importing the prototype backup', () => {
     expect(e.total).toBe(405_000);
     expect(formatAmount(e.total)).toBe('4.050 kr.');
     expect(e.average).toBe(81_000);
-    expect(e.topClients[0]).toMatchObject({ label: 'Familie Køge', total: 160_000 });
+    expect(e.topClients[0]).toMatchObject({ label: 'Familie Søby', total: 160_000 });
   });
 
   it('last month (August): 5 visits, 1.600 kr., all paid', () => {
@@ -97,18 +97,18 @@ describe('Suggestions in the visit sheet', () => {
   const defaults = data.prices;
 
   it('prices', () => {
-    expect(suggestPrice(data.visits, 'c01', 'klip', defaults, TODAY)).toBe(45_000); // Morten, own
-    expect(suggestPrice(data.visits, 'c09', 'klip', defaults, TODAY)).toBe(35_000); // Farmor, own
-    expect(suggestPrice(data.visits, 'c07', 'klip', defaults, TODAY)).toBe(45_000); // Arne, latest anyone
-    expect(suggestPrice(data.visits, 'c10', 'farve', defaults, TODAY)).toBe(125_050); // Laura, Hanne's latest
+    expect(suggestPrice(data.visits, 'c01', 'klip', defaults, TODAY)).toBe(45_000); // Holger, own
+    expect(suggestPrice(data.visits, 'c09', 'klip', defaults, TODAY)).toBe(35_000); // Oldemor, own
+    expect(suggestPrice(data.visits, 'c07', 'klip', defaults, TODAY)).toBe(45_000); // Poul, latest anyone
+    expect(suggestPrice(data.visits, 'c10', 'farve', defaults, TODAY)).toBe(125_050); // Ingrid, Grete's latest
     expect(suggestPrice(data.visits, 'c08', 'permanent', defaults, TODAY)).toBe(70_000);
     expect(suggestPrice(data.visits, 'c01', 'hårkur', defaults, TODAY)).toBeNull();
   });
 
   it('payment method', () => {
-    expect(suggestPay(data.visits, 'c01', TODAY)).toBe('kontant'); // Morten's latest
+    expect(suggestPay(data.visits, 'c01', TODAY)).toBe('kontant'); // Holger's latest
     expect(suggestPay(data.visits, 'c08', TODAY)).toBe('mp_mig');
-    expect(suggestPay(data.visits, 'c07', TODAY)).toBe('kontant'); // Arne never paid – most used overall
+    expect(suggestPay(data.visits, 'c07', TODAY)).toBe('kontant'); // Poul never paid – most used overall
   });
 
   it('treatment chips and client tags survive the import', () => {
@@ -116,7 +116,7 @@ describe('Suggestions in the visit sheet', () => {
     expect(clients.get('c13')?.tag).toBeNull();
   });
 
-  it('treatment chips: most used first, Morten’s own first for Morten', () => {
+  it('treatment chips: most used first, Holger’s own first for Holger', () => {
     expect(treatmentOptions(data.visits).map((o) => o.label)).toEqual(['Klip', 'Børneklip', 'Farve', 'Farve + klip', 'Skæg', 'Permanent']);
     expect(treatmentOptions(data.visits, 'c01').slice(0, 2).map((o) => o.key)).toEqual(['klip', 'skæg']);
   });

@@ -1,13 +1,14 @@
 <script lang="ts">
   import { fly } from 'svelte/transition';
   import { snackbar } from '../lib/snackbar.svelte';
+  import { cubicOut } from 'svelte/easing';
   import { motionMs } from './motion';
 </script>
 
 <div class="wrap" role="status" aria-live="polite">
   {#if snackbar.current}
     {#key snackbar.current.id}
-      <div class="bar" transition:fly={{ y: 24, duration: motionMs(180) }}>
+      <div class="bar" transition:fly|global={{ y: 24, duration: motionMs(180), easing: cubicOut }}>
         <span class="text">{snackbar.current.text}</span>
         {#if snackbar.current.action}
           <button class="act" onclick={() => snackbar.runAction()}>{snackbar.current.action.label}</button>
@@ -29,8 +30,9 @@
     pointer-events: none;
     padding: 0 16px;
   }
+  /* Only the action button catches taps, so the message never blocks what is under it. */
   .bar {
-    pointer-events: auto;
+    pointer-events: none;
     display: flex;
     align-items: center;
     gap: 8px;
@@ -50,6 +52,7 @@
     padding: var(--space-1) 0;
   }
   .act {
+    pointer-events: auto;
     flex: none;
     min-height: var(--tap);
     min-width: var(--tap);

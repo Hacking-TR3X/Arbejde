@@ -22,7 +22,10 @@ Er telefonen tilsluttet en computer med USB-fejlfinding slået til, kan du også
 **Opdatering:** Installér den nye APK oven på den gamle. Dine data bliver liggende, så længe APK'en er signeret med **samme nøgle**. Derfor skal du passe godt på din keystore (se afsnit 3).
 
 ### Testversionen
-GitHub bygger automatisk en testversion, som hedder **Saloona test**. Du finder den under *Releases → Saloona – testversion* i dette repository. Den er signeret med en debug-nøgle og har sit eget app-id (`dk.saloona.app.debug`), så den kan ligge ved siden af den rigtige Saloona. Data flytter du fra den ene til den anden med backup og gendannelse.
+GitHub bygger automatisk en testversion, **Saloona test**, ved hvert push. Du finder den under *Releases → Saloona – testversion* i dette repository (filen `Saloona-test.apk`).
+- Den er bygget som den rigtige app. Databasen er krypteret, der er ingen fejlfinding slået til, og appen har ingen internetadgang. Den er dog signeret med en testnøgle fra GitHub og har sit eget app-id (`dk.saloona.app.test`), så den kan ligge ved siden af den rigtige Saloona.
+- **Tag backup, før du installerer en ny testversion.** Testnøglen ligger i GitHubs cache og kan blive skiftet, hvis der ikke bygges i 7 dage. Så kan den nye testversion ikke installeres oven på den gamle, og den gamle skal afinstalleres først. Dine data får du tilbage fra backup-filen.
+- Den rigtige app bygger og signerer du selv med din egen nøgle (afsnit 3). Data flytter du fra testversionen til den rigtige app med backup og gendannelse.
 
 ---
 
@@ -50,7 +53,7 @@ Alt ligger kun på telefonen, og Android tager bevidst ikke automatisk backup af
 - **JDK 21** (fx Temurin)
 - **Android SDK** med *Android SDK Platform 36* og *Build-Tools 36*. Det nemmeste er at installere Android Studio og åbne *SDK Manager*. Sæt derefter miljøvariablen `ANDROID_HOME` til SDK-mappen, eller lav filen `saloona/android/local.properties` med `sdk.dir=/sti/til/Android/sdk`. Den fil må ikke committes, og den er allerede i `.gitignore`.
 
-### Debug-APK (til test)
+### Debug-APK (kun til udvikling)
 ```sh
 cd saloona
 npm ci
@@ -59,7 +62,7 @@ npx cap sync android   # kopierer den ind i Android-projektet
 cd android
 ./gradlew assembleDebug
 ```
-APK'en ligger derefter i `android/app/build/outputs/apk/debug/app-debug.apk`.
+APK'en ligger derefter i `android/app/build/outputs/apk/debug/app-debug.apk`. Debug-buildet kan inspiceres over USB. Brug det derfor ikke til rigtige kundedata. `./gradlew assembleTester` bygger den hærdede testversion (samme som release, signeret med din lokale debug-nøgle).
 
 ### Signeret release-APK
 
