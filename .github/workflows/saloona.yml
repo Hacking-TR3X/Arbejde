@@ -183,6 +183,8 @@ jobs:
           sudo udevadm trigger --name-match=kvm
 
       - name: Launch APKs on emulator
+        env:
+          SMOKE_EXPECT_TEXT: Din kundebog
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 34

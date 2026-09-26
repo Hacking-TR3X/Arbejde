@@ -114,8 +114,16 @@ smoke_one() {
     failed=1
   fi
 
+  # Always show what was on screen (text nodes only) so a failure can be read in the job log.
+  if [ -f "$ui" ]; then
+    echo "Tekst på skærmen ($label):"
+    grep -o -E 'text="[^"]+"' "$ui" | head -40 || true
+  fi
   if [ "$failed" -eq 0 ]; then
     echo "$label: OK"
+  else
+    echo "Relevant logcat ($label):"
+    grep -E "AndroidRuntime|Fatal signal|FATAL|libc |DEBUG +:|Capacitor|SQLite|saloona|ActivityManager: (Process|Killing|Force)|Console|chromium|am_proc_died|lowmemorykiller" "$log_full" | tail -200 || true
   fi
   echo "::endgroup::"
   return "$failed"
