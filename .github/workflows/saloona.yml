@@ -281,6 +281,3 @@ jobs:
             "$RUNNER_TEMP/publish/Saloona.apk" \
             "$RUNNER_TEMP/smoke/saloona-smoke-app.png" \
             "$RUNNER_TEMP/smoke/saloona-smoke-release.png"
-          # The old test release ("Saloona test") is gone; remove it and its tag.
-          gh release delete saloona-test --cleanup-tag --yes 2>/dev/null || true
-          git push origin :refs/tags/saloona-test 2>/dev/null || true
