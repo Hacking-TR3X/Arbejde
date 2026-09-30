@@ -168,7 +168,7 @@ object Ghosts {
             speeds = NORMAL,
             tells = listOf(
                 "Kan ikke starte en jagt, mens en spiller er i samme rum som den.",
-                "Laver ingen events ved høj sanity og er generelt meget passiv.",
+                "Laver ingen events ved 100 % sanity og er generelt meget passiv.",
                 "Viser sig ofte som en skygge, når den manifesterer sig.",
             ),
         ),

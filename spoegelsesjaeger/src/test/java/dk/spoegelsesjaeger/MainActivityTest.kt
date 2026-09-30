@@ -85,7 +85,8 @@ class MainActivityTest {
         val activity = launch()
         activity.openTools()
         activity.findViewById<View>(R.id.smudgeStart).performClick()
-        shadowOf(Looper.getMainLooper()).idleFor(Duration.ofSeconds(65))
+        // The display ticks five times a second, so give it a moment past the full second.
+        shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(65_500))
         assertEquals("1:05", activity.findViewById<TextView>(R.id.smudgeTime).text.toString())
         assertTrue(activity.findViewById<View>(R.id.smudgeHunted).isShown)
 
