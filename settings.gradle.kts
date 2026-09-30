@@ -16,3 +16,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "LoopCast"
 include(":app")
+include(":spoegelsesjaeger")

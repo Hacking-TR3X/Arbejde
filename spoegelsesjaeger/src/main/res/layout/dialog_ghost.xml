@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.core.widget.NestedScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingStart="24dp"
+        android:paddingEnd="24dp"
+        android:paddingTop="8dp"
+        android:paddingBottom="24dp">
+
+        <TextView
+            android:id="@+id/detailName"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textAppearance="?attr/textAppearanceHeadlineMedium"
+            android:textColor="@color/primary"
+            tools:text="Banshee" />
+
+        <TextView
+            android:id="@+id/detailSummary"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:textAppearance="?attr/textAppearanceBodyLarge"
+            android:textColor="@color/text_primary" />
+
+        <TextView
+            style="@style/DetailLabel"
+            android:text="@string/detail_evidence" />
+
+        <com.google.android.material.chip.ChipGroup
+            android:id="@+id/detailEvidence"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:chipSpacingHorizontal="6dp"
+            app:chipSpacingVertical="6dp" />
+
+        <TextView
+            android:id="@+id/detailForced"
+            style="@style/DetailValue"
+            android:visibility="gone" />
+
+        <TextView
+            style="@style/DetailLabel"
+            android:text="@string/detail_hunt" />
+
+        <TextView
+            android:id="@+id/detailHunt"
+            style="@style/DetailValue" />
+
+        <TextView
+            style="@style/DetailLabel"
+            android:text="@string/detail_speed" />
+
+        <TextView
+            android:id="@+id/detailSpeed"
+            style="@style/DetailValue" />
+
+        <TextView
+            style="@style/DetailLabel"
+            android:text="@string/detail_tells" />
+
+        <TextView
+            android:id="@+id/detailTells"
+            style="@style/DetailValue"
+            android:lineSpacingExtra="6dp" />
+
+        <TextView
+            android:id="@+id/detailTimes"
+            style="@style/DetailValue"
+            android:layout_marginTop="12dp"
+            android:textColor="@color/text_secondary" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/detailStrike"
+            style="?attr/materialButtonOutlinedStyle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="@string/detail_strike" />
+    </LinearLayout>
+</androidx.core.widget.NestedScrollView>

@@ -1,5 +1,9 @@
 # LoopCast
 
+> Repoet indeholder også **Spøgelsesjæger** – en app der hjælper dig med at finde spøgelset i
+> Phasmophobia. Se [spoegelsesjaeger/README.md](spoegelsesjaeger/README.md) eller
+> [download APK'en direkte](https://github.com/Hacking-TR3X/Arbejde/releases/download/spoegelsesjaeger-latest/Spoegelsesjaeger.apk).
+
 En lille Android-app, der looper ét SoundCloud-track på din Google Nest / Chromecast –
 også uden SoundCloud Go+. Indsæt et link, vælg din Nest, tryk **Afspil i loop**.
 

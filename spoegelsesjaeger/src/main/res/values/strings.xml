@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Spøgelsesjæger</string>
+
+    <string name="tab_tracker">Find spøgelset</string>
+    <string name="tab_tools">Værktøjer</string>
+
+    <string name="action_reset">Nulstil</string>
+    <string name="action_keep_screen_on">Hold skærmen tændt</string>
+    <string name="action_about">Om appen</string>
+    <string name="reset_done">Ny opgave – alt er nulstillet.</string>
+    <string name="undo">Fortryd</string>
+    <string name="close">Luk</string>
+    <string name="about_text">Spøgelsesjæger hjælper dig med at finde spøgelset i Phasmophobia.\n\nMarkér de beviser, I finder (tryk én gang) eller har udelukket (tryk to gange). Listen viser, hvilke spøgelser der stadig er mulige, og beviser som ingen af dem kan have, bliver grå.\n\nPå Nightmare og Insanity er et eller flere beviser skjult – vælg det rigtige antal beviser øverst, så tager appen højde for det, inklusive spøgelser der altid viser et bestemt bevis og Mimic\'s falske Ghost Orbs.\n\nUnder “Adfærd og fart” kan du udelukke spøgelser ud fra, hvad I har set. Hold fingeren på et spøgelse for at strege det ud selv.\n\nData: Phasmophobia v0.19 (september 2026) – 30 spøgelser.</string>
+
+    <string name="evidence_title">Beviser</string>
+    <string name="evidence_hint">Tryk: fundet → udelukket → ukendt. Hold fingeren på et bevis for at se, hvordan du finder det.</string>
+    <string name="difficulty_3">3 beviser – Amateur, Intermediate og Professional.</string>
+    <string name="difficulty_2">2 beviser – Nightmare. Ét af spøgelsets beviser er skjult.</string>
+    <string name="difficulty_1">1 bevis – Insanity. To af spøgelsets beviser er skjult.</string>
+    <string name="difficulty_0">0 beviser – brug adfærd og fart. Mimic viser stadig Ghost Orbs.</string>
+
+    <string name="behaviour_title">Adfærd og fart</string>
+    <string name="behaviour_title_count">Adfærd og fart (%1$d)</string>
+    <string name="speed_title">Jagt-fart, før spøgelset ser dig</string>
+    <string name="speed_hint">Vælg alle de farter, I har hørt i løbet af opgaven.</string>
+    <string name="speed_slow">Langsom</string>
+    <string name="speed_normal">Normal</string>
+    <string name="speed_fast">Hurtig</string>
+    <string name="observations_title">Det har vi set</string>
+
+    <string name="result_none">Ingen spøgelser passer – tjek dine markeringer.</string>
+    <string name="result_one">Det er %1$s!</string>
+    <string name="result_many">%1$d mulige spøgelser</string>
+    <string name="list_hint">Tryk på et spøgelse for detaljer. Hold fingeren på det for at strege det ud.</string>
+
+    <string name="verdict_evidence">Udelukket af beviserne</string>
+    <string name="verdict_speed">Udelukket af farten</string>
+    <string name="verdict_behaviour">Udelukket af adfærden</string>
+    <string name="verdict_struck_out">Streget ud – hold fingeren for at fortryde</string>
+    <string name="meta_hunt">Jagt fra %1$d %%</string>
+    <string name="meta_hunt_any">Jagt fra %1$d %% (eller tidligere)</string>
+    <string name="meta_varies">Jagt og fart som det spøgelse, den efterligner</string>
+    <string name="meta_speed">Fart: %1$s</string>
+    <string name="fake_orb">falsk Orb</string>
+    <string name="fake_evidence">%1$s (falsk)</string>
+
+    <string name="detail_evidence">Beviser</string>
+    <string name="detail_forced">Viser altid %1$s på Nightmare og Insanity.</string>
+    <string name="detail_hunt">Jagter ved sanity</string>
+    <string name="detail_speed">Hastighed</string>
+    <string name="detail_tells">Kendetegn og tests</string>
+    <string name="detail_times">Røgelse holder den væk i %1$d s. Pause mellem jagter: %2$d s.</string>
+    <string name="detail_strike">Streg ud</string>
+    <string name="detail_unstrike">Fortryd udstregning</string>
+
+    <string name="smudge_title">Smudge-timer (røgelse)</string>
+    <string name="smudge_hint">Start, når du bruger røgelse på spøgelset uden for en jagt. Telefonen bipper og vibrerer ved 60, 90 og 180 s.</string>
+    <string name="smudge_m60">Demon kan jage igen</string>
+    <string name="smudge_m90">Alle andre end Spirit kan jage igen</string>
+    <string name="smudge_m180">Også Spirit kan jage igen</string>
+    <string name="smudge_status_0">Intet spøgelse kan jage endnu (undtagen fra forbandede genstande).</string>
+    <string name="smudge_status_60">Jagter den nu, er det en Demon.</string>
+    <string name="smudge_status_90">Jagter den nu, er det ikke en Spirit.</string>
+    <string name="smudge_status_180">Alle spøgelser kan jage igen.</string>
+    <string name="smudge_hunted">Den jagter nu!</string>
+    <string name="smudge_applied_demon">Markeret: jagt under 90 s efter røgelse – kun Demon (eller Mimic) passer.</string>
+    <string name="smudge_applied_spirit">Markeret: jagt under 180 s efter røgelse – det er ikke en Spirit.</string>
+    <string name="smudge_too_early">Under 60 s kan intet spøgelse jage efter røgelse. Var det en forbandet jagt, eller ramte røgelsen ikke spøgelset?</string>
+    <string name="smudge_too_late">Efter 180 s kan alle spøgelser jage – det siger ikke noget om spøgelset.</string>
+
+    <string name="cooldown_title">Pause efter jagt</string>
+    <string name="cooldown_hint">Start, når en jagt slutter. Spøgelset kan tidligst jage igen efter 25 s – en Demon allerede efter 20 s.</string>
+    <string name="cooldown_m20">Demon kan jage igen</string>
+    <string name="cooldown_m25">Alle spøgelser kan jage igen</string>
+    <string name="cooldown_status_0">Intet spøgelse kan jage endnu.</string>
+    <string name="cooldown_status_20">Jagter den nu, er det en Demon.</string>
+    <string name="cooldown_status_25">Alle spøgelser kan jage igen.</string>
+    <string name="cooldown_hunted">Den jagter igen!</string>
+    <string name="cooldown_applied">Markeret: ny jagt under 25 s – kun Demon (eller Mimic) passer.</string>
+    <string name="cooldown_too_early">Under 20 s kan intet spøgelse normalt jage igen. Var det en forbandet jagt?</string>
+    <string name="cooldown_too_late">Efter 25 s kan alle spøgelser jage igen – det siger ikke noget om spøgelset.</string>
+
+    <string name="timer_start">Start</string>
+    <string name="timer_restart">Start forfra</string>
+    <string name="timer_stop">Stop</string>
+
+    <string name="tap_title">Fodtrin → hastighed</string>
+    <string name="tap_hint">Tryk på knappen i takt med spøgelsets skridt under en jagt. Mål helst, mens det ikke kan se dig – ellers bliver de fleste spøgelser hurtigere.</string>
+    <string name="tap_button">Tryk på hvert skridt</string>
+    <string name="tap_empty">– m/s</string>
+    <string name="tap_more">Bliv ved med at trykke …</string>
+    <string name="tap_bpm">%1$s skridt i minuttet (%2$s)</string>
+    <string name="tap_los">Spøgelset kunne se mig (sigtelinje)</string>
+    <string name="tap_setting">Spøgelsesfart i lobbyen</string>
+    <string name="tap_matches">Passer med (blandt de %1$d mulige): %2$s</string>
+    <string name="tap_no_matches">Ingen af de %1$d mulige spøgelser passer med den fart.</string>
+    <string name="tap_reset">Nulstil</string>
+</resources>

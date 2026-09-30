@@ -1,4 +1,4 @@
-name: Build APK
+name: Build APKs
 
 on:
   push:
@@ -25,16 +25,26 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v4
 
-      - name: Build release APK
+      - name: Test Spøgelsesjæger
+        run: ./gradlew --no-daemon :spoegelsesjaeger:testDebugUnitTest
+
+      - name: Build release APKs
         run: ./gradlew --no-daemon assembleRelease
 
-      - name: Rename APK
-        run: cp app/build/outputs/apk/release/app-release.apk LoopCast.apk
+      - name: Rename APKs
+        run: |
+          cp app/build/outputs/apk/release/app-release.apk LoopCast.apk
+          cp spoegelsesjaeger/build/outputs/apk/release/spoegelsesjaeger-release.apk Spoegelsesjaeger.apk
 
       - uses: actions/upload-artifact@v4
         with:
           name: LoopCast-apk
           path: LoopCast.apk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Spoegelsesjaeger-apk
+          path: Spoegelsesjaeger.apk
 
       # Publish a stable download link:
       # https://github.com/<owner>/<repo>/releases/latest/download/LoopCast.apk
@@ -56,3 +66,24 @@ jobs:
             Download `LoopCast.apk` herunder og installér den på din Android-telefon.
           files: LoopCast.apk
           make_latest: true
+
+      # Spøgelsesjæger gets its own release, so LoopCast keeps the "latest" link above:
+      # https://github.com/<owner>/<repo>/releases/download/spoegelsesjaeger-latest/Spoegelsesjaeger.apk
+      - name: Move "spoegelsesjaeger-latest" tag to this commit
+        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/ccr-8bb97746-1diyxi'
+        run: |
+          git tag -f spoegelsesjaeger-latest
+          git push -f origin spoegelsesjaeger-latest
+
+      - name: Publish Spøgelsesjæger release
+        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/ccr-8bb97746-1diyxi'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: spoegelsesjaeger-latest
+          name: Spøgelsesjæger – nyeste build
+          body: |
+            Nyeste automatiske build af Spøgelsesjæger (commit ${{ github.sha }}).
+
+            Download `Spoegelsesjaeger.apk` herunder og installér den på din Android-telefon.
+          files: Spoegelsesjaeger.apk
+          make_latest: false
