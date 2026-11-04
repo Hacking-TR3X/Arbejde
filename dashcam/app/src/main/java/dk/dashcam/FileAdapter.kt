@@ -50,7 +50,7 @@ class FileAdapter(
             dl.finished -> ctx.getString(R.string.download_done)
             else -> {
                 val pct = if (dl.total > 0) (dl.done * 100 / dl.total).toInt() else 0
-                ctx.getString(R.string.downloading_pct, pct)
+                ctx.getString(R.string.downloading_pct, pct, CameraSession.speed(dl.bytesPerSecond))
             }
         }
         holder.b.fileDetail.text = listOfNotNull(size, extra).joinToString(" · ")

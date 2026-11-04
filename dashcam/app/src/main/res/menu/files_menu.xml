@@ -6,4 +6,9 @@
         android:icon="@drawable/ic_refresh"
         android:title="@string/refresh"
         app:showAsAction="ifRoom" />
+    <item
+        android:id="@+id/action_thumbnails"
+        android:checkable="true"
+        android:title="@string/menu_thumbnails"
+        app:showAsAction="never" />
 </menu>

@@ -22,6 +22,17 @@ Alle builds er signeret med samme nøgle, så nye versioner kan installeres oven
 - **Optagelser, nødklip og billeder** fra SD-kortet: se dem, afspil dem direkte, hent dem til
   telefonen (*Film/Dashcam* og *Billeder/Dashcam*) eller slet dem.
 - **Skift kameraets Wi‑Fi-kode** (eksperimentelt, under ⋮).
+- **Test forbindelsen** (under ⋮): måler kameraet – hvor lang tid fil-listen tager,
+  overførselshastighed, om kameraet kan sende dele af en fil, hvordan MP4-filerne er bygget
+  op, og hvad kameraet svarer på RTSP- og MJPEG-adresserne – og laver en rapport, du kan dele.
+
+Live-billedet prøver RTSP over TCP, RTSP over UDP og MJPEG over HTTP efter tur og husker den
+metode, der virker. Hvert forsøg står under *Hændelser* på forsiden.
+
+Kameraets webserver kan kun én ting ad gangen, så fil-listen henter miniaturebilleder én ad
+gangen og kun for de rækker, der er på skærmen, og holder pause, mens der hentes en video.
+Miniaturer kan slås fra i fil-listens menu (det sker også automatisk, hvis kameraet ikke kan
+levere dem).
 
 ## Første gang
 

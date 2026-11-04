@@ -51,9 +51,29 @@ class FakeCamera : AutoCloseable {
         FakeFile("2019_1104_120200_004.JPG", "A:\\Photo\\2019_1104_120200_004.JPG", 512, "2019/11/04 12:02:00", 32),
     )
 
+    private val rtsp = ServerSocket(0, 5, loopback)
+    val rtspPort: Int get() = rtsp.localPort
+
     init {
         acceptLoop(http) { serveHttp(it) }
         acceptLoop(heartbeat) { serveHeartbeat(it) }
+        acceptLoop(rtsp) { serveRtsp(it) }
+    }
+
+    private fun serveRtsp(socket: Socket) {
+        val input = BufferedInputStream(socket.getInputStream())
+        while (true) {
+            val line = readLine(input) ?: return
+            if (line.isEmpty()) break
+        }
+        val sdp = "v=0\r\nm=video 0 RTP/AVP 96\r\na=rtpmap:96 H264/90000\r\na=control:track1\r\n"
+        socket.getOutputStream().apply {
+            write(
+                ("RTSP/1.0 200 OK\r\nCSeq: 2\r\nContent-Type: application/sdp\r\n" +
+                    "Content-Length: ${sdp.length}\r\n\r\n$sdp").toByteArray()
+            )
+            flush()
+        }
     }
 
     private fun acceptLoop(server: ServerSocket, handler: (Socket) -> Unit) {
@@ -89,19 +109,46 @@ class FakeCamera : AutoCloseable {
     private fun serveHttp(socket: Socket) {
         val input = BufferedInputStream(socket.getInputStream())
         val requestLine = readLine(input) ?: return
+        var range: String? = null
         while (true) {
             val header = readLine(input) ?: break
             if (header.isEmpty()) break
+            if (header.startsWith("Range:", ignoreCase = true)) range = header.substringAfter(':').trim()
         }
         val target = requestLine.split(' ').getOrNull(1) ?: "/"
-        val (type, body) = handle(target)
+        val (type, full) = handle(target)
+        var status = "200 OK"
+        var body = full
+        var extra = "Accept-Ranges: bytes\r\n"
+        val m = range?.let { Regex("bytes=(\\d+)-(\\d*)").find(it) }
+        if (m != null && type.startsWith("video")) {
+            val from = m.groupValues[1].toInt()
+            val to = m.groupValues[2].toIntOrNull()?.coerceAtMost(full.size - 1) ?: (full.size - 1)
+            body = full.copyOfRange(from, to + 1)
+            status = "206 Partial Content"
+            extra += "Content-Range: bytes $from-$to/${full.size}\r\n"
+        }
         val out = socket.getOutputStream()
         out.write(
-            ("HTTP/1.1 200 OK\r\nContent-Type: $type\r\nContent-Length: ${body.size}\r\n" +
+            ("HTTP/1.1 $status\r\nContent-Type: $type\r\nContent-Length: ${body.size}\r\n$extra" +
                 "Connection: close\r\n\r\n").toByteArray()
         )
         out.write(body)
         out.flush()
+    }
+
+    /** A file that starts like a dash cam MP4: ftyp, then mdat (moov at the end). */
+    private fun fakeMp4(size: Int): ByteArray {
+        val b = ByteArray(size) { (it % 251).toByte() }
+        fun box(at: Int, length: Int, type: String) {
+            b[at] = (length ushr 24).toByte(); b[at + 1] = (length ushr 16).toByte()
+            b[at + 2] = (length ushr 8).toByte(); b[at + 3] = length.toByte()
+            type.toByteArray().copyInto(b, at + 4)
+        }
+        box(0, 24, "ftyp")
+        box(24, size - 24 - 16, "mdat")
+        box(size - 16, 16, "moov")
+        return b
     }
 
     private fun readLine(input: InputStream): String? {
@@ -126,7 +173,7 @@ class FakeCamera : AutoCloseable {
             val file = files.firstOrNull { it.path.substring(2).replace('\\', '/') == path }
                 ?: return "text/html" to
                     "<html><head><title>Page not found</title></head></html>".toByteArray()
-            return "video/mp4" to ByteArray(file.size) { (it % 256).toByte() }
+            return "video/mp4" to fakeMp4(file.size)
         }
         val params: List<Pair<String, String>> = query.split('&').map { part ->
             val key = part.substringBefore('=')
@@ -199,6 +246,7 @@ class FakeCamera : AutoCloseable {
             }
             cmd == 4001 -> return "image/jpeg" to byteArrayOf(-1, -40, -1, -32, 1, 2, 3)
             cmd == 2019 -> xml(cmd, 0)
+            cmd == 2015 -> xml(cmd, 0)
             cmd == 2017 -> xml(cmd, if (recording == 1) 0 else -5)
             settings.containsKey(cmd) -> when {
                 recording == 1 -> xml(cmd, -22)
@@ -216,5 +264,6 @@ class FakeCamera : AutoCloseable {
     override fun close() {
         http.close()
         heartbeat.close()
+        rtsp.close()
     }
 }

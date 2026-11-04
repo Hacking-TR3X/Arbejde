@@ -27,6 +27,8 @@
     <string name="menu_change_pw">Skift kameraets Wi‑Fi-kode</string>
     <string name="menu_phone_wifi">Åbn telefonens Wi‑Fi</string>
     <string name="refresh">Opdatér</string>
+    <string name="menu_test">Test forbindelsen</string>
+    <string name="menu_thumbnails">Miniaturebilleder</string>
 
     <!-- Wi-Fi-dialog -->
     <string name="wifi_dialog_title">Kameraets Wi‑Fi</string>
@@ -69,13 +71,22 @@
     <string name="download">Hent til telefonen</string>
     <string name="download_done">gemt på telefonen ✓</string>
     <string name="download_failed">fejl: %1$s</string>
-    <string name="downloading_pct">henter %1$d %%</string>
+    <string name="downloading_pct">henter %1$d %% · %2$s</string>
     <string name="delete">Slet</string>
     <string name="delete_title">Slet fra kameraet?</string>
     <string name="delete_message">%1$s bliver slettet fra kameraets SD-kort.</string>
     <string name="close">Luk</string>
 
+    <string name="thumbs_off">Kameraet er for langsomt til miniaturebilleder, så de er slået fra. Du kan slå dem til igen i menuen.</string>
+
+    <!-- Test -->
+    <string name="test_title">Testrapport</string>
+    <string name="share">Del</string>
+
     <!-- Afspiller -->
+    <string name="live_trying">Live · prøver %1$s…</string>
+    <string name="live_via">Live · %1$s</string>
+    <string name="live_failed">Kameraet sendte ikke noget live-billede. Det her blev prøvet:</string>
     <string name="live">Live</string>
     <string name="emergency_clip">Gem nødklip</string>
     <string name="take_photo">Tag billede</string>

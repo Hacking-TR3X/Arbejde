@@ -11,6 +11,7 @@ import dk.dashcam.cam.CamFile
 import dk.dashcam.cam.CamMode
 import dk.dashcam.cam.CamSettings
 import dk.dashcam.cam.CameraClient
+import dk.dashcam.cam.CameraProbe
 import dk.dashcam.cam.CameraException
 import dk.dashcam.cam.Cmd
 import dk.dashcam.cam.ConnectionLostException
@@ -59,7 +60,21 @@ object CameraSession {
         val total: Long,
         val finished: Boolean = false,
         val error: String? = null,
-    )
+        val startedAt: Long = System.currentTimeMillis(),
+    ) {
+        /** Average speed so far in bytes per second. */
+        val bytesPerSecond: Double
+            get() {
+                val ms = System.currentTimeMillis() - startedAt
+                return if (ms > 0) done * 1000.0 / ms else 0.0
+            }
+    }
+
+    class LiveInfo(val rtspUrl: String, val mjpegUrls: List<String>)
+
+    /** Last file list fetched from the camera, shown at once while a fresh one loads. */
+    var cachedFiles: List<CamFile>? = null
+        private set
 
     private const val TAG = "CameraSession"
 
@@ -307,10 +322,38 @@ object CameraSession {
 
     // --- Live view -----------------------------------------------------------------------------
 
-    suspend fun prepareLive(): String {
+    suspend fun prepareLive(): LiveInfo {
         val c = requireClient()
         c.ensureMode(CamMode.VIDEO)
-        return c.liveUrl
+        if (!c.startLiveStream()) note("Kameraet afviste live-kommandoen (2015) – prøver alligevel")
+        return LiveInfo(c.liveUrl, c.mjpegUrls)
+    }
+
+    /** "Test forbindelsen": measures the camera and returns a report to share. */
+    suspend fun runDiagnostics(): String {
+        val c = requireClient()
+        _state.update { it.copy(busy = true, message = "Tester forbindelsen – det tager op til et minut…") }
+        try {
+            val version = try {
+                @Suppress("DEPRECATION")
+                appContext.packageManager.getPackageInfo(appContext.packageName, 0).versionName
+            } catch (e: Exception) {
+                null
+            }
+            val header = listOf(
+                "Dashcam-test " + SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.US).format(Date()),
+                "Telefon: ${Build.MANUFACTURER} ${Build.MODEL}, Android ${Build.VERSION.RELEASE} · app ${version ?: "?"}",
+                "Live-metode sidst: ${prefs.liveMethod ?: "ingen endnu"} · miniaturer: ${if (prefs.thumbnails) "til" else "fra"}",
+            )
+            val lines = CameraProbe(c).run()
+            refreshRecording(c)
+            note("Test af forbindelsen færdig")
+            return (header + lines).joinToString("\n")
+        } finally {
+            _state.update {
+                it.copy(busy = false, message = if (it.status == Status.CONNECTED) "Forbundet" else it.message)
+            }
+        }
     }
 
     suspend fun saveEmergencyClip() {
@@ -328,7 +371,12 @@ object CameraSession {
     suspend fun listFiles(): List<CamFile> {
         val c = requireClient()
         _state.update { it.copy(recording = false) }
-        return c.listFiles()
+        val started = System.nanoTime()
+        val files = c.listFiles()
+        val ms = (System.nanoTime() - started) / 1_000_000
+        cachedFiles = files
+        note("Fil-liste: ${files.size} filer hentet på ${CameraProbe.secs(ms)}")
+        return files
     }
 
     suspend fun thumbnail(file: CamFile): ByteArray? = client?.takeIf { it.connected }?.thumbnail(file)
@@ -343,8 +391,11 @@ object CameraSession {
 
     suspend fun delete(file: CamFile) {
         requireClient().delete(file)
+        cachedFiles = cachedFiles?.filterNot { it.path == file.path || it.path == file.previewPath }
         note("Slettede ${file.name}")
     }
+
+    val downloading: Boolean get() = _downloads.value.values.any { !it.finished }
 
     /** Back to normal driving mode after browsing files: video mode and recording again. */
     fun leaveFilesAsync() {
@@ -367,21 +418,28 @@ object CameraSession {
         val running = _downloads.value[file.path]
         if (running != null && !running.finished) return
         scope.launch {
-            _downloads.update { it + (file.path to Download(file, 0, file.size)) }
+            val start = Download(file, 0, file.size)
+            _downloads.update { it + (file.path to start) }
+            fun current() = _downloads.value[file.path] ?: start
             try {
                 val where = saveToPhone(file) { out ->
                     c.download(file, out) { done, total ->
-                        _downloads.update { it + (file.path to Download(file, done, total)) }
+                        _downloads.update { it + (file.path to current().copy(done = done, total = total)) }
                     }
                 }
-                _downloads.update { it + (file.path to Download(file, file.size, file.size, finished = true)) }
-                note("Gemt på telefonen: $where")
+                val done = current().copy(done = file.size, finished = true)
+                _downloads.update { it + (file.path to done) }
+                val secs = (System.currentTimeMillis() - done.startedAt) / 1000
+                note(
+                    "Gemt på telefonen: $where (${CameraProbe.mb(file.size)} på " +
+                        "${secs / 60}:${"%02d".format(secs % 60)} – ${speed(done.bytesPerSecond)})"
+                )
                 Toast.makeText(appContext, "Gemt: $where", Toast.LENGTH_LONG).show()
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
                 val msg = e.message ?: e.javaClass.simpleName
-                _downloads.update { it + (file.path to Download(file, 0, file.size, finished = true, error = msg)) }
+                _downloads.update { it + (file.path to current().copy(finished = true, error = msg)) }
                 note("Download af ${file.name} fejlede: $msg")
             }
         }
@@ -427,6 +485,9 @@ object CameraSession {
         val shownFolder = if (file.isPhoto) "Billeder" else "Film"
         return "$shownFolder/Dashcam/${file.name}"
     }
+
+    fun speed(bytesPerSecond: Double): String =
+        String.format(Locale.forLanguageTag("da"), "%.1f MB/s", bytesPerSecond / 1_000_000)
 
     private const val AUTO_RECORD = 2012
 }

@@ -8,10 +8,16 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+import okhttp3.Call
+import okhttp3.Callback
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import okhttp3.Response
+import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
 import java.io.IOException
 import java.io.OutputStream
 import java.net.InetSocketAddress
@@ -21,6 +27,20 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import java.util.concurrent.TimeUnit
+
+/** Runs the call asynchronously; cancelling the coroutine cancels the HTTP request. */
+private suspend fun Call.await(): Response = suspendCancellableCoroutine { cont ->
+    cont.invokeOnCancellation { cancel() }
+    enqueue(object : Callback {
+        override fun onFailure(call: Call, e: IOException) {
+            if (cont.isActive) cont.resumeWithException(e)
+        }
+
+        override fun onResponse(call: Call, response: Response) {
+            if (cont.isActive) cont.resume(response) else response.close()
+        }
+    })
+}
 
 open class CameraException(message: String, cause: Throwable? = null) : Exception(message, cause)
 
@@ -39,6 +59,7 @@ class CameraClient(
     val host: String = DEFAULT_HOST,
     private val httpPort: Int = 80,
     private val heartbeatPort: Int = 3333,
+    private val rtspPort: Int = 554,
     private val log: (String) -> Unit = {},
 ) {
     private val http = OkHttpClient.Builder()
@@ -47,6 +68,10 @@ class CameraClient(
         .build()
     private val downloadHttp = http.newBuilder()
         .readTimeout(30, TimeUnit.SECONDS)
+        .build()
+    private val thumbHttp = http.newBuilder()
+        .readTimeout(6, TimeUnit.SECONDS)
+        .callTimeout(8, TimeUnit.SECONDS)
         .build()
 
     private val commandLock = Mutex()
@@ -69,7 +94,11 @@ class CameraClient(
 
     val baseUrl: String get() = if (httpPort == 80) "http://$host" else "http://$host:$httpPort"
 
-    val liveUrl: String get() = "rtsp://$host/xxx.mov"
+    val liveUrl: String
+        get() = if (rtspPort == 554) "rtsp://$host/xxx.mov" else "rtsp://$host:$rtspPort/xxx.mov"
+
+    /** Candidate addresses for an MJPEG live picture over HTTP (some Novatek firmwares). */
+    val mjpegUrls: List<String> get() = listOf("http://$host:8192/", "http://$host:8000/")
 
     // --- Low level -----------------------------------------------------------------------------
 
@@ -300,19 +329,108 @@ class CameraClient(
 
     fun fileUrl(path: String): String = fileUrl(CamFile("", path, 0, "", false))
 
-    /** Small JPEG thumbnail of a video or photo, or `null` if the camera has none. */
+    /**
+     * Small JPEG thumbnail of a video or photo, or `null` if the camera has none.
+     *
+     * One at a time, short timeout, and cancelling the coroutine cancels the HTTP request: the
+     * camera's web server handles one request at a time, so a queue of thumbnails nobody looks
+     * at any more would hold up playback and downloads.
+     */
     suspend fun thumbnail(file: CamFile): ByteArray? = thumbnailLock.withLock {
+        val request = Request.Builder().url(url(file.urlPath, cmd = Cmd.THUMBNAIL)).build()
+        val resp = try {
+            thumbHttp.newCall(request).await()
+        } catch (_: IOException) {
+            return@withLock null
+        }
         withContext(Dispatchers.IO) {
-            val request = Request.Builder().url(url(file.urlPath, cmd = Cmd.THUMBNAIL)).build()
-            try {
-                http.newCall(request).execute().use { resp ->
-                    val type = resp.header("Content-Type").orEmpty()
-                    if (!resp.isSuccessful || type.contains("xml") || type.contains("html")) null
-                    else resp.body?.bytes()
-                }
-            } catch (_: IOException) {
-                null
+            resp.use {
+                val type = it.header("Content-Type").orEmpty()
+                if (!it.isSuccessful || type.contains("xml") || type.contains("html")) null
+                else it.body?.bytes()
             }
+        }
+    }
+
+    /** Asks the camera to start its live stream (Novatek "movie live view"). */
+    suspend fun startLiveStream(): Boolean = try {
+        send(Cmd.LIVE_STREAM, par = 1)
+        true
+    } catch (e: ConnectionLostException) {
+        throw e
+    } catch (_: CameraException) {
+        false
+    }
+
+    // --- Diagnostics -------------------------------------------------------------------------
+
+    class HttpProbe(
+        val code: Int,
+        val headers: Map<String, String>,
+        val body: ByteArray,
+        val millis: Long,
+    )
+
+    /** GETs [url] and reads at most [maxBytes] of the answer. Throws IOException on failure. */
+    suspend fun probeHttp(
+        url: String,
+        maxBytes: Int,
+        range: String? = null,
+        timeoutMs: Long = 5_000,
+    ): HttpProbe = withContext(Dispatchers.IO) {
+        val client = http.newBuilder()
+            .connectTimeout(timeoutMs, TimeUnit.MILLISECONDS)
+            .readTimeout(timeoutMs, TimeUnit.MILLISECONDS)
+            .build()
+        val builder = Request.Builder().url(url)
+        if (range != null) builder.header("Range", range)
+        val started = System.nanoTime()
+        client.newCall(builder.build()).execute().use { resp ->
+            val out = java.io.ByteArrayOutputStream()
+            val buf = ByteArray(64 * 1024)
+            resp.body?.byteStream()?.use { input ->
+                while (out.size() < maxBytes) {
+                    val n = input.read(buf, 0, minOf(buf.size, maxBytes - out.size()))
+                    if (n < 0) break
+                    out.write(buf, 0, n)
+                }
+            }
+            val headers = resp.headers.names().associateWith { resp.header(it).orEmpty() }
+            HttpProbe(resp.code, headers, out.toByteArray(), (System.nanoTime() - started) / 1_000_000)
+        }
+    }
+
+    /** Sends an RTSP DESCRIBE for the live stream and returns the raw answer (headers + SDP). */
+    suspend fun rtspDescribe(): String = withContext(Dispatchers.IO) {
+        Socket().use { socket ->
+            socket.connect(InetSocketAddress(host, rtspPort), 3_000)
+            socket.soTimeout = 4_000
+            val request = "DESCRIBE $liveUrl RTSP/1.0\r\nCSeq: 2\r\nAccept: application/sdp\r\n" +
+                "User-Agent: Dashcam\r\n\r\n"
+            socket.getOutputStream().apply {
+                write(request.toByteArray())
+                flush()
+            }
+            val input = socket.getInputStream()
+            val out = java.io.ByteArrayOutputStream()
+            val buf = ByteArray(4096)
+            while (out.size() < 16 * 1024) {
+                val n = try {
+                    input.read(buf)
+                } catch (_: java.net.SocketTimeoutException) {
+                    break
+                }
+                if (n < 0) break
+                out.write(buf, 0, n)
+                val text = out.toString("ISO-8859-1")
+                val headerEnd = text.indexOf("\r\n\r\n")
+                if (headerEnd >= 0) {
+                    val length = Regex("(?im)^Content-Length:\\s*(\\d+)").find(text)
+                        ?.groupValues?.get(1)?.toInt() ?: 0
+                    if (text.length - headerEnd - 4 >= length) break
+                }
+            }
+            out.toString("ISO-8859-1")
         }
     }
 

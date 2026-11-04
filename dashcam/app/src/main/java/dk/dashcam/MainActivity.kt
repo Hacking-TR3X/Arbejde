@@ -1,10 +1,13 @@
 package dk.dashcam
 
 import android.content.Intent
+import android.graphics.Typeface
 import android.os.Bundle
 import android.provider.Settings
 import android.view.Menu
 import android.view.MenuItem
+import android.widget.ScrollView
+import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.isVisible
 import androidx.lifecycle.Lifecycle
@@ -109,12 +112,48 @@ class MainActivity : AppCompatActivity() {
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         when (item.itemId) {
+            R.id.action_test -> runTest()
             R.id.action_wifi -> showWifiDialog()
             R.id.action_change_password -> showChangePasswordDialog()
             R.id.action_phone_wifi -> startActivity(Intent(Settings.ACTION_WIFI_SETTINGS))
             else -> return super.onOptionsItemSelected(item)
         }
         return true
+    }
+
+    /** Measures the camera and shows a report that can be shared (e.g. pasted to Claude). */
+    private fun runTest() {
+        if (!session.isConnected) {
+            snack(getString(R.string.connect_first))
+            return
+        }
+        lifecycleScope.launch {
+            val report = try {
+                session.runDiagnostics()
+            } catch (e: CameraException) {
+                snack(e.message ?: getString(R.string.error))
+                return@launch
+            }
+            val text = TextView(this@MainActivity).apply {
+                this.text = report
+                setTextIsSelectable(true)
+                typeface = Typeface.MONOSPACE
+                textSize = 12f
+                val pad = (20 * resources.displayMetrics.density).toInt()
+                setPadding(pad, pad / 2, pad, 0)
+            }
+            MaterialAlertDialogBuilder(this@MainActivity)
+                .setTitle(R.string.test_title)
+                .setView(ScrollView(this@MainActivity).apply { addView(text) })
+                .setPositiveButton(R.string.share) { _, _ ->
+                    val send = Intent(Intent.ACTION_SEND)
+                        .setType("text/plain")
+                        .putExtra(Intent.EXTRA_TEXT, report)
+                    startActivity(Intent.createChooser(send, getString(R.string.share)))
+                }
+                .setNegativeButton(R.string.close, null)
+                .show()
+        }
     }
 
     private fun showWifiDialog() {

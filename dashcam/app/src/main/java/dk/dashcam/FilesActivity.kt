@@ -24,7 +24,13 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-/** Recordings, emergency clips and photos on the camera's SD card. */
+/**
+ * Recordings, emergency clips and photos on the camera's SD card.
+ *
+ * The camera's web server answers one request at a time, so this screen is careful with it:
+ * thumbnails are fetched one by one only for rows on screen, cancelled when a row scrolls away
+ * or the screen is left, and paused while a download runs.
+ */
 class FilesActivity : AppCompatActivity() {
 
     private lateinit var b: ActivityFilesBinding
@@ -38,9 +44,13 @@ class FilesActivity : AppCompatActivity() {
         CamFile.Kind.PHOTO to R.string.tab_photos,
     )
 
-    private val thumbs = LruCache<String, Bitmap>(80)
+    private val thumbs = LruCache<String, Bitmap>(120)
     private val noThumb = HashSet<String>()
-    private val loadingThumbs = HashSet<String>()
+    private val thumbJobs = HashMap<ImageView, Job>()
+
+    /** Thumbnails wait until the camera is in file mode and the fresh list is in. */
+    private var thumbsReady = false
+    private var thumbFailures = 0
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -74,6 +84,18 @@ class FilesActivity : AppCompatActivity() {
         load()
     }
 
+    override fun onStart() {
+        super.onStart()
+        if (thumbsReady) adapter.notifyDataSetChanged() // re-request thumbnails for rows on screen
+    }
+
+    override fun onStop() {
+        super.onStop()
+        // Free the camera for whatever comes next (playback, live view, downloads).
+        thumbJobs.values.forEach { it.cancel() }
+        thumbJobs.clear()
+    }
+
     override fun onDestroy() {
         super.onDestroy()
         // Browsing files stops the camera's recording; start it again when we leave.
@@ -85,27 +107,51 @@ class FilesActivity : AppCompatActivity() {
         return true
     }
 
+    override fun onPrepareOptionsMenu(menu: Menu): Boolean {
+        menu.findItem(R.id.action_thumbnails)?.isChecked = CameraSession.prefs.thumbnails
+        return super.onPrepareOptionsMenu(menu)
+    }
+
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        if (item.itemId == R.id.action_refresh) {
-            load()
-            return true
+        when (item.itemId) {
+            R.id.action_refresh -> load()
+            R.id.action_thumbnails -> {
+                val on = !CameraSession.prefs.thumbnails
+                CameraSession.prefs.thumbnails = on
+                item.isChecked = on
+                noThumb.clear()
+                thumbFailures = 0
+                adapter.notifyDataSetChanged()
+            }
+            else -> return super.onOptionsItemSelected(item)
         }
-        return super.onOptionsItemSelected(item)
+        return true
     }
 
     private fun load() {
         loadJob?.cancel()
+        thumbsReady = false
+        // Show the last list at once; the fresh one replaces it when the camera has answered.
+        val cached = CameraSession.cachedFiles
+        if (all.isEmpty() && cached != null) {
+            all = cached.sortedByDescending { it.time }
+            showTab()
+        }
         loadJob = lifecycleScope.launch {
             b.progress.isVisible = true
             b.emptyText.isVisible = false
             try {
                 all = CameraSession.listFiles().sortedByDescending { it.time }
+                thumbsReady = true
                 showTab()
             } catch (e: CameraException) {
-                all = emptyList()
-                adapter.submit(emptyList())
-                b.emptyText.text = e.message
-                b.emptyText.isVisible = true
+                if (all.isEmpty()) {
+                    adapter.submit(emptyList())
+                    b.emptyText.text = e.message
+                    b.emptyText.isVisible = true
+                } else {
+                    snack(e.message ?: getString(R.string.error))
+                }
             } finally {
                 b.progress.isVisible = false
             }
@@ -177,6 +223,8 @@ class FilesActivity : AppCompatActivity() {
     }
 
     private fun loadThumb(file: CamFile, view: ImageView) {
+        // The row now shows another file: drop the request for the old one.
+        thumbJobs.remove(view)?.cancel()
         view.tag = file.path
         val cached = thumbs.get(file.path)
         if (cached != null) {
@@ -184,8 +232,9 @@ class FilesActivity : AppCompatActivity() {
             return
         }
         view.setImageDrawable(null)
-        if (file.path in noThumb || !loadingThumbs.add(file.path)) return
-        lifecycleScope.launch {
+        if (!thumbsReady || !CameraSession.prefs.thumbnails || file.path in noThumb) return
+        if (CameraSession.downloading) return // the download gets the camera to itself
+        thumbJobs[view] = lifecycleScope.launch {
             val bytes = try {
                 CameraSession.thumbnail(file)
             } catch (e: CameraException) {
@@ -194,11 +243,17 @@ class FilesActivity : AppCompatActivity() {
             val bitmap = bytes?.let {
                 withContext(Dispatchers.Default) { BitmapFactory.decodeByteArray(it, 0, it.size) }
             }
-            loadingThumbs.remove(file.path)
             if (bitmap == null) {
                 noThumb += file.path
+                if (++thumbFailures >= 3 && CameraSession.prefs.thumbnails) {
+                    CameraSession.prefs.thumbnails = false
+                    invalidateOptionsMenu()
+                    CameraSession.note(getString(R.string.thumbs_off))
+                    snack(getString(R.string.thumbs_off))
+                }
                 return@launch
             }
+            thumbFailures = 0
             thumbs.put(file.path, bitmap)
             if (view.tag == file.path) view.setImageBitmap(bitmap)
         }

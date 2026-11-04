@@ -13,6 +13,7 @@ object Cmd {
     const val RECORD = 2001 // par=1 start, par=0 stop
     const val RECORDING_STATE = 2016
     const val VIDEO_PHOTO = 2017
+    const val LIVE_STREAM = 2015 // par=1 on, par=0 off
     const val EMERGENCY_CLIP = 2019
     const val MODE = 3001
     const val SET_WIFI_PASSWORD = 3004

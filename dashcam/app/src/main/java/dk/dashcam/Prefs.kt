@@ -25,6 +25,16 @@ class Prefs(context: Context) {
         get() = sp.getBoolean("set_clock", true)
         set(value) = sp.edit().putBoolean("set_clock", value).apply()
 
+    /** Show thumbnails in the file list (each one costs the camera's web server time). */
+    var thumbnails: Boolean
+        get() = sp.getBoolean("thumbnails", true)
+        set(value) = sp.edit().putBoolean("thumbnails", value).apply()
+
+    /** The live-view method that worked last time, tried first next time. */
+    var liveMethod: String?
+        get() = sp.getString("live_method", null)
+        set(value) = sp.edit().putString("live_method", value).apply()
+
     /** Camera settings the user wants, as command number → value. */
     var wanted: Map<Int, Int>
         get() = sp.getString("wanted", "").orEmpty()

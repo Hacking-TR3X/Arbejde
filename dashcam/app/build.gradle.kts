@@ -11,8 +11,8 @@ android {
         applicationId = "dk.dashcam"
         minSdk = 26
         targetSdk = 35
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 2
+        versionName = "1.1"
     }
 
     // One fixed key so every CI build installs on top of the previous one. It only signs a

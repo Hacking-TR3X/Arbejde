@@ -58,9 +58,11 @@ object CameraXml {
     )
     private val FILE_RE = Regex("<File>(.*?)</File>", RegexOption.DOT_MATCHES_ALL)
 
+    private val tagRegexes = java.util.concurrent.ConcurrentHashMap<String, Regex>()
+
     fun tag(xml: String, name: String): String? =
-        Regex("<$name>(.*?)</$name>", RegexOption.DOT_MATCHES_ALL).find(xml)
-            ?.groupValues?.get(1)?.trim()?.let(::unescape)
+        tagRegexes.getOrPut(name) { Regex("<$name>(.*?)</$name>", RegexOption.DOT_MATCHES_ALL) }
+            .find(xml)?.groupValues?.get(1)?.trim()?.let(::unescape)
 
     fun parseReply(xml: String): Reply = Reply(
         cmd = tag(xml, "Cmd")?.toIntOrNull(),
