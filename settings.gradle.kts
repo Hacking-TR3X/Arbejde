@@ -15,4 +15,4 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "LoopCast"
-include(":app")
+include(":app", ":dashcam")

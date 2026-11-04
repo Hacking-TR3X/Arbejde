@@ -25,16 +25,44 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v4
 
-      - name: Build release APK
+      - name: Build release APKs
         run: ./gradlew --no-daemon assembleRelease
 
-      - name: Rename APK
-        run: cp app/build/outputs/apk/release/app-release.apk LoopCast.apk
+      - name: Rename APKs
+        run: |
+          cp app/build/outputs/apk/release/app-release.apk LoopCast.apk
+          cp dashcam/build/outputs/apk/release/dashcam-release.apk Dashcam.apk
 
       - uses: actions/upload-artifact@v4
         with:
           name: LoopCast-apk
           path: LoopCast.apk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Dashcam-apk
+          path: Dashcam.apk
+
+      # Dashcam app – stable download link:
+      # https://github.com/<owner>/<repo>/releases/download/dashcam-latest/Dashcam.apk
+      - name: Move "dashcam-latest" tag to this commit
+        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/ccr-2d2cd81f-t8v1sz'
+        run: |
+          git tag -f dashcam-latest
+          git push -f origin dashcam-latest
+
+      - name: Publish Dashcam release
+        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/ccr-2d2cd81f-t8v1sz'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: dashcam-latest
+          name: Dashcam – nyeste build
+          body: |
+            Nyeste automatiske build af Dashcam-appen til YI Smart Dash Camera (commit ${{ github.sha }}).
+
+            Download `Dashcam.apk` herunder og installér den på din Android-telefon.
+          files: Dashcam.apk
+          make_latest: false
 
       # Publish a stable download link:
       # https://github.com/<owner>/<repo>/releases/latest/download/LoopCast.apk

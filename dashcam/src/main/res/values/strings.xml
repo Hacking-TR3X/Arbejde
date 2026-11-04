@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Dashcam</string>
+
+    <!-- Forside -->
+    <string name="status_connected">Forbundet til kameraet</string>
+    <string name="status_connecting">Forbinder…</string>
+    <string name="status_disconnected">Ikke forbundet</string>
+    <string name="firmware_x">firmware %1$s</string>
+    <string name="recording">optager</string>
+    <string name="not_recording">optager ikke</string>
+    <string name="connect">Forbind til kameraet</string>
+    <string name="disconnect">Afbryd</string>
+    <string name="cancel">Annullér</string>
+    <string name="live_view">Live-billede</string>
+    <string name="files">Optagelser og nødklip</string>
+    <string name="camera_settings">Kameraets indstillinger</string>
+    <string name="help_title">Sådan forbinder du</string>
+    <string name="help_text">1. Tænd kameraet og slå dets Wi‑Fi til.\n2. Tryk på »Forbind til kameraet«. Android viser en liste over Wi‑Fi-netværk, hvis navn begynder med »%1$s« – vælg kameraet.\n3. Appen bruger koden »%2$s«.\n\nHedder kameraets Wi‑Fi noget andet, eller har det en anden kode, så ret det under ⋮ → Wi‑Fi-navn og kode. Du kan også selv gå på kameraets Wi‑Fi i telefonens indstillinger – så finder appen det af sig selv.</string>
+    <string name="log_title">Hændelser</string>
+    <string name="log_empty">Intet endnu.</string>
+    <string name="connect_first">Forbind til kameraet først</string>
+    <string name="error">Der skete en fejl</string>
+
+    <!-- Menu -->
+    <string name="menu_wifi">Wi‑Fi-navn og kode</string>
+    <string name="menu_change_pw">Skift kameraets Wi‑Fi-kode</string>
+    <string name="menu_phone_wifi">Åbn telefonens Wi‑Fi</string>
+    <string name="refresh">Opdatér</string>
+
+    <!-- Wi-Fi-dialog -->
+    <string name="wifi_dialog_title">Kameraets Wi‑Fi</string>
+    <string name="wifi_dialog_message">Appen leder efter Wi‑Fi-netværk, hvis navn begynder med teksten herunder (der skelnes mellem store og små bogstaver).</string>
+    <string name="wifi_ssid_hint">Wi‑Fi-navnet begynder med</string>
+    <string name="wifi_password_hint">Wi‑Fi-kode</string>
+    <string name="save">Gem</string>
+
+    <!-- Skift kode -->
+    <string name="change_pw_title">Skift kameraets Wi‑Fi-kode</string>
+    <string name="change_pw_message">Eksperimentelt. Den nye kode sendes til kameraet og gemmes i appen. Genstart kameraet bagefter.\n\nGår noget galt, så nulstil kameraet til fabriksindstillinger i dets menu – så bør koden blive 1234567890 igen.\n\nBrug 8–16 tegn: kun bogstaver a–z og tal.</string>
+    <string name="change_pw_hint">Ny kode</string>
+    <string name="change">Skift</string>
+    <string name="change_pw_invalid">Koden skal være 8–16 tegn og kun bogstaver a–z og tal</string>
+    <string name="change_pw_done">Koden er sendt. Genstart kameraet.</string>
+
+    <!-- Indstillinger -->
+    <string name="settings_intro">Det du vælger her, husker appen. Hver gang appen forbinder, sætter den kameraet tilbage til dine indstillinger – så det gør ikke noget, at kameraet glemmer dem.</string>
+    <string name="auto_fix">Ret indstillinger automatisk ved forbindelse</string>
+    <string name="set_clock">Stil kameraets ur efter telefonen</string>
+    <string name="remember_all">Husk alt som det er nu</string>
+    <string name="apply_now">Ret nu</string>
+    <string name="not_connected_hint">Ikke forbundet. Du kan stadig vælge indstillinger – de bliver sat næste gang appen forbinder til kameraet.</string>
+    <string name="value_not_remembered">Ikke husket</string>
+    <string name="value_remembered_only">Husket: %1$s</string>
+    <string name="value_locked">%1$s · husket</string>
+    <string name="value_differs">Nu: %1$s · husket: %2$s</string>
+    <string name="use">Brug</string>
+    <string name="forget">Glem</string>
+    <string name="remembered_n">Husker nu %1$d indstillinger</string>
+    <string name="saved_for_next_time">Husket – bliver sat næste gang appen forbinder</string>
+    <string name="camera_refused">Kameraet ville ikke ændre »%1$s«</string>
+
+    <!-- Filer -->
+    <string name="tab_videos">Optagelser</string>
+    <string name="tab_emergency">Nødklip</string>
+    <string name="tab_photos">Billeder</string>
+    <string name="files_empty">Ingen filer her.</string>
+    <string name="locked">låst</string>
+    <string name="download">Hent til telefonen</string>
+    <string name="download_done">gemt på telefonen ✓</string>
+    <string name="download_failed">fejl: %1$s</string>
+    <string name="downloading_pct">henter %1$d %%</string>
+    <string name="delete">Slet</string>
+    <string name="delete_title">Slet fra kameraet?</string>
+    <string name="delete_message">%1$s bliver slettet fra kameraets SD-kort.</string>
+    <string name="close">Luk</string>
+
+    <!-- Afspiller -->
+    <string name="live">Live</string>
+    <string name="emergency_clip">Gem nødklip</string>
+    <string name="take_photo">Tag billede</string>
+    <string name="emergency_saved">Nødklip gemt</string>
+    <string name="photo_taken">Billede taget</string>
+    <string name="retry">Prøv igen</string>
+    <string name="playback_error">Kunne ikke vise videoen: %1$s</string>
+</resources>
