@@ -1,0 +1,68 @@
+name: Build Dashcam APK
+
+# Dashcam is its own project in the dashcam/ folder; only build it when it changes.
+on:
+  push:
+    branches: ["**"]
+    paths:
+      - "dashcam/**"
+      - ".github/workflows/dashcam.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: dashcam
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: "platforms;android-35 build-tools;35.0.0 platform-tools"
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Test camera protocol
+        run: ./gradlew --no-daemon testReleaseUnitTest
+
+      - name: Build release APK
+        run: ./gradlew --no-daemon assembleRelease
+
+      - name: Rename APK
+        run: cp app/build/outputs/apk/release/app-release.apk Dashcam.apk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Dashcam-apk
+          path: dashcam/Dashcam.apk
+
+      # Stable download link:
+      # https://github.com/<owner>/<repo>/releases/download/dashcam-latest/Dashcam.apk
+      - name: Move "dashcam-latest" tag to this commit
+        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/ccr-2d2cd81f-t8v1sz'
+        run: |
+          git tag -f dashcam-latest
+          git push -f origin dashcam-latest
+
+      - name: Publish release
+        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/ccr-2d2cd81f-t8v1sz'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: dashcam-latest
+          name: Dashcam – nyeste build
+          body: |
+            Nyeste automatiske build af Dashcam til YI Smart Dash Camera (commit ${{ github.sha }}).
+
+            Download `Dashcam.apk` herunder og installér den på din Android-telefon.
+          files: dashcam/Dashcam.apk
+          make_latest: false
