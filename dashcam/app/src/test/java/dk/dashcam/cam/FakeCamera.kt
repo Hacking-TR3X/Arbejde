@@ -1,13 +1,12 @@
 package dk.dashcam.cam
 
-import com.sun.net.httpserver.HttpExchange
-import com.sun.net.httpserver.HttpServer
+import java.io.BufferedInputStream
 import java.io.IOException
+import java.io.InputStream
 import java.net.InetAddress
-import java.net.InetSocketAddress
 import java.net.ServerSocket
+import java.net.Socket
 import java.net.URLDecoder
-import java.util.concurrent.Executors
 import kotlin.concurrent.thread
 
 /**
@@ -16,14 +15,18 @@ import kotlin.concurrent.thread
  * - `custom=1` must be the first query parameter
  * - settings can't be changed while recording, the file list only works in file mode
  * - setting 2031 is accepted but silently ignored (like a buggy firmware)
+ *
+ * Uses a tiny hand-written HTTP server on plain sockets, because Android unit tests compile
+ * against android.jar, which lacks the JDK's com.sun.net.httpserver.
  */
 class FakeCamera : AutoCloseable {
     class FakeFile(val name: String, val path: String, val size: Int, val time: String, val attr: Int)
 
-    private val http: HttpServer = HttpServer.create(InetSocketAddress("127.0.0.1", 0), 0)
-    private val heartbeat = ServerSocket(0, 5, InetAddress.getByName("127.0.0.1"))
+    private val loopback = InetAddress.getByName("127.0.0.1")
+    private val http = ServerSocket(0, 50, loopback)
+    private val heartbeat = ServerSocket(0, 5, loopback)
 
-    val httpPort: Int get() = http.address.port
+    val httpPort: Int get() = http.localPort
     val heartbeatPort: Int get() = heartbeat.localPort
 
     @Volatile var connected = false
@@ -49,32 +52,65 @@ class FakeCamera : AutoCloseable {
     )
 
     init {
-        http.createContext("/") { ex -> handle(ex) }
-        http.executor = Executors.newCachedThreadPool()
-        http.start()
+        acceptLoop(http) { serveHttp(it) }
+        acceptLoop(heartbeat) { serveHeartbeat(it) }
+    }
+
+    private fun acceptLoop(server: ServerSocket, handler: (Socket) -> Unit) {
         thread(isDaemon = true) {
-            while (!heartbeat.isClosed) {
+            while (!server.isClosed) {
                 val socket = try {
-                    heartbeat.accept()
+                    server.accept()
                 } catch (e: IOException) {
                     break
                 }
                 thread(isDaemon = true) {
-                    val buf = ByteArray(64)
                     try {
-                        socket.getInputStream().use { input ->
-                            while (true) {
-                                val n = input.read(buf)
-                                if (n < 0) break
-                                if (String(buf, 0, n).startsWith("02:001:0")) {
-                                    lastHeartbeat = System.currentTimeMillis()
-                                }
-                            }
-                        }
+                        handler(socket)
                     } catch (_: IOException) {
+                    } finally {
+                        runCatching { socket.close() }
                     }
                 }
             }
+        }
+    }
+
+    private fun serveHeartbeat(socket: Socket) {
+        val buf = ByteArray(64)
+        val input = socket.getInputStream()
+        while (true) {
+            val n = input.read(buf)
+            if (n < 0) return
+            if (String(buf, 0, n).startsWith("02:001:0")) lastHeartbeat = System.currentTimeMillis()
+        }
+    }
+
+    private fun serveHttp(socket: Socket) {
+        val input = BufferedInputStream(socket.getInputStream())
+        val requestLine = readLine(input) ?: return
+        while (true) {
+            val header = readLine(input) ?: break
+            if (header.isEmpty()) break
+        }
+        val target = requestLine.split(' ').getOrNull(1) ?: "/"
+        val (type, body) = handle(target)
+        val out = socket.getOutputStream()
+        out.write(
+            ("HTTP/1.1 200 OK\r\nContent-Type: $type\r\nContent-Length: ${body.size}\r\n" +
+                "Connection: close\r\n\r\n").toByteArray()
+        )
+        out.write(body)
+        out.flush()
+    }
+
+    private fun readLine(input: InputStream): String? {
+        val sb = StringBuilder()
+        while (true) {
+            val c = input.read()
+            if (c < 0) return if (sb.isEmpty()) null else sb.toString()
+            if (c == '\n'.code) return sb.toString().trimEnd('\r')
+            sb.append(c.toChar())
         }
     }
 
@@ -82,30 +118,23 @@ class FakeCamera : AutoCloseable {
         "<?xml version=\"1.0\" encoding=\"UTF-8\" ?>\r\n<Function>\r\n<Cmd>$cmd</Cmd>\r\n" +
             "<Status>$status</Status>\r\n$extra</Function>\r\n"
 
-    private fun send(ex: HttpExchange, body: ByteArray, type: String = "text/xml") {
-        ex.responseHeaders.add("Content-Type", type)
-        ex.sendResponseHeaders(200, body.size.toLong())
-        ex.responseBody.use { it.write(body) }
-    }
-
     @Synchronized
-    private fun handle(ex: HttpExchange) {
-        val query = ex.requestURI.rawQuery
-        if (query == null) {
-            val file = files.firstOrNull { it.path.substring(2).replace('\\', '/') == ex.requestURI.path }
-            if (file == null) {
-                send(ex, "<html><head><title>Page not found</title></head></html>".toByteArray(), "text/html")
-            } else {
-                send(ex, ByteArray(file.size) { (it % 256).toByte() }, "video/mp4")
-            }
-            return
+    private fun handle(target: String): Pair<String, ByteArray> {
+        val path = target.substringBefore('?')
+        val query = target.substringAfter('?', "")
+        if (query.isEmpty()) {
+            val file = files.firstOrNull { it.path.substring(2).replace('\\', '/') == path }
+                ?: return "text/html" to
+                    "<html><head><title>Page not found</title></head></html>".toByteArray()
+            return "video/mp4" to ByteArray(file.size) { (it % 256).toByte() }
         }
-        val params = query.split('&').map {
-            val (k, v) = (it.split('=', limit = 2) + "").take(2)
-            k to URLDecoder.decode(v, "UTF-8")
+        val params: List<Pair<String, String>> = query.split('&').map { part ->
+            val key = part.substringBefore('=')
+            val value = URLDecoder.decode(part.substringAfter('=', ""), "UTF-8")
+            key to value
         }
-        if (params.first() != ("custom" to "1")) return send(ex, xml(-1, -999).toByteArray())
-        val q = params.toMap()
+        if (params.first() != ("custom" to "1")) return "text/xml" to xml(-1, -999).toByteArray()
+        val q: Map<String, String> = params.toMap()
         val cmd = q.getValue("cmd").toInt()
         val par = q["par"]?.toInt()
         val str = q["str"]
@@ -168,7 +197,7 @@ class FakeCamera : AutoCloseable {
                     }
                 }
             }
-            cmd == 4001 -> return send(ex, byteArrayOf(-1, -40, -1, -32, 1, 2, 3), "image/jpeg")
+            cmd == 4001 -> return "image/jpeg" to byteArrayOf(-1, -40, -1, -32, 1, 2, 3)
             cmd == 2019 -> xml(cmd, 0)
             cmd == 2017 -> xml(cmd, if (recording == 1) 0 else -5)
             settings.containsKey(cmd) -> when {
@@ -181,11 +210,11 @@ class FakeCamera : AutoCloseable {
             }
             else -> xml(cmd, -3)
         }
-        send(ex, reply.toByteArray())
+        return "text/xml" to reply.toByteArray()
     }
 
     override fun close() {
-        http.stop(0)
+        http.close()
         heartbeat.close()
     }
 }
