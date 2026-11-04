@@ -50,7 +50,7 @@ class FilesActivity : AppCompatActivity() {
 
     /** Thumbnails wait until the camera is in file mode and the fresh list is in. */
     private var thumbsReady = false
-    private var thumbFailures = 0
+    private val thumbJobPaths = HashMap<ImageView, String>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -62,7 +62,11 @@ class FilesActivity : AppCompatActivity() {
 
         adapter = FileAdapter(
             onOpen = ::open,
-            onDownload = { CameraSession.download(it) },
+            onDownload = { file ->
+                DownloadOptions.show(this, CameraSession.PlayItem(file, previewOf(file))) {
+                    openPlayer(file, trim = true)
+                }
+            },
             onDelete = ::confirmDelete,
             loadThumb = ::loadThumb,
         )
@@ -94,6 +98,7 @@ class FilesActivity : AppCompatActivity() {
         // Free the camera for whatever comes next (playback, live view, downloads).
         thumbJobs.values.forEach { it.cancel() }
         thumbJobs.clear()
+        thumbJobPaths.clear()
     }
 
     override fun onDestroy() {
@@ -120,7 +125,6 @@ class FilesActivity : AppCompatActivity() {
                 CameraSession.prefs.thumbnails = on
                 item.isChecked = on
                 noThumb.clear()
-                thumbFailures = 0
                 adapter.notifyDataSetChanged()
             }
             else -> return super.onOptionsItemSelected(item)
@@ -166,15 +170,19 @@ class FilesActivity : AppCompatActivity() {
         b.emptyText.isVisible = list.isEmpty()
     }
 
+    private fun previewOf(file: CamFile): CamFile? =
+        all.firstOrNull { it.path != file.path && it.path == file.previewPath }
+
     private fun open(file: CamFile) {
-        if (file.isPhoto) {
-            showPhoto(file)
-            return
-        }
-        // Stream the camera's small preview copy if it has one – much smoother over its Wi-Fi.
-        val preview = all.firstOrNull { it.path != file.path && it.path == file.previewPath }
-        val url = CameraSession.fileUrl(preview ?: file) ?: return
-        PlayerActivity.startFile(this, url, FileAdapter.prettyTime(file))
+        if (file.isPhoto) showPhoto(file) else openPlayer(file, trim = false)
+    }
+
+    /** Plays [file] with every video of the same kind queued, oldest first, so you can step through. */
+    private fun openPlayer(file: CamFile, trim: Boolean) {
+        val videos = all.filter { it.kind == file.kind }.sortedBy { it.time }
+        CameraSession.playlist = videos.map { CameraSession.PlayItem(it, previewOf(it)) }
+        val index = videos.indexOfFirst { it.path == file.path }.coerceAtLeast(0)
+        PlayerActivity.startFiles(this, index, trim)
     }
 
     private fun showPhoto(file: CamFile) {
@@ -223,8 +231,11 @@ class FilesActivity : AppCompatActivity() {
     }
 
     private fun loadThumb(file: CamFile, view: ImageView) {
+        // Rebinding the same row for the same file (e.g. on download progress): keep going.
+        if (thumbJobPaths[view] == file.path && thumbJobs[view]?.isActive == true) return
         // The row now shows another file: drop the request for the old one.
         thumbJobs.remove(view)?.cancel()
+        thumbJobPaths.remove(view)
         view.tag = file.path
         val cached = thumbs.get(file.path)
         if (cached != null) {
@@ -232,28 +243,24 @@ class FilesActivity : AppCompatActivity() {
             return
         }
         view.setImageDrawable(null)
-        if (!thumbsReady || !CameraSession.prefs.thumbnails || file.path in noThumb) return
-        if (CameraSession.downloading) return // the download gets the camera to itself
+        if (file.path in noThumb) return
+        thumbJobPaths[view] = file.path
         thumbJobs[view] = lifecycleScope.launch {
-            val bytes = try {
-                CameraSession.thumbnail(file)
-            } catch (e: CameraException) {
-                null
-            }
-            val bitmap = bytes?.let {
-                withContext(Dispatchers.Default) { BitmapFactory.decodeByteArray(it, 0, it.size) }
+            // Thumbnails made earlier are kept on the phone and show up without the camera.
+            var bitmap = CameraSession.diskThumbnail(file)
+            if (bitmap == null) {
+                val allowed = thumbsReady && CameraSession.prefs.thumbnails && !CameraSession.downloading
+                if (!allowed) return@launch // try again when the row is shown next time
+                bitmap = try {
+                    CameraSession.thumbnailBitmap(file, previewOf(file))
+                } catch (e: CameraException) {
+                    null
+                }
             }
             if (bitmap == null) {
                 noThumb += file.path
-                if (++thumbFailures >= 3 && CameraSession.prefs.thumbnails) {
-                    CameraSession.prefs.thumbnails = false
-                    invalidateOptionsMenu()
-                    CameraSession.note(getString(R.string.thumbs_off))
-                    snack(getString(R.string.thumbs_off))
-                }
                 return@launch
             }
-            thumbFailures = 0
             thumbs.put(file.path, bitmap)
             if (view.tag == file.path) view.setImageBitmap(bitmap)
         }

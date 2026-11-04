@@ -77,13 +77,32 @@
     <string name="delete_message">%1$s bliver slettet fra kameraets SD-kort.</string>
     <string name="close">Luk</string>
 
-    <string name="thumbs_off">Kameraet er for langsomt til miniaturebilleder, så de er slået fra. Du kan slå dem til igen i menuen.</string>
 
     <!-- Test -->
     <string name="test_title">Testrapport</string>
     <string name="share">Del</string>
 
+    <!-- Hent -->
+    <string name="dl_clip">Klip en del ud – henter kun den del (hurtigst)</string>
+    <string name="dl_small">Lille version (%1$s) – hurtig, lavere kvalitet</string>
+    <string name="dl_whole">Hele videoen (%1$s)</string>
+
     <!-- Afspiller -->
+    <string name="player_title">%1$s · %2$d af %3$d</string>
+    <string name="no_videos">Ingen videoer at afspille.</string>
+    <string name="dl_button">Hent</string>
+    <string name="clip_button">Klip</string>
+    <string name="prev_video">◀ Tidligere</string>
+    <string name="next_video">Senere ▶</string>
+    <string name="trim_start">Start her</string>
+    <string name="trim_end">Slut her</string>
+    <string name="trim_save">Gem klippet på telefonen</string>
+    <string name="trim_text">Fra %1$s til %2$s · %3$d sek. · henter ca. %4$s</string>
+    <string name="trim_too_short">Klippet skal være mindst 1 sekund</string>
+    <string name="wait_for_video">Vent et øjeblik, til videoen er indlæst</string>
+    <string name="export_running">%1$s: %2$d %% · %3$s</string>
+    <string name="export_done">Gemt i Film/Dashcam: %1$s</string>
+    <string name="export_failed">%1$s fejlede: %2$s</string>
     <string name="live_trying">Live · prøver %1$s…</string>
     <string name="live_via">Live · %1$s</string>
     <string name="live_failed">Kameraet sendte ikke noget live-billede. Det her blev prøvet:</string>

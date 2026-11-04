@@ -352,6 +352,49 @@ class CameraClient(
         }
     }
 
+    /**
+     * Blocking: fetches bytes [from]..[to] (inclusive) of a file with an HTTP Range request.
+     * Throws [RangeNotSupportedException] if the camera ignores the Range header.
+     */
+    fun fetchRange(url: String, from: Long, to: Long): ByteArray {
+        val request = Request.Builder().url(url).header("Range", "bytes=$from-$to").build()
+        downloadHttp.newCall(request).execute().use { resp ->
+            if (resp.header("Content-Type").orEmpty().contains("html")) {
+                throw CameraException("Filen findes ikke på kameraet")
+            }
+            val body = resp.body ?: throw IOException("Tomt svar fra kameraet")
+            return when (resp.code) {
+                206 -> body.bytes()
+                200 -> {
+                    // Whole file instead of a part: only usable for the very first block.
+                    if (from != 0L) throw RangeNotSupportedException()
+                    val want = (to - from + 1).toInt()
+                    val out = java.io.ByteArrayOutputStream(want)
+                    val buf = ByteArray(64 * 1024)
+                    body.byteStream().use { input ->
+                        while (out.size() < want) {
+                            val n = input.read(buf, 0, minOf(buf.size, want - out.size()))
+                            if (n < 0) break
+                            out.write(buf, 0, n)
+                        }
+                    }
+                    out.toByteArray()
+                }
+                else -> throw CameraException("Kameraet svarede HTTP ${resp.code}")
+            }
+        }
+    }
+
+    /** Whether the camera can send parts of [url] (needed for quick clips and thumbnails). */
+    suspend fun supportsRange(url: String): Boolean = withContext(Dispatchers.IO) {
+        try {
+            fetchRange(url, 1, 2)
+            true
+        } catch (_: RangeNotSupportedException) {
+            false
+        }
+    }
+
     /** Asks the camera to start its live stream (Novatek "movie live view"). */
     suspend fun startLiveStream(): Boolean = try {
         send(Cmd.LIVE_STREAM, par = 1)

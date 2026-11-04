@@ -37,6 +37,9 @@ class FakeCamera : AutoCloseable {
     var saved = false
     val commands = ArrayList<String>()
 
+    /** Set to false to imitate a firmware that ignores Range requests. */
+    @Volatile var rangeSupported = true
+
     val settings = linkedMapOf(
         1002 to "0", 2002 to "1", 2003 to "2", 2005 to "6", 2007 to "1", 2008 to "1",
         2011 to "1", 2012 to "1", 2031 to "0", 3033 to "0",
@@ -119,9 +122,9 @@ class FakeCamera : AutoCloseable {
         val (type, full) = handle(target)
         var status = "200 OK"
         var body = full
-        var extra = "Accept-Ranges: bytes\r\n"
+        var extra = if (rangeSupported) "Accept-Ranges: bytes\r\n" else ""
         val m = range?.let { Regex("bytes=(\\d+)-(\\d*)").find(it) }
-        if (m != null && type.startsWith("video")) {
+        if (m != null && rangeSupported && type.startsWith("video")) {
             val from = m.groupValues[1].toInt()
             val to = m.groupValues[2].toIntOrNull()?.coerceAtMost(full.size - 1) ?: (full.size - 1)
             body = full.copyOfRange(from, to + 1)
@@ -138,7 +141,7 @@ class FakeCamera : AutoCloseable {
     }
 
     /** A file that starts like a dash cam MP4: ftyp, then mdat (moov at the end). */
-    private fun fakeMp4(size: Int): ByteArray {
+    fun fakeMp4(size: Int): ByteArray {
         val b = ByteArray(size) { (it % 251).toByte() }
         fun box(at: Int, length: Int, type: String) {
             b[at] = (length ushr 24).toByte(); b[at + 1] = (length ushr 16).toByte()

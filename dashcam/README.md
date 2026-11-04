@@ -21,6 +21,13 @@ Alle builds er signeret med samme nøgle, så nye versioner kan installeres oven
 - **Live-billede** fra kameraet, med knapper til at gemme et nødklip eller tage et billede.
 - **Optagelser, nødklip og billeder** fra SD-kortet: se dem, afspil dem direkte, hent dem til
   telefonen (*Film/Dashcam* og *Billeder/Dashcam*) eller slet dem.
+- **Bladr mellem videoerne** i afspilleren med *◀ Tidligere* / *Senere ▶* – de ligger i
+  tidsrækkefølge og spiller videre i den næste, ligesom selve køreturen.
+- **Klip:** vælg start og slut på en video og gem kun det stykke. Appen henter kun den del
+  (plus filens indeks) fra kameraet, så et klip på 30 sekunder går mange gange hurtigere end at
+  hente hele videoen. Kan kameraet ikke sende dele af filer, hentes hele videoen først.
+- **Hent** giver valget mellem et klip, kameraets lille preview-kopi (hvis den findes) og hele
+  videoen.
 - **Skift kameraets Wi‑Fi-kode** (eksperimentelt, under ⋮).
 - **Test forbindelsen** (under ⋮): måler kameraet – hvor lang tid fil-listen tager,
   overførselshastighed, om kameraet kan sende dele af en fil, hvordan MP4-filerne er bygget
@@ -30,9 +37,10 @@ Live-billedet prøver RTSP over TCP, RTSP over UDP og MJPEG over HTTP efter tur 
 metode, der virker. Hvert forsøg står under *Hændelser* på forsiden.
 
 Kameraets webserver kan kun én ting ad gangen, så fil-listen henter miniaturebilleder én ad
-gangen og kun for de rækker, der er på skærmen, og holder pause, mens der hentes en video.
-Miniaturer kan slås fra i fil-listens menu (det sker også automatisk, hvis kameraet ikke kan
-levere dem).
+gangen og kun for de rækker, der er på skærmen, og holder pause, mens der hentes en video. Kan
+kameraet ikke selv levere en miniature, laver appen den ud fra videoen (den læser kun filens
+indeks og det første billede). Alle miniaturer gemmes på telefonen, så de kun hentes én gang.
+De kan slås fra i fil-listens menu.
 
 ## Første gang
 

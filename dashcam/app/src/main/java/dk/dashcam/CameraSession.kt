@@ -2,6 +2,8 @@ package dk.dashcam
 
 import android.content.ContentValues
 import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.os.Build
 import android.os.Environment
 import android.provider.MediaStore
@@ -15,6 +17,7 @@ import dk.dashcam.cam.CameraProbe
 import dk.dashcam.cam.CameraException
 import dk.dashcam.cam.Cmd
 import dk.dashcam.cam.ConnectionLostException
+import dk.dashcam.cam.RangeReader
 import dk.dashcam.cam.syncCamera
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
@@ -27,6 +30,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import java.io.ByteArrayOutputStream
 import java.io.File
@@ -377,6 +382,176 @@ object CameraSession {
         cachedFiles = files
         note("Fil-liste: ${files.size} filer hentet på ${CameraProbe.secs(ms)}")
         return files
+    }
+
+    // --- Thumbnails ----------------------------------------------------------------------------
+
+    private val thumbMutex = Mutex()
+
+    /** Does the camera's own thumbnail command work? null = not known yet. */
+    @Volatile
+    private var cameraThumbsWork: Boolean? = null
+    private var cameraThumbFailures = 0
+
+    /** Can the camera send parts of files? null = not known yet. */
+    @Volatile
+    private var rangeSupported: Boolean? = null
+
+    private fun thumbFile(file: CamFile): File {
+        val dir = File(appContext.cacheDir, "thumbs").apply { mkdirs() }
+        val key = "${file.path}|${file.size}|${file.time}".hashCode().toUInt().toString(16)
+        return File(dir, "$key.jpg")
+    }
+
+    /** A thumbnail made earlier and kept on the phone – no camera needed. */
+    suspend fun diskThumbnail(file: CamFile): Bitmap? = withContext(Dispatchers.IO) {
+        val f = thumbFile(file)
+        if (f.exists()) BitmapFactory.decodeFile(f.path) else null
+    }
+
+    private suspend fun cameraSupportsRange(c: CameraClient, file: CamFile): Boolean {
+        rangeSupported?.let { return it }
+        val ok = try {
+            c.supportsRange(c.fileUrl(file))
+        } catch (e: CameraException) {
+            return false // couldn't tell – try again another time
+        } catch (e: IOException) {
+            return false
+        }
+        rangeSupported = ok
+        if (!ok) note("Kameraet kan ikke sende dele af filer – klip kræver, at hele videoen hentes først")
+        return ok
+    }
+
+    /**
+     * One thumbnail at a time: the phone's own copy, else the camera's thumbnail command,
+     * else made from the video itself (preferring the camera's small preview copy). Every
+     * result is kept on the phone, so each thumbnail is only fetched once.
+     */
+    suspend fun thumbnailBitmap(file: CamFile, preview: CamFile?): Bitmap? = thumbMutex.withLock {
+        diskThumbnail(file)?.let { return@withLock it }
+        val c = client?.takeIf { it.connected } ?: return@withLock null
+        var bitmap: Bitmap? = null
+        if (cameraThumbsWork != false) {
+            val bytes = c.thumbnail(file)
+            bitmap = bytes?.let { withContext(Dispatchers.Default) { BitmapFactory.decodeByteArray(it, 0, it.size) } }
+            if (bitmap != null) {
+                cameraThumbsWork = true
+            } else if (cameraThumbsWork == null && ++cameraThumbFailures >= 2) {
+                cameraThumbsWork = false
+                note("Kameraet laver ikke selv miniaturer – appen laver dem ud fra videoerne")
+            }
+        }
+        if (bitmap == null) {
+            bitmap = withContext(Dispatchers.IO) {
+                if (file.isPhoto) {
+                    val out = ByteArrayOutputStream()
+                    c.download(file, out) { _, _ -> }
+                    val bytes = out.toByteArray()
+                    val opts = BitmapFactory.Options().apply { inSampleSize = 8 }
+                    BitmapFactory.decodeByteArray(bytes, 0, bytes.size, opts)
+                } else if (cameraSupportsRange(c, file)) {
+                    ThumbnailMaker.fromVideo(c, preview ?: file)
+                } else {
+                    null
+                }
+            }
+        }
+        bitmap?.let { bmp ->
+            val small = ThumbnailMaker.scale(bmp)
+            withContext(Dispatchers.IO) {
+                runCatching {
+                    thumbFile(file).outputStream().use { small.compress(Bitmap.CompressFormat.JPEG, 80, it) }
+                }
+            }
+            small
+        }
+    }
+
+    // --- Playing and clipping ----------------------------------------------------------------
+
+    /** A recording plus the camera's small preview copy of it, if there is one. */
+    class PlayItem(val file: CamFile, val preview: CamFile?)
+
+    /** The videos the player can step through (oldest first, like the drive itself). */
+    var playlist: List<PlayItem> = emptyList()
+
+    /**
+     * Cuts [startMs]..[endMs] out of [file] and saves it in Film/Dashcam. Runs on even if the
+     * player is closed. Progress shows up in [downloads] under the returned key.
+     */
+    fun exportClip(file: CamFile, startMs: Long, endMs: Long, durationMs: Long): String? {
+        val c = client?.takeIf { it.connected } ?: return null
+        val name = file.name.substringBeforeLast('.') + "_klip_${clock(startMs)}-${clock(endMs)}.mp4"
+        val key = "clip:${file.path}:$startMs-$endMs"
+        val running = _downloads.value[key]
+        if (running != null && !running.finished) return key
+        // Roughly how much has to come from the camera: the clip's share of the file + index.
+        val estimate = if (durationMs > 0) {
+            (file.size * (endMs - startMs) / durationMs + 1_000_000).coerceAtMost(file.size)
+        } else {
+            file.size
+        }
+        val outFile = CamFile(name, key, estimate, file.time, false)
+        scope.launch {
+            val start = Download(outFile, 0, estimate)
+            _downloads.update { it + (key to start) }
+            fun current() = _downloads.value[key] ?: start
+            val temp = File(appContext.cacheDir, "klip_${System.currentTimeMillis()}.mp4")
+            var whole: File? = null
+            try {
+                withContext(Dispatchers.IO) {
+                    if (cameraSupportsRange(c, file)) {
+                        val reader = RangeReader(c, c.fileUrl(file), file.size, blockSize = 1024 * 1024, maxBlocks = 8) { fetched ->
+                            _downloads.update { it + (key to current().copy(done = fetched)) }
+                        }
+                        try {
+                            ClipExporter.export(CameraMediaDataSource(reader), null, startMs * 1000, endMs * 1000, temp) { }
+                        } catch (e: CameraException) {
+                            throw (reader.lastError as? CameraException) ?: e
+                        }
+                    } else {
+                        // The camera can't send parts: fetch the whole recording, then cut.
+                        val full = File(appContext.cacheDir, "hel_${System.currentTimeMillis()}.mp4")
+                        whole = full
+                        full.outputStream().use { out ->
+                            c.download(file, out) { done, total ->
+                                _downloads.update { it + (key to current().copy(done = done, total = total)) }
+                            }
+                        }
+                        ClipExporter.export(null, full.absolutePath, startMs * 1000, endMs * 1000, temp) { }
+                    }
+                }
+                val fetched = current().done
+                val where = saveToPhone(outFile) { out ->
+                    withContext(Dispatchers.IO) { temp.inputStream().use { it.copyTo(out) } }
+                }
+                val finished = current().copy(done = fetched, total = fetched, finished = true)
+                _downloads.update { it + (key to finished) }
+                val secs = (System.currentTimeMillis() - finished.startedAt) / 1000
+                note(
+                    "Klip gemt: $where (${CameraProbe.mb(temp.length())}; hentede ${CameraProbe.mb(fetched)} " +
+                        "fra kameraet på ${secs / 60}:${"%02d".format(secs % 60)})"
+                )
+                Toast.makeText(appContext, "Klip gemt: $where", Toast.LENGTH_LONG).show()
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                val msg = e.message ?: e.javaClass.simpleName
+                _downloads.update { it + (key to current().copy(finished = true, error = msg)) }
+                note("Klip af ${file.name} fejlede: $msg")
+            } finally {
+                temp.delete()
+                whole?.delete()
+            }
+        }
+        return key
+    }
+
+    /** 75 000 ms → "01m15s" (safe in file names). */
+    fun clock(ms: Long): String {
+        val s = ms / 1000
+        return "%02dm%02ds".format(s / 60, s % 60)
     }
 
     suspend fun thumbnail(file: CamFile): ByteArray? = client?.takeIf { it.connected }?.thumbnail(file)

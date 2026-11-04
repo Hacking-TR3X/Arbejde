@@ -1,76 +1,83 @@
 <?xml version="1.0" encoding="utf-8"?>
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@android:color/black"
-    android:fitsSystemWindows="true">
-
-    <androidx.media3.ui.PlayerView
-        android:id="@+id/player_view"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        app:show_buffering="never" />
-
-    <ImageView
-        android:id="@+id/mjpeg_view"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:contentDescription="@string/live"
-        android:scaleType="fitCenter"
-        android:visibility="gone" />
+    android:fitsSystemWindows="true"
+    android:orientation="vertical">
 
     <TextView
         android:id="@+id/title_text"
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_gravity="top|start"
-        android:layout_margin="16dp"
-        android:background="#66000000"
-        android:paddingHorizontal="8dp"
-        android:paddingVertical="4dp"
-        android:textAppearance="?attr/textAppearanceLabelLarge"
-        android:textColor="@android:color/white" />
+        android:paddingHorizontal="16dp"
+        android:paddingVertical="10dp"
+        android:textAppearance="?attr/textAppearanceTitleSmall"
+        android:textColor="@android:color/white"
+        tools:text="man. 4. nov. 2019 kl. 12:00 · 3 af 42" />
 
-    <ProgressBar
-        android:id="@+id/loading"
-        android:layout_width="48dp"
-        android:layout_height="48dp"
-        android:layout_gravity="center" />
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
 
-    <LinearLayout
-        android:id="@+id/error_box"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center"
-        android:gravity="center"
-        android:orientation="vertical"
-        android:padding="24dp"
-        android:visibility="gone">
+        <androidx.media3.ui.PlayerView
+            android:id="@+id/player_view"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            app:show_buffering="never" />
 
-        <TextView
-            android:id="@+id/error_text"
+        <ImageView
+            android:id="@+id/mjpeg_view"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:contentDescription="@string/live"
+            android:scaleType="fitCenter"
+            android:visibility="gone" />
+
+        <ProgressBar
+            android:id="@+id/loading"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_gravity="center" />
+
+        <LinearLayout
+            android:id="@+id/error_box"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_gravity="center"
             android:gravity="center"
-            android:textAppearance="?attr/textAppearanceBodyLarge"
-            android:textColor="@android:color/white" />
+            android:orientation="vertical"
+            android:padding="24dp"
+            android:visibility="gone">
 
-        <Button
-            android:id="@+id/retry_button"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
-            android:text="@string/retry" />
-    </LinearLayout>
+            <TextView
+                android:id="@+id/error_text"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:textAppearance="?attr/textAppearanceBodyLarge"
+                android:textColor="@android:color/white" />
 
+            <Button
+                android:id="@+id/retry_button"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:text="@string/retry" />
+        </LinearLayout>
+    </FrameLayout>
+
+    <!-- Live view -->
     <LinearLayout
         android:id="@+id/live_controls"
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_gravity="bottom|center_horizontal"
-        android:layout_marginBottom="24dp"
+        android:gravity="center"
         android:orientation="horizontal"
+        android:padding="12dp"
         android:visibility="gone">
 
         <Button
@@ -87,4 +94,128 @@
             android:layout_height="wrap_content"
             android:text="@string/take_photo" />
     </LinearLayout>
-</FrameLayout>
+
+    <!-- Recordings -->
+    <LinearLayout
+        android:id="@+id/file_controls"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingHorizontal="12dp"
+        android:paddingBottom="8dp"
+        android:visibility="gone"
+        tools:visibility="visible">
+
+        <LinearLayout
+            android:id="@+id/trim_panel"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:visibility="gone"
+            tools:visibility="visible">
+
+            <TextView
+                android:id="@+id/trim_text"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingTop="8dp"
+                android:textAppearance="?attr/textAppearanceBodyMedium"
+                android:textColor="@android:color/white"
+                tools:text="Fra 1:10 til 1:40 · 30 sek. · henter ca. 45 MB" />
+
+            <com.google.android.material.slider.RangeSlider
+                android:id="@+id/trim_slider"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:valueFrom="0"
+                android:valueTo="1" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+
+                <Button
+                    android:id="@+id/trim_start_button"
+                    style="@style/Widget.Material3.Button.OutlinedButton"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="8dp"
+                    android:layout_weight="1"
+                    android:text="@string/trim_start" />
+
+                <Button
+                    android:id="@+id/trim_end_button"
+                    style="@style/Widget.Material3.Button.OutlinedButton"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="@string/trim_end" />
+            </LinearLayout>
+
+            <Button
+                android:id="@+id/trim_save_button"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/trim_save" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/export_status"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingVertical="6dp"
+            android:textAppearance="?attr/textAppearanceBodySmall"
+            android:textColor="@android:color/white"
+            android:visibility="gone"
+            tools:text="Klipper …_klip_01m10s-01m40s.mp4: 45 % · 2,1 MB/s"
+            tools:visibility="visible" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <Button
+                android:id="@+id/download_button"
+                style="@style/Widget.Material3.Button.TonalButton"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="8dp"
+                android:layout_weight="1"
+                android:text="@string/dl_button"
+                app:icon="@drawable/ic_download" />
+
+            <Button
+                android:id="@+id/clip_button"
+                style="@style/Widget.Material3.Button.TonalButton"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/clip_button"
+                app:icon="@drawable/ic_cut" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <Button
+                android:id="@+id/prev_button"
+                style="@style/Widget.Material3.Button.TextButton"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/prev_video" />
+
+            <Button
+                android:id="@+id/next_button"
+                style="@style/Widget.Material3.Button.TextButton"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/next_video" />
+        </LinearLayout>
+    </LinearLayout>
+</LinearLayout>
