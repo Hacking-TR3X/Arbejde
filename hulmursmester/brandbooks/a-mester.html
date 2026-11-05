@@ -1,0 +1,449 @@
+<title>Hulmursmester Brandbook A</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="Brandbook, retning A (Mester): klassisk håndværk, teglrød og slab-serif.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&family=Zilla+Slab:wght@500;600;700&display=swap">
+<style>
+/* Layout: murværk i halvstensforbandt. Sektionerne lægges som skifter, og overskrifterne sidder i "sten" med fuger imellem.
+   Bevidst ét tema: brandbogen viser brandets egne farver, uanset systemtema. */
+:root {
+  --tegl: #9A3324;      /* Teglrød: primær */
+  --tegl-dyb: #6B2218;  /* Brændt tegl: flader og hover */
+  --sod: #1F1B19;       /* Sod: tekst */
+  --fuge: #D6D0C6;      /* Fugegrå: linjer og flader */
+  --kalk: #F6F5F2;      /* Kalkhvid: baggrund */
+  --messing: #B4863A;   /* Messing: mester-detaljer, maks 5 % */
+  --hvid: #FFFFFF;
+  --sod-70: #4A4441;
+  --display: "Zilla Slab", Rockwell, "Roboto Slab", Georgia, serif;
+  --body: "Public Sans", "Helvetica Neue", Arial, sans-serif;
+  --maxw: 1120px;
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+body { background: var(--kalk); color: var(--sod); font-family: var(--body); font-size: 16px; line-height: 1.6; }
+a { color: var(--tegl); }
+:focus-visible { outline: 3px solid var(--messing); outline-offset: 2px; }
+.wrap { max-width: var(--maxw); margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+h1, h2, h3 { font-family: var(--display); line-height: 1.1; text-wrap: balance; margin: 0; }
+p { margin: 0; max-width: 65ch; }
+.eyebrow { font-family: var(--body); font-weight: 700; font-size: 12px; letter-spacing: .14em; text-transform: uppercase; }
+
+/* Forside */
+.cover { background-color: var(--tegl); color: var(--hvid);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='56'%3E%3Cpath d='M0 1H120M0 29H120M1 1V29M61 29V57' stroke='%23000' stroke-opacity='.2' stroke-width='2' fill='none'/%3E%3C/svg%3E"); }
+.cover .wrap { padding-block: 40px 56px; display: grid; gap: 40px; }
+.cover-top { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; }
+.cover-top .eyebrow { color: var(--fuge); }
+.cover-main { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 40px; align-items: center; }
+.cover h1 { font-size: clamp(40px, 7vw, 84px); font-weight: 700; letter-spacing: -.01em; }
+.cover h1 span { color: var(--fuge); font-weight: 500; display: block; }
+.cover p.lead { font-size: 19px; color: #F3E7E3; margin-top: 20px; }
+.section-plate { background: var(--kalk); color: var(--sod); padding: 24px; border-radius: 2px; box-shadow: 0 0 0 6px rgba(0,0,0,.12); }
+.section-plate svg { width: 100%; height: auto; display: block; }
+.section-plate figcaption { font-size: 13px; color: var(--sod-70); margin-top: 12px; }
+
+/* Indholdsfortegnelse som et skifte af sten */
+.toc { background: var(--sod); }
+.toc .wrap { padding-block: 0; }
+.toc ol { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 2px; }
+.toc a { display: block; padding: 12px 16px; color: var(--fuge); text-decoration: none; font-size: 14px; font-weight: 600; background: #2A2522; }
+.toc a:hover { background: var(--tegl-dyb); color: var(--hvid); }
+
+section.block { padding-block: 72px; border-bottom: 2px solid var(--fuge); }
+.block-head { display: grid; grid-template-columns: 200px minmax(0, 1fr); gap: 32px; margin-bottom: 40px; align-items: start; }
+.brick-label { background: var(--tegl); color: var(--hvid); font-family: var(--display); font-weight: 700; font-size: 15px; padding: 10px 14px; letter-spacing: .04em; text-transform: uppercase; }
+.block-head h2 { font-size: clamp(30px, 4vw, 46px); font-weight: 700; }
+.block-head p { margin-top: 12px; color: var(--sod-70); font-size: 18px; }
+.cols { display: grid; gap: 24px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+.cols > * { min-width: 0; }
+.card { background: var(--hvid); border: 1px solid var(--fuge); padding: 24px; }
+.card h3 { font-size: 22px; margin-bottom: 8px; }
+.card p { color: var(--sod-70); }
+
+/* Kerne */
+.promise { font-family: var(--display); font-size: clamp(26px, 3.4vw, 40px); font-weight: 600; line-height: 1.2; border-left: 8px solid var(--tegl); padding-left: 24px; max-width: 30ch; }
+.facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 2px; background: var(--fuge); margin-top: 40px; }
+.facts div { background: var(--kalk); padding: 20px; }
+.facts dt { font-size: 12px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--tegl); }
+.facts dd { margin: 6px 0 0; }
+
+/* Logo */
+.logo-stage { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px; }
+.logo-tile { min-height: 240px; display: grid; place-items: center; padding: 32px; position: relative; }
+.logo-tile small { position: absolute; left: 16px; bottom: 12px; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; font-weight: 600; }
+.t-kalk { background: var(--hvid); border: 1px solid var(--fuge); color: var(--sod); }
+.t-tegl { background: var(--tegl); color: var(--hvid); }
+.t-sod { background: var(--sod); color: var(--kalk); }
+.t-sod small, .t-tegl small { color: var(--fuge); }
+.t-kalk small { color: var(--sod-70); }
+.lockup { display: flex; align-items: center; gap: 14px; }
+.lockup svg.mk { width: 64px; height: 64px; flex: none; }
+.lockup .wm { font-family: var(--display); font-weight: 700; font-size: 30px; letter-spacing: .05em; line-height: 1; }
+.lockup .wm small { position: static; display: block; font-family: var(--body); font-size: 11px; font-weight: 600; letter-spacing: .24em; margin-top: 6px; color: inherit; opacity: .8; }
+.t-tegl, .t-sod, .cover, .van, .bc.front, .p-seal { --gr: var(--messing); }
+.rules { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 24px; margin-top: 32px; }
+.clear { background: var(--hvid); border: 1px dashed var(--tegl); padding: 32px; display: grid; place-items: center; position: relative; }
+.clear::after { content: "X = højden på teglstenen i mærket"; position: absolute; bottom: 8px; font-size: 12px; color: var(--sod-70); }
+.dont { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 16px; margin-top: 24px; }
+.dont figure { margin: 0; background: var(--hvid); border: 1px solid var(--fuge); padding: 20px 12px 12px; text-align: center; }
+.dont figcaption { font-size: 13px; margin-top: 10px; color: var(--sod-70); }
+.dont figcaption b { color: var(--tegl); }
+
+/* Farver */
+.swatches { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 2px; background: var(--fuge); border: 2px solid var(--fuge); }
+.sw { min-height: 210px; padding: 16px; display: flex; flex-direction: column; justify-content: flex-end; gap: 2px; font-size: 13px; }
+.sw b { font-family: var(--display); font-size: 20px; }
+.sw code { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 12px; }
+.ratio { display: flex; height: 28px; margin-top: 24px; border: 2px solid var(--fuge); }
+.ratio span { display: block; }
+.ratio-legend { font-size: 13px; color: var(--sod-70); margin-top: 8px; }
+
+/* Typografi */
+.type-specimen { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 24px; }
+.spec { background: var(--hvid); border: 1px solid var(--fuge); padding: 28px; }
+.spec .big { font-size: clamp(64px, 9vw, 120px); line-height: 1; color: var(--tegl); }
+.spec .meta { font-size: 13px; color: var(--sod-70); margin-top: 12px; }
+.scale { margin-top: 24px; background: var(--hvid); border: 1px solid var(--fuge); }
+.scale div { display: grid; grid-template-columns: 110px minmax(0, 1fr); gap: 16px; padding: 14px 20px; border-top: 1px solid var(--fuge); align-items: baseline; }
+.scale div:first-child { border-top: 0; }
+.scale code { font-size: 12px; color: var(--sod-70); font-family: ui-monospace, Menlo, monospace; }
+
+/* Grafiske elementer */
+.pattern { height: 160px; border: 1px solid var(--fuge); }
+.p-bond { background-color: var(--tegl); background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='28'%3E%3Cpath d='M0 .5H60M0 14.5H60M.5 .5V14.5M30.5 14.5V28' stroke='%23F6F5F2' stroke-opacity='.55' fill='none'/%3E%3C/svg%3E"); }
+.p-gran { background-color: var(--kalk); background-image: radial-gradient(circle at 25% 30%, var(--tegl) 0 2.2px, transparent 2.6px), radial-gradient(circle at 75% 75%, var(--messing) 0 2px, transparent 2.4px); background-size: 14px 14px; }
+.p-seal { display: grid; place-items: center; background: var(--sod); }
+.p-seal svg { width: 130px; height: 130px; }
+
+/* Tone */
+.tone { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 2px; background: var(--fuge); border: 2px solid var(--fuge); }
+.tone > div { background: var(--hvid); padding: 24px; }
+.tone h3 { font-size: 20px; margin-bottom: 12px; }
+.tone ul { margin: 0; padding-left: 20px; display: grid; gap: 10px; }
+.tone .ja h3 { color: #2F6B3A; }
+.tone .nej h3 { color: var(--tegl); }
+.tone .nej li { color: var(--sod-70); text-decoration: line-through; text-decoration-color: var(--tegl); }
+.words { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 24px; }
+.words span { background: var(--fuge); padding: 6px 12px; font-weight: 600; font-size: 14px; }
+
+/* Billedstil */
+.photo { aspect-ratio: 4 / 3; max-width: 100%; position: relative; overflow: hidden; display: flex; align-items: flex-end; padding: 16px; color: var(--hvid); font-size: 14px; font-weight: 600; }
+.photo::before { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, transparent 40%, rgba(0,0,0,.55)); }
+.photo span { position: relative; }
+.ph1 { background: linear-gradient(135deg, #B0493A, #7A2A1F 60%, #4C1B14); }
+.ph2 { background: linear-gradient(160deg, #C9C1B5, #8C8579 70%, #5E5951); }
+.ph3 { background: linear-gradient(120deg, #3A3532, #6B2218 80%); }
+.photo-note { font-size: 13px; color: var(--sod-70); margin-top: 8px; }
+
+/* UI */
+.btn { display: inline-flex; align-items: center; gap: 8px; font: 700 16px/1 var(--body); padding: 16px 22px; border: 0; cursor: pointer; text-decoration: none; }
+.btn-primary { background: var(--tegl); color: var(--hvid); box-shadow: inset 0 -4px 0 var(--tegl-dyb); }
+.btn-primary:hover { background: var(--tegl-dyb); }
+.btn-ghost { background: transparent; color: var(--sod); box-shadow: inset 0 0 0 2px var(--sod); }
+.ui-row { display: flex; flex-wrap: wrap; gap: 16px; align-items: center; }
+.field label { display: block; font-weight: 700; font-size: 14px; margin-bottom: 6px; }
+.field input { width: 100%; font: 400 17px var(--body); padding: 14px 16px; border: 2px solid var(--sod); background: var(--hvid); color: var(--sod); border-radius: 0; }
+.field input:focus { outline: none; border-color: var(--tegl); box-shadow: 0 0 0 4px rgba(154,51,36,.18); }
+.tjek { background: var(--hvid); border: 2px solid var(--sod); }
+.tjek header { background: var(--sod); color: var(--kalk); padding: 14px 20px; display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; align-items: center; }
+.tjek header b { font-family: var(--display); font-size: 20px; }
+.tjek .body { padding: 20px; display: grid; gap: 16px; }
+.tjek dl { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 2px; background: var(--fuge); margin: 0; }
+.tjek dl div { background: var(--kalk); padding: 12px; }
+.tjek dt { font-size: 12px; color: var(--sod-70); }
+.tjek dd { margin: 2px 0 0; font-weight: 700; font-variant-numeric: tabular-nums; }
+.tjek .result { display: flex; justify-content: space-between; align-items: end; gap: 16px; flex-wrap: wrap; border-top: 2px solid var(--sod); padding-top: 16px; }
+.tjek .result .m2 { font-family: var(--display); font-size: 48px; font-weight: 700; color: var(--tegl); line-height: 1; font-variant-numeric: tabular-nums; }
+.tag-ex { background: var(--messing); color: var(--sod); font-size: 11px; font-weight: 700; letter-spacing: .1em; padding: 3px 8px; text-transform: uppercase; }
+
+/* Anvendelse */
+.mock-web { border: 2px solid var(--sod); background: var(--hvid); overflow: hidden; }
+.mock-web .bar { background: var(--fuge); padding: 8px 12px; display: flex; gap: 6px; align-items: center; font-size: 12px; color: var(--sod-70); }
+.mock-web .bar i { width: 10px; height: 10px; border-radius: 50%; background: var(--hvid); display: inline-block; }
+.mock-web nav { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 14px 24px; border-bottom: 1px solid var(--fuge); flex-wrap: wrap; }
+.mock-web nav .lockup .wm { font-size: 20px; }
+.mock-web nav .lockup svg.mk { width: 36px; height: 36px; }
+.mock-web nav ul { display: flex; gap: 18px; list-style: none; margin: 0; padding: 0; font-size: 14px; font-weight: 600; flex-wrap: wrap; }
+.mock-hero { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); }
+.mock-hero .txt { padding: 40px 32px; display: grid; gap: 18px; align-content: center; }
+.mock-hero h3 { font-size: clamp(30px, 4vw, 46px); }
+.mock-hero .side { background-color: var(--tegl); background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='28'%3E%3Cpath d='M0 .5H60M0 14.5H60M.5 .5V14.5M30.5 14.5V28' stroke='%23000' stroke-opacity='.22' fill='none'/%3E%3C/svg%3E"); padding: 28px; display: grid; align-content: center; }
+.mock-hero .side .tjek { box-shadow: 8px 8px 0 rgba(0,0,0,.25); }
+.usage { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px; margin-top: 24px; }
+.usage > * { min-width: 0; }
+.usage figure { margin: 0; }
+.usage figcaption { font-size: 13px; color: var(--sod-70); margin-top: 8px; }
+.van { background: var(--fuge); padding: 20px; }
+.van svg { width: 100%; height: auto; display: block; }
+.bcard { display: grid; gap: 12px; }
+.bc { aspect-ratio: 85 / 55; max-width: 100%; padding: 20px; display: flex; flex-direction: column; justify-content: space-between; }
+.bc.front { background: var(--tegl); color: var(--hvid); }
+.bc.back { background: var(--hvid); border: 1px solid var(--fuge); font-size: 13px; }
+.bc.back b { font-family: var(--display); font-size: 20px; display: block; }
+.gbp { background: var(--hvid); border: 1px solid #DADCE0; border-radius: 8px; padding: 16px; font-family: Arial, sans-serif; color: #202124; }
+.gbp .n { font-size: 22px; }
+.gbp .c { color: #5F6368; font-size: 14px; margin-top: 2px; }
+.gbp .acts { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
+.gbp .acts span { border: 1px solid #DADCE0; border-radius: 18px; padding: 6px 12px; font-size: 13px; color: #1A73E8; }
+.gbp .seo { font-size: 13px; color: #5F6368; margin-top: 12px; border-top: 1px solid #ECEDEF; padding-top: 10px; }
+.social { aspect-ratio: 1; max-width: 100%; background: var(--sod); color: var(--kalk); padding: 28px; display: flex; flex-direction: column; justify-content: space-between; position: relative; overflow: hidden; }
+.social h3 { font-size: clamp(26px, 3.2vw, 36px); color: var(--hvid); }
+.social .strip { position: absolute; right: 0; top: 0; bottom: 0; width: 26%; background-color: var(--tegl); background-image: radial-gradient(circle, var(--messing) 0 2px, transparent 2.4px); background-size: 12px 12px; }
+.social > *:not(.strip) { position: relative; max-width: 70%; }
+
+.copybank { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 2px; background: var(--fuge); border: 2px solid var(--fuge); }
+.copybank div { background: var(--hvid); padding: 20px; }
+.copybank b { display: block; font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: var(--tegl); margin-bottom: 8px; }
+.copybank p { font-family: var(--display); font-size: 21px; font-weight: 600; line-height: 1.25; }
+
+footer.end { background: var(--sod); color: var(--fuge); }
+footer.end .wrap { padding-block: 40px; display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; font-size: 14px; }
+
+@media (max-width: 760px) {
+  .cover-main, .block-head, .type-specimen, .tone, .mock-hero { grid-template-columns: minmax(0, 1fr); }
+  .block-head { gap: 16px; }
+  .brick-label { justify-self: start; }
+  section.block { padding-block: 48px; }
+  .mock-hero .txt { padding: 28px 20px; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .btn { transition: background .15s ease; }
+}
+</style>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="mk" viewBox="0 0 64 64">
+      <g fill="currentColor">
+        <rect x="6" y="6" width="18" height="9.6" rx="1"/><rect x="6" y="16.6" width="18" height="9.6" rx="1"/><rect x="6" y="27.2" width="18" height="9.6" rx="1"/><rect x="6" y="37.8" width="18" height="9.6" rx="1"/><rect x="6" y="48.4" width="18" height="9.6" rx="1"/>
+        <rect x="40" y="6" width="18" height="9.6" rx="1"/><rect x="40" y="16.6" width="18" height="9.6" rx="1"/><rect x="40" y="27.2" width="18" height="9.6" rx="1"/><rect x="40" y="37.8" width="18" height="9.6" rx="1"/><rect x="40" y="48.4" width="18" height="9.6" rx="1"/>
+      </g>
+      <g class="gr" style="fill: var(--gr, #9A3324)"><circle cx="29" cy="8.5" r="1.9"/><circle cx="35" cy="8.5" r="1.9"/><circle cx="32" cy="12.1" r="1.9"/><circle cx="29" cy="15.7" r="1.9"/><circle cx="35" cy="15.7" r="1.9"/><circle cx="32" cy="19.3" r="1.9"/><circle cx="29" cy="22.9" r="1.9"/><circle cx="35" cy="22.9" r="1.9"/><circle cx="32" cy="26.5" r="1.9"/><circle cx="29" cy="30.1" r="1.9"/><circle cx="35" cy="30.1" r="1.9"/><circle cx="32" cy="33.7" r="1.9"/><circle cx="29" cy="37.3" r="1.9"/><circle cx="35" cy="37.3" r="1.9"/><circle cx="32" cy="40.9" r="1.9"/><circle cx="29" cy="44.5" r="1.9"/><circle cx="35" cy="44.5" r="1.9"/><circle cx="32" cy="48.1" r="1.9"/><circle cx="29" cy="51.7" r="1.9"/><circle cx="35" cy="51.7" r="1.9"/><circle cx="32" cy="55.3" r="1.9"/></g>
+    </symbol>
+    <path id="sealpath" d="M60 60 m-44 0 a44 44 0 1 1 88 0 a44 44 0 1 1 -88 0"/>
+  </defs>
+</svg>
+
+<header class="cover">
+  <div class="wrap">
+    <div class="cover-top">
+      <div class="lockup">
+        <svg class="mk" style="width:44px;height:44px" aria-hidden="true"><use href="#mk"/></svg>
+        <span class="eyebrow">Brandbook · Retning A · Mester</span>
+      </div>
+      <span class="eyebrow">Forslag fra Trust Media · November 2026</span>
+    </div>
+    <div class="cover-main">
+      <div>
+        <h1>Hulmursmester <span>Hulmuren fyldt. Med mesterhånd.</span></h1>
+        <p class="lead">Retning A bygger på det, folk allerede stoler på hos en håndværker: erfaring, ordentligt arbejde og en mester, der står ved det. Teglrød, slab-serif og murværkets eget mønster.</p>
+      </div>
+      <figure class="section-plate" style="margin:0">
+        <svg viewBox="0 0 320 200" role="img" aria-label="Snit gennem en hulmur: formur, hulrum fyldt med granulat og bagmur">
+          <rect x="20" y="20" width="80" height="160" fill="#9A3324"/>
+          <g stroke="#F6F5F2" stroke-width="2"><path d="M20 47H100M20 74H100M20 101H100M20 128H100M20 155H100"/></g>
+          <rect x="220" y="20" width="80" height="160" fill="#6B2218"/>
+          <g stroke="#F6F5F2" stroke-width="2"><path d="M220 47H300M220 74H300M220 101H300M220 128H300M220 155H300"/></g>
+          <rect x="100" y="20" width="120" height="160" fill="#D6D0C6"/>
+          <g fill="#B4863A"><circle cx="112" cy="32" r="5"/><circle cx="132" cy="40" r="5"/><circle cx="154" cy="30" r="5"/><circle cx="176" cy="42" r="5"/><circle cx="198" cy="31" r="5"/><circle cx="208" cy="52" r="5"/><circle cx="118" cy="56" r="5"/><circle cx="142" cy="62" r="5"/><circle cx="164" cy="58" r="5"/><circle cx="188" cy="66" r="5"/><circle cx="110" cy="80" r="5"/><circle cx="130" cy="86" r="5"/><circle cx="152" cy="80" r="5"/><circle cx="174" cy="90" r="5"/><circle cx="198" cy="84" r="5"/><circle cx="120" cy="106" r="5"/><circle cx="144" cy="110" r="5"/><circle cx="166" cy="104" r="5"/><circle cx="190" cy="112" r="5"/><circle cx="210" cy="100" r="5"/><circle cx="110" cy="130" r="5"/><circle cx="134" cy="136" r="5"/><circle cx="156" cy="128" r="5"/><circle cx="180" cy="138" r="5"/><circle cx="204" cy="128" r="5"/><circle cx="122" cy="158" r="5"/><circle cx="146" cy="162" r="5"/><circle cx="170" cy="154" r="5"/><circle cx="194" cy="164" r="5"/><circle cx="210" cy="150" r="5"/></g>
+          <g font-family="Public Sans, Arial, sans-serif" font-size="11" font-weight="700" fill="#1F1B19" text-anchor="middle"><text x="60" y="196">FORMUR</text><text x="160" y="196">GRANULAT</text><text x="260" y="196">BAGMUR</text></g>
+        </svg>
+        <figcaption>Murens snit er brandets kildemotiv: to vanger af tegl og et hulrum fyldt med granulat.</figcaption>
+      </figure>
+    </div>
+  </div>
+</header>
+
+<nav class="toc" aria-label="Indhold">
+  <div class="wrap">
+    <ol>
+      <li><a href="#kerne">Kerne</a></li><li><a href="#logo">Logo</a></li><li><a href="#farver">Farver</a></li><li><a href="#typografi">Typografi</a></li><li><a href="#elementer">Elementer</a></li><li><a href="#tone">Tone</a></li><li><a href="#billeder">Billeder</a></li><li><a href="#ui">Web og UI</a></li><li><a href="#anvendelse">Anvendelse</a></li>
+    </ol>
+  </div>
+</nav>
+
+<main>
+<section class="block" id="kerne">
+  <div class="wrap">
+    <div class="block-head"><div class="brick-label">Kerne</div><div><h2>Specialisten, der kun laver hulmure</h2><p>Retning A sælger fagligheden. Kunden skal mærke, at her kommer en mester, som har fyldt hundredvis af hulmure og kender husene fra 1930 til 1980 ud og ind.</p></div></div>
+    <p class="promise">"Vi fylder kun hulmure. Derfor gør vi det ordentligt, og vi lukker efter os."</p>
+    <dl class="facts">
+      <div><dt>Målgruppe</dt><dd>Husejere i murstenshuse opført ca. 1930–1980. Typisk 40–70 år, vil have styr på varmeregningen og vælger en fagmand frem for den billigste.</dd></div>
+      <div><dt>Løfte</dt><dd>Gratis hulmurstjek, fast pris pr. m² og en mur, der ser ud som før, når vi kører.</dd></div>
+      <div><dt>Værdier</dt><dd>Faglig stolthed · Ordentlighed · Lokalkendskab</dd></div>
+      <div><dt>Personlighed</dt><dd>Mesteren på stilladset: rolig, erfaren og direkte. Han forklarer gerne, men lover aldrig mere, end muren kan holde til.</dd></div>
+    </dl>
+  </div>
+</section>
+
+<section class="block" id="logo">
+  <div class="wrap">
+    <div class="block-head"><div class="brick-label">Logo</div><div><h2>Mærket er murens snit</h2><p>To vanger af tegl og et hulrum fyldt med granulat. Det kan tegnes med fem streger, det kan foliebrydes på en bil, og det fortæller præcis, hvad firmaet laver.</p></div></div>
+    <div class="logo-stage">
+      <div class="logo-tile t-kalk"><div class="lockup"><svg class="mk" aria-hidden="true"><use href="#mk"/></svg><div class="wm">HULMURSMESTER<small>HULMURSISOLERING</small></div></div><small>Primær · på lys</small></div>
+      <div class="logo-tile t-tegl"><div class="lockup"><svg class="mk" aria-hidden="true"><use href="#mk"/></svg><div class="wm">HULMURSMESTER<small>HULMURSISOLERING</small></div></div><small>Primær · på teglrød</small></div>
+      <div class="logo-tile t-sod">
+        <svg viewBox="0 0 120 120" width="150" height="150" role="img" aria-label="Seglet: mærket omkranset af teksten Hulmursmester, fagligt fyldt">
+          <circle cx="60" cy="60" r="56" fill="none" stroke="#B4863A" stroke-width="2"/>
+          <circle cx="60" cy="60" r="33" fill="none" stroke="#B4863A" stroke-width="1"/>
+          <text font-family="Zilla Slab, Georgia, serif" font-weight="700" font-size="11.5" letter-spacing="2.2" fill="#F6F5F2"><textPath href="#sealpath">HULMURSMESTER · FAGLIGT FYLDT ·</textPath></text>
+          <svg x="38" y="38" width="44" height="44" viewBox="0 0 64 64" color="#F6F5F2"><use href="#mk"/></svg>
+        </svg>
+        <small>Segl · til bil, tøj og garantibevis</small>
+      </div>
+    </div>
+    <div class="rules">
+      <div class="clear"><div class="lockup" style="padding:24px;outline:1px solid rgba(154,51,36,.35)"><svg class="mk" aria-hidden="true"><use href="#mk"/></svg><div class="wm">HULMURSMESTER</div></div></div>
+      <div class="card"><h3>Friområde og størrelse</h3><p>Hold mindst én stenhøjde (X) fri luft om logoet. Mindste bredde er 32 mm på tryk og 140 px på skærm. Under det bruges mærket alene, mindst 8 mm eller 24 px.</p></div>
+      <div class="card"><h3>Mærket alene</h3><p>Bruges som favicon, profilbillede, på arbejdstøj og som stempel i hjørnet af tilbud. Granulatet er altid i teglrød på lys bund og messing på mørk bund.</p></div>
+    </div>
+    <div class="dont">
+      <figure><div class="lockup" style="justify-content:center;transform:skewX(-14deg)"><svg class="mk" style="width:36px;height:36px" aria-hidden="true"><use href="#mk"/></svg><div class="wm" style="font-size:16px">HULMURSMESTER</div></div><figcaption><b>Nej:</b> skæv eller forvrænget</figcaption></figure>
+      <figure><div class="lockup" style="justify-content:center;color:#2F6FD6"><svg class="mk" style="width:36px;height:36px" aria-hidden="true"><use href="#mk"/></svg><div class="wm" style="font-size:16px">HULMURSMESTER</div></div><figcaption><b>Nej:</b> farver uden for paletten</figcaption></figure>
+      <figure><div class="lockup" style="justify-content:center;background:linear-gradient(90deg,#B0493A,#C9C1B5);padding:8px"><svg class="mk" style="width:36px;height:36px" aria-hidden="true"><use href="#mk"/></svg><div class="wm" style="font-size:16px">HULMURSMESTER</div></div><figcaption><b>Nej:</b> på uroligt foto uden flade</figcaption></figure>
+      <figure><div class="lockup" style="justify-content:center"><div class="wm" style="font-size:16px;font-family:var(--body)">Hulmurs Mester</div></div><figcaption><b>Nej:</b> to ord eller andet skrift</figcaption></figure>
+    </div>
+  </div>
+</section>
+
+<section class="block" id="farver">
+  <div class="wrap">
+    <div class="block-head"><div class="brick-label">Farver</div><div><h2>Tegl, fuge og kalk</h2><p>Paletten er hentet fra selve muren. Teglrød bærer brandet, kalk og fuge giver ro, og messing bruges sparsomt som mesterens kvalitetsmærke.</p></div></div>
+    <div class="swatches">
+      <div class="sw" style="background:#9A3324;color:#fff"><b>Teglrød</b><code>#9A3324</code><code>RGB 154 51 36</code><span>Primær · logo, knapper, flader</span></div>
+      <div class="sw" style="background:#6B2218;color:#fff"><b>Brændt tegl</b><code>#6B2218</code><code>RGB 107 34 24</code><span>Hover, skygger, bil-nederdel</span></div>
+      <div class="sw" style="background:#1F1B19;color:#F6F5F2"><b>Sod</b><code>#1F1B19</code><code>RGB 31 27 25</code><span>Tekst, mørke flader</span></div>
+      <div class="sw" style="background:#D6D0C6;color:#1F1B19"><b>Fugegrå</b><code>#D6D0C6</code><code>RGB 214 208 198</code><span>Linjer, kort, baggrunde</span></div>
+      <div class="sw" style="background:#F6F5F2;color:#1F1B19"><b>Kalkhvid</b><code>#F6F5F2</code><code>RGB 246 245 242</code><span>Sidebaggrund</span></div>
+      <div class="sw" style="background:#B4863A;color:#1F1B19"><b>Messing</b><code>#B4863A</code><code>RGB 180 134 58</code><span>Segl og detaljer · maks 5 %</span></div>
+    </div>
+    <div class="ratio" aria-hidden="true"><span style="flex:45;background:#F6F5F2"></span><span style="flex:20;background:#D6D0C6"></span><span style="flex:18;background:#9A3324"></span><span style="flex:12;background:#1F1B19"></span><span style="flex:5;background:#B4863A"></span></div>
+    <p class="ratio-legend">Fordeling på en typisk side: 45 % kalk · 20 % fuge · 18 % tegl · 12 % sod · 5 % messing. Hvid tekst på teglrød har kontrast 7,3:1 (AAA).</p>
+  </div>
+</section>
+
+<section class="block" id="typografi">
+  <div class="wrap">
+    <div class="block-head"><div class="brick-label">Typografi</div><div><h2>Slab som skiltemalerens bogstaver</h2><p>Zilla Slab har de tunge fødder, man kender fra malede håndværkerbiler og gamle butiksskilte. Public Sans tager brødteksten og holder den nøgtern og læsbar.</p></div></div>
+    <div class="type-specimen">
+      <div class="spec"><div class="big" style="font-family:var(--display);font-weight:700">Aa</div><h3 style="font-size:28px;margin-top:12px">Zilla Slab</h3><p class="meta">Overskrifter, logo, citater · 500 / 600 / 700 · Google Fonts (gratis)</p></div>
+      <div class="spec"><div class="big" style="font-family:var(--body);font-weight:600;color:var(--sod)">Aa</div><h3 style="font-size:28px;margin-top:12px;font-family:var(--body)">Public Sans</h3><p class="meta">Brødtekst, formularer, tal · 400 / 600 / 700 · Google Fonts (gratis)</p></div>
+    </div>
+    <div class="scale">
+      <div><code>H1 · 56/60</code><span style="font-family:var(--display);font-weight:700;font-size:clamp(32px,5vw,56px);line-height:1.05">Varme vægge fra 1968</span></div>
+      <div><code>H2 · 36/40</code><span style="font-family:var(--display);font-weight:700;font-size:clamp(26px,3.4vw,36px);line-height:1.1">Sådan fylder vi din hulmur</span></div>
+      <div><code>H3 · 22/28</code><span style="font-family:var(--display);font-weight:600;font-size:22px">Fast pris pr. m²</span></div>
+      <div><code>Brød · 17/27</code><span style="font-size:17px">Vi borer små huller i fugerne, blæser granulat ind og lukker hullerne med mørtel i samme farve som fugen.</span></div>
+      <div><code>Label · 12</code><span class="eyebrow" style="color:var(--tegl)">Gratis hulmurstjek</span></div>
+    </div>
+  </div>
+</section>
+
+<section class="block" id="elementer">
+  <div class="wrap">
+    <div class="block-head"><div class="brick-label">Elementer</div><div><h2>Forbandt, granulat og segl</h2><p>Tre grafiske greb, alle hentet fra arbejdet. De bruges som baggrunde, rammer og kvalitetsstempler, aldrig alle tre på samme flade.</p></div></div>
+    <div class="cols">
+      <figure style="margin:0"><div class="pattern p-bond"></div><figcaption class="photo-note">Halvstensforbandt: baggrund på store teglflader, bil og forside.</figcaption></figure>
+      <figure style="margin:0"><div class="pattern p-gran"></div><figcaption class="photo-note">Granulat: lys tekstur bag tal og prisbokse. Viser fyldet.</figcaption></figure>
+      <figure style="margin:0"><div class="pattern p-seal"><svg viewBox="0 0 120 120" aria-hidden="true"><circle cx="60" cy="60" r="56" fill="none" stroke="#B4863A" stroke-width="2"/><text font-family="Zilla Slab, Georgia, serif" font-weight="700" font-size="11.5" letter-spacing="2.2" fill="#F6F5F2"><textPath href="#sealpath">HULMURSMESTER · FAGLIGT FYLDT ·</textPath></text><svg x="38" y="38" width="44" height="44" viewBox="0 0 64 64" color="#F6F5F2"><use href="#mk"/></svg></svg></div><figcaption class="photo-note">Seglet: på garantibevis, bilens bagdør og arbejdstøj.</figcaption></figure>
+    </div>
+  </div>
+</section>
+
+<section class="block" id="tone">
+  <div class="wrap">
+    <div class="block-head"><div class="brick-label">Tone</div><div><h2>Sådan taler mesteren</h2><p>Korte sætninger, konkrete tal og fagord, der bliver forklaret. Vi skriver "du" og "vi". Vi lover aldrig en besparelse, vi ikke kan regne ud på kundens eget hus.</p></div></div>
+    <div class="tone">
+      <div class="ja"><h3>Sådan skriver vi</h3><ul><li>"Vi borer små huller i fugen og lukker dem igen med farvetilpasset mørtel."</li><li>"Dit hus er fra 1968. Huse fra den tid har næsten altid en uisoleret hulmur."</li><li>"Arbejdet tager typisk én dag. Du behøver ikke være hjemme."</li></ul></div>
+      <div class="nej"><h3>Sådan skriver vi ikke</h3><ul><li>"Revolutionerende isoleringsløsninger til dit drømmehjem!"</li><li>"Spar op til 70 % på varmen" uden beregning bag</li><li>"Ring NU, tilbuddet udløber!!"</li></ul></div>
+    </div>
+    <div class="words" aria-label="Ord vi bruger"><span>mester</span><span>fuge</span><span>formur</span><span>granulat</span><span>ordentligt</span><span>fast pris</span><span>vi lukker efter os</span><span>gratis tjek</span></div>
+  </div>
+</section>
+
+<section class="block" id="billeder">
+  <div class="wrap">
+    <div class="block-head"><div class="brick-label">Billeder</div><div><h2>Ægte huse, ægte hænder</h2><p>Egne fotos fra rigtige opgaver. Murstenshuse i dagslys, hænder med værktøj og nærbilleder af fuger. Ingen stockfotos af smilende familier i sofaen.</p></div></div>
+    <div class="cols">
+      <figure style="margin:0"><div class="photo ph1"><span>Facaden: hele huset i blødt dagslys, lav vinkel</span></div></figure>
+      <figure style="margin:0"><div class="photo ph2"><span>Detaljen: fugen før og efter lukning</span></div></figure>
+      <figure style="margin:0"><div class="photo ph3"><span>Mesteren: portræt ved bilen, ser i kameraet</span></div></figure>
+    </div>
+    <p class="photo-note">Felterne er pladsholdere for fotos, der skal tages hos kunden. Varm farvetone, let afmættet, ingen filtre.</p>
+  </div>
+</section>
+
+<section class="block" id="ui">
+  <div class="wrap">
+    <div class="block-head"><div class="brick-label">Web og UI</div><div><h2>Knapper, felter og hulmurstjekket</h2><p>Kanterne er skarpe som en murstens. Knapperne har en mørk underkant, så de ser ud til at ligge oven på fladen.</p></div></div>
+    <div class="cols">
+      <div class="card" style="display:grid;gap:20px">
+        <div class="ui-row"><a class="btn btn-primary" href="#ui">Få gratis hulmurstjek</a><a class="btn btn-ghost" href="#ui">Se priser</a></div>
+        <div class="field"><label for="a-adr">Din adresse</label><input id="a-adr" type="text" value="Eksempelvej 12, 8600 Silkeborg" autocomplete="off"></div>
+      </div>
+      <div class="tjek">
+        <header><b>Dit hulmurstjek</b><span class="tag-ex">Eksempel</span></header>
+        <div class="body">
+          <dl><div><dt>Opført</dt><dd>1968</dd></div><div><dt>Ydervæg</dt><dd>Mursten</dd></div><div><dt>Bebygget areal</dt><dd>142 m²</dd></div><div><dt>Etager</dt><dd>1</dd></div></dl>
+          <div class="result"><div><div class="eyebrow" style="color:var(--sod-70)">Anslået hulmur</div><div class="m2">ca. 104 m²</div></div><a class="btn btn-primary" href="#ui">Få fast pris</a></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="block" id="anvendelse">
+  <div class="wrap">
+    <div class="block-head"><div class="brick-label">Anvendelse</div><div><h2>Sådan ser det ud i brug</h2><p>Forside, bil, visitkort, Google-profil og et opslag til Facebook. Alt er eksempler; tal og adresser er ikke rigtige.</p></div></div>
+    <div class="mock-web">
+      <div class="bar"><i></i><i></i><i></i><span>hulmursmester.dk</span></div>
+      <nav><div class="lockup"><svg class="mk" aria-hidden="true"><use href="#mk"/></svg><div class="wm">HULMURSMESTER</div></div><ul><li>Hulmursisolering</li><li>Priser</li><li>Om mester</li><li>Kontakt</li></ul></nav>
+      <div class="mock-hero">
+        <div class="txt"><span class="eyebrow" style="color:var(--tegl)">Hulmursisolering i hele Jylland</span><h3>Din hulmur fyldt på én dag. Af en mester.</h3><p style="color:var(--sod-70)">Skriv din adresse. Vi slår dit hus op i BBR og regner ud, hvor mange m² hulmur du har, og hvad det koster.</p><div class="ui-row"><a class="btn btn-primary" href="#anvendelse">Start gratis hulmurstjek</a></div></div>
+        <div class="side"><div class="tjek"><header><b>Hulmurstjek</b><span class="tag-ex">Eksempel</span></header><div class="body"><div class="field"><label for="a-adr2">Adresse</label><input id="a-adr2" type="text" value="Eksempelvej 12, 8600 Silkeborg"></div><div class="result" style="border:0;padding:0"><div class="m2" style="font-size:36px">ca. 104 m²</div><span style="font-size:14px">Mursten · opført 1968</span></div></div></div></div>
+      </div>
+    </div>
+    <div class="usage">
+      <figure class="van">
+        <svg viewBox="0 0 420 190" role="img" aria-label="Varevogn foliebrudt i teglrød med logo og segl">
+          <path d="M18 150 V62 Q18 40 40 40 H282 Q300 40 312 54 L348 98 Q384 104 392 120 L396 150 Z" fill="#9A3324"/>
+          <path d="M18 132 H396 V150 H18 Z" fill="#6B2218"/>
+          <path d="M290 52 L330 98 H290 Z" fill="#2A2522"/>
+          <rect x="230" y="56" width="2" height="76" fill="#6B2218"/>
+          <circle cx="96" cy="152" r="24" fill="#1F1B19"/><circle cx="96" cy="152" r="10" fill="#D6D0C6"/>
+          <circle cx="322" cy="152" r="24" fill="#1F1B19"/><circle cx="322" cy="152" r="10" fill="#D6D0C6"/>
+          <svg x="36" y="58" width="40" height="40" viewBox="0 0 64 64" color="#F6F5F2"><use href="#mk"/></svg>
+          <text x="84" y="84" font-family="Zilla Slab, Georgia, serif" font-weight="700" font-size="22" letter-spacing="1.2" fill="#FFFFFF">HULMURSMESTER</text>
+          <text x="36" y="118" font-family="Public Sans, Arial, sans-serif" font-weight="600" font-size="12" fill="#F3E7E3">Hulmursisolering · hulmursmester.dk</text>
+          <g transform="translate(244 60)"><circle cx="28" cy="28" r="26" fill="none" stroke="#B4863A" stroke-width="2"/><svg x="12" y="12" width="32" height="32" viewBox="0 0 64 64" color="#F6F5F2"><use href="#mk"/></svg></g>
+        </svg>
+        <figcaption>Bil: helfoliering i teglrød med mørk nederdel. Logo foran, segl bag førerdøren, web på bagdøre.</figcaption>
+      </figure>
+      <figure class="bcard">
+        <div class="bc front"><svg width="44" height="44" aria-hidden="true" style="color:#F6F5F2"><use href="#mk"/></svg><div style="font-family:var(--display);font-weight:700;font-size:22px;letter-spacing:.05em">HULMURSMESTER</div></div>
+        <div class="bc back"><div><b>Navn Efternavn</b>Mester og indehaver</div><div>Tlf. 00 00 00 00<br>navn@hulmursmester.dk<br>hulmursmester.dk</div></div>
+        <figcaption>Visitkort 85 × 55 mm: teglrød forside, kalkhvid bagside.</figcaption>
+      </figure>
+      <figure>
+        <div class="gbp"><div class="n">Hulmursmester</div><div class="c">Isoleringsfirma · Hulmursisolering</div><div class="acts"><span>Websted</span><span>Rutevejledning</span><span>Ring</span><span>Gem</span></div><p class="seo">Navnet indeholder "hulmur", så Google-profilen matcher søgningen "hulmursisolering [by]". Profilnavnet skal være præcis det registrerede firmanavn.</p></div>
+        <figcaption>Google-virksomhedsprofil: navnet er det stærkeste lokale signal.</figcaption>
+      </figure>
+      <figure>
+        <div class="social"><div class="strip" aria-hidden="true"></div><span class="eyebrow" style="color:var(--messing)">Hus fra 1960'erne?</span><h3>Så har du sikkert en kold hulmur.</h3><div style="font-size:14px">Tjek dit hus gratis på hulmursmester.dk</div></div>
+        <figcaption>Opslag 1080 × 1080 til Facebook og Instagram.</figcaption>
+      </figure>
+    </div>
+    <h3 style="font-size:24px;margin:48px 0 16px">Copy-bank</h3>
+    <div class="copybank">
+      <div><b>Tagline</b><p>Hulmuren fyldt. Med mesterhånd.</p></div>
+      <div><b>Overskrift</b><p>Din hulmur fyldt på én dag. Af en mester.</p></div>
+      <div><b>Knap</b><p>Start gratis hulmurstjek</p></div>
+      <div><b>Garanti-linje</b><p>Vi lukker efter os. Fugerne ser ud som før.</p></div>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer class="end"><div class="wrap"><span>Hulmursmester · Brandbook, retning A: Mester</span><span>Udarbejdet af Trust Media som forslag. Ikke endeligt.</span></div></footer>
