@@ -1,6 +1,27 @@
 # Navneforslag: hulmursfirma
 
-**Anbefaling: Hulmursmester** (13 tegn, hulmursmester.dk + hulmurmester.dk som viderestilling)
+> Status: foreløbigt. Lavet uden briefen på trustmedia.dk/hulmurs, som ikke kunne åbnes fra arbejdsmiljøet. Skal tilpasses, når briefen er læst.
+
+## Gemte forslag
+
+| | Navn | Forudsætning |
+|---|---|---|
+| Forslag 1 | **Hulmursmester** | Indehaveren har svendebrev som murer eller teknisk isolatør ("mester" er beskyttet) |
+| Forslag 2 | **Hulmursmanden** | Ingen; ingen beskyttede ord |
+
+## Flere kandidater (til vurdering mod briefen)
+
+| Navn | Tegn | Hvorfor |
+|---|---|---|
+| Hulmurshuset | 12 | Klassisk dansk firmamønster (Malerhuset, Tømrerhuset). Dobbeltbetydning: firmaet og kundens hus |
+| Hulmursfolkene | 14 | Menneskeligt og troværdigt; "folkene" signalerer rigtige folk, godt i anmeldelser |
+| Hulmursgruppen | 14 | Lyder etableret og større; passer hvis der er flere hold eller regioner |
+| Hulmursværket | 13 | Håndværk og værksted; solidt og lidt industrielt |
+| Hulmurseksperten | 16 | Tydelig ekspertise; "ekspert" er ikke beskyttet. Lidt langt og et brugt mønster |
+| [Efternavn] Hulmur | – | Hvis briefen nævner ejerens navn: mest traditionelt og nemmest at beskytte |
+| Jysk / Fynsk Hulmur | 10–11 | Kun hvis firmaet er regionalt. Regionale søgninger er små (Sjælland 150, Midtjylland 90, Nordjylland 50, Fyn 40 pr. md), så værdien er lokal tillid frem for SEO |
+
+Alle starter med "hulmurs", som er de første 7 bogstaver i "hulmursisolering" (1.900 søgninger/md).
 
 ## Søgedata (Ahrefs, Danmark, månedlige søgninger, november 2026)
 
@@ -51,6 +72,7 @@ Tjekket mod domæneregistret via Shopifys domæneværktøj. Ledigt på tidspunkt
 | hulmurmester.dk | Ledigt (stavevariant uden s) |
 | hulmurfix.dk | Ledigt (.com også ledigt) |
 | hulmurpro.dk | Ledigt (.com også ledigt) |
+| hulmursmanden.com | Ledigt (.dk ikke tjekket endnu) |
 
 ## Navnebrug på nettet
 
