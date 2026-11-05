@@ -32,6 +32,15 @@
 
 Fravalgt: "Dansk Hulmursisolering" (forvekslingsrisiko med eksisterende brand) og navne uden "hulmur", fx "Lunmur" (al SEO skal så komme fra indholdet).
 
+## Vigtigt: "mester" er en beskyttet betegnelse
+
+Ifølge næringsloven må kun personer med bestået svendeprøve i et håndværksfag bruge betegnelsen "mester" i forbindelse med det fag. Misbrug kan give bøde, og navnet kan blive anset som vildledende (erhvervsvirksomhedsloven § 6 og markedsføringsloven).
+
+- Har indehaveren svendebrev som murer eller teknisk isolatør: Hulmursmester kan bruges, og titlen er et salgsargument.
+- Har indehaveren ikke svendebrev: undgå "mester". Brug fx HulmurIso eller Hulmursmanden.
+
+Bekræft med Erhvervsstyrelsen eller en advokat, før navnet registreres.
+
 ## Domænetjek (5. november 2026)
 
 Tjekket mod domæneregistret via Shopifys domæneværktøj. Ledigt på tidspunktet, ikke reserveret.
