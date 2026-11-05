@@ -32,6 +32,21 @@
 
 Fravalgt: "Dansk Hulmursisolering" (forvekslingsrisiko med eksisterende brand) og navne uden "hulmur", fx "Lunmur" (al SEO skal så komme fra indholdet).
 
+## Domænetjek (5. november 2026)
+
+Tjekket mod domæneregistret via Shopifys domæneværktøj. Ledigt på tidspunktet, ikke reserveret.
+
+| Domæne | Status |
+|---|---|
+| hulmursmester.dk | Ledigt (.com også ledigt) |
+| hulmurmester.dk | Ledigt (stavevariant uden s) |
+| hulmurfix.dk | Ledigt (.com også ledigt) |
+| hulmurpro.dk | Ledigt (.com også ledigt) |
+
+## Navnebrug på nettet
+
+En websøgning på "Hulmursmester", "Hulmurfix" og "HulmurPro" gav ingen firmaer, produkter eller sider med de navne.
+
 ## Ikke verificeret endnu
 
-Domæne (punktum.dk), CVR-navn (virk.dk) og varemærke (dkpto.dk) skal tjekkes, før navnet vælges.
+CVR-navn (datacvr.virk.dk) og varemærke (dkpto.dk / TMview) skal tjekkes manuelt, før navnet vælges.
