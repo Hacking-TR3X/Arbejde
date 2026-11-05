@@ -47,6 +47,12 @@ Tjekket mod domæneregistret via Shopifys domæneværktøj. Ledigt på tidspunkt
 
 En websøgning på "Hulmursmester", "Hulmurfix" og "HulmurPro" gav ingen firmaer, produkter eller sider med de navne.
 
-## Ikke verificeret endnu
+## CVR og varemærke (indirekte tjek)
 
-CVR-navn (datacvr.virk.dk) og varemærke (dkpto.dk / TMview) skal tjekkes manuelt, før navnet vælges.
+Registrene selv (datacvr.virk.dk, TMview) kunne ikke nås fra arbejdsmiljøet. Søgning i CVR-kopier på proff.dk og krak.dk:
+
+- Intet firma hedder Hulmursmester, Hulmurmester, Hulmurfix eller HulmurPro.
+- Nærmeste navne med "hulmur": **Hulmurs & Loft Isolering** (CVR 31404142, Slagelse) og **KGK Hulmursisolering** (CVR 13853746, Vanløse). Ingen af dem ligger tæt på forslagene.
+- Ingen registrerede varemærker med "hulmur" fundet via websøgning.
+
+Endelig bekræftelse: søg "hulmur" på datacvr.virk.dk og i TMview (5 min).
